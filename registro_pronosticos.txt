@@ -1,0 +1,50 @@
+Fecha: 2025-04-01
+Pronóstico: Real Madrid vs Barcelona - Más de 2.5 goles
+Resultado: Ganado
+Cuota: 1.90
+
+Fecha: 2025-04-02
+Pronóstico: Liverpool vs Chelsea - Victoria Liverpool
+Resultado: Perdido
+Cuota: 2.20
+
+Fecha: 2025-04-03
+Pronóstico: PSG vs Lyon - Ambos equipos marcan
+Resultado: Ganado
+Cuota: 1.85
+
+Fecha: 2025-04-04
+Pronóstico: Juventus vs Inter Milan - Menos de 2.5 goles
+Resultado: Perdido
+Cuota: 2.05
+
+Fecha: 2025-04-05
+Pronóstico: Manchester United vs Arsenal - Victoria Manchester United
+Resultado: Ganado
+Cuota: 2.10
+
+Fecha: 2025-04-06
+Pronóstico: Bayern Munich vs Dortmund - Empate
+Resultado: Perdido
+Cuota: 3.30
+
+Fecha: 2025-04-07
+Pronóstico: Atalanta vs Roma - Más de 3.5 goles
+Resultado: Ganado
+Cuota: 2.30
+
+Fecha: 2025-04-08
+Pronóstico: AC Milan vs Napoli - Victoria AC Milan
+Resultado: Perdido
+Cuota: 2.15
+
+Fecha: 2025-04-09
+Pronóstico: Sevilla vs Real Betis - Victoria Sevilla
+Resultado: Ganado
+Cuota: 1.95
+
+Fecha: 2025-04-10
+Pronóstico: Tottenham vs Leicester - Ambos equipos marcan
+Resultado: Perdido
+Cuota: 1.80
+Fecha: 2025-04-03 | Partido: Juventus vs Inter | Pronóstico: Ambos Marcan | Cuota: 1.85

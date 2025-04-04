@@ -1,0 +1,38 @@
+[
+    {
+        "hora": "15:00",
+        "liga": "Premier League",
+        "local": "Manchester City",
+        "visitante": "Arsenal",
+        "cuotas": {
+            "casa": "Bwin",
+            "local": "1.85",
+            "empate": "3.50",
+            "visitante": "4.10"
+        }
+    },
+    {
+        "hora": "17:30",
+        "liga": "La Liga",
+        "local": "Real Madrid",
+        "visitante": "Barcelona",
+        "cuotas": {
+            "casa": "Bwin",
+            "local": "2.10",
+            "empate": "3.30",
+            "visitante": "3.20"
+        }
+    },
+    {
+        "hora": "20:00",
+        "liga": "Serie A",
+        "local": "Juventus",
+        "visitante": "Inter",
+        "cuotas": {
+            "casa": "Bet365",
+            "local": "2.30",
+            "empate": "3.00",
+            "visitante": "3.00"
+        }
+    }
+]
