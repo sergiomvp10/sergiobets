@@ -1,10 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import date
+from datetime import date, timedelta
+from json_storage import guardar_json, cargar_json
 from tkinter.scrolledtext import ScrolledText
 import threading
 import requests
 import json
+from telegram_utils import enviar_telegram
+from tkcalendar import DateEntry  # Importamos DateEntry de la librería tkcalendar
 
 # CONFIG TELEGRAM
 TELEGRAM_TOKEN = '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A'
@@ -53,25 +56,15 @@ partidos_simulados = [
 progreso_data = {"deposito": 100, "meta": 300, "saldo_actual": 100}
 mensaje_telegram = ""
 
-def enviar_telegram(mensaje):
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": mensaje
-        }
-        requests.post(url, data=payload)
-    except Exception as e:
-        print("Error enviando mensaje a Telegram:", e)
 
 def guardar_datos_json():
-    with open("partidos.json", "w", encoding="utf-8") as f:
-        json.dump(partidos_simulados, f, ensure_ascii=False, indent=4)
-    with open("progreso.json", "w", encoding="utf-8") as f:
-        json.dump(progreso_data, f, ensure_ascii=False, indent=4)
+    guardar_json("partidos.json", partidos_simulados)
+    guardar_json("progreso.json", progreso_data)
+
 
 def buscar_en_hilo():
     threading.Thread(target=buscar).start()
+
 
 def buscar():
     global mensaje_telegram
@@ -113,11 +106,13 @@ def buscar():
 
     guardar_datos_json()
 
+
 def actualizar_ligas():
     ligas = sorted(list(ligas_disponibles))
     combo_ligas['values'] = ['Todas'] + ligas
     if combo_ligas.get() not in combo_ligas['values']:
         combo_ligas.set('Todas')
+
 
 def enviar_alerta():
     if mensaje_telegram:
@@ -125,6 +120,7 @@ def enviar_alerta():
         messagebox.showinfo("Enviado", "El mensaje se ha enviado a Telegram.")
     else:
         messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
+
 
 def abrir_progreso():
     def guardar_datos():
@@ -178,6 +174,7 @@ def abrir_progreso():
 
     actualizar_barra()
 
+
 def abrir_pronostico():
     def enviar_pick():
         liga = entry_liga.get()
@@ -193,7 +190,7 @@ def abrir_pronostico():
             f"⚡️ APUESTA GRATUITA {fecha} ⚡️\n\n"
             f"🏆 {liga}\n"
             f"{local} 🆚 {visitante}\n\n"
-            f"💥 {pronostico}\n\n"
+            f"💥 {pronóstico}\n\n"
             f"💰 Cuota: {cuota} | Stake {stake} ♻️ | {hora} ⏰"
         )
 
@@ -237,6 +234,7 @@ def abrir_pronostico():
 
     ttk.Button(ventana, text="📤 Enviar Pronóstico", command=enviar_pick).pack(pady=15)
 
+
 # --- Interfaz ---
 root = tk.Tk()
 root.title("🧐 SergioBets v.1 - Cuotas de Partidos (Simulado)")
@@ -251,14 +249,20 @@ style.configure('TCombobox', font=('Segoe UI', 10))
 frame_top = tk.Frame(root, bg="#f1f3f4")
 frame_top.pack(pady=15)
 
-label_fecha = ttk.Label(frame_top, text="📅 Fecha (YYYY-MM-DD):")
+label_fecha = ttk.Label(frame_top, text="📅 Fecha:")
 label_fecha.pack(side=tk.LEFT)
+
 entry_fecha = ttk.Entry(frame_top, width=12)
 entry_fecha.pack(side=tk.LEFT, padx=5)
 entry_fecha.insert(0, date.today().isoformat())
 
+# Botón para abrir el calendario
+btn_calendario = ttk.Button(frame_top, text="📅", width=3, command=lambda: entry_fecha.event_generate("<Button-1>"))
+btn_calendario.pack(side=tk.LEFT, padx=5)
+
 label_liga = ttk.Label(frame_top, text="🏆 Liga:")
 label_liga.pack(side=tk.LEFT, padx=10)
+
 combo_ligas = ttk.Combobox(frame_top, state='readonly', width=30)
 combo_ligas.pack(side=tk.LEFT)
 combo_ligas.set('Todas')

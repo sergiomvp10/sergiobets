@@ -48,3 +48,216 @@ Pronóstico: Tottenham vs Leicester - Ambos equipos marcan
 Resultado: Perdido
 Cuota: 1.80
 Fecha: 2025-04-03 | Partido: Juventus vs Inter | Pronóstico: Ambos Marcan | Cuota: 1.85
+2025-04-04 | Partido: Alianza Petrolera vs Envigado | Pronóstico: ENVIGADO +0.5 GOLES | Cuota: 1.53
+2025-04-05 | Partido: Yokohama F. Marinos vs Tokyo Verdy | Pronóstico: Victoria Yokohama F. Marinos | Cuota: 2.15
+2025-04-05 | Partido: Consadole Sapporo vs Tokushima Vortis | Pronóstico: Victoria Consadole Sapporo | Cuota: 2.30
+2025-04-05 | Partido: Omiya Ardija vs Oita Trinita | Pronóstico: Victoria Omiya Ardija | Cuota: 1.87
+2025-04-05 | Partido: Renofa Yamaguchi vs Ehime FC | Pronóstico: Victoria Renofa Yamaguchi | Cuota: 1.87
+2025-04-05 | Partido: Sagan Tosu vs Fujieda MYFC | Pronóstico: Victoria Sagan Tosu | Cuota: 1.95
+2025-04-05 | Partido: Thespakusatsu Gunma vs Tegevajaro Miyazaki | Pronóstico: Victoria Thespakusatsu Gunma | Cuota: 2.30
+2025-04-05 | Partido: Matsumoto Yamaga vs Kochi United | Pronóstico: Victoria Matsumoto Yamaga | Cuota: 2.05
+2025-04-05 | Partido: Ulsan Hyundai FC vs FC Seoul | Pronóstico: Victoria Ulsan Hyundai FC | Cuota: 2.15
+2025-04-05 | Partido: Gimhae City vs Gyeongju HNP | Pronóstico: Victoria Gimhae City | Cuota: 2.45
+2025-04-05 | Partido: Paju Citizen vs Ulsan Citizen | Pronóstico: Victoria Paju Citizen | Cuota: 1.91
+2025-04-05 | Partido: Northern Tigers vs SD Raiders | Pronóstico: Victoria Northern Tigers | Cuota: 2.20
+2025-04-05 | Partido: Adelaide Olympic vs Fulham United | Pronóstico: Victoria Adelaide Olympic | Cuota: 1.75
+2025-04-05 | Partido: Macarthur Rams vs Dulwich Hill | Pronóstico: Victoria Macarthur Rams | Cuota: 2.20
+2025-04-05 | Partido: Wuxi Wugou vs Nantong Haimen Codion | Pronóstico: Victoria Wuxi Wugou | Cuota: 1.95
+2025-04-05 | Partido: Tai'an Tiankuang vs Changchun Xidu | Pronóstico: Victoria Tai'an Tiankuang | Cuota: 2.40
+2025-04-05 | Partido: Gimcheon Sangmu FC vs Daegu FC | Pronóstico: Victoria Gimcheon Sangmu FC | Cuota: 1.85
+2025-04-05 | Partido: Inter Lions vs Hakoah Sydney City | Pronóstico: Victoria Inter Lions | Cuota: 2.05
+2025-04-05 | Partido: Marconi Stallions vs St George City FA | Pronóstico: Victoria Marconi Stallions | Cuota: 1.73
+2025-04-05 | Partido: Písek vs Povltava FA | Pronóstico: Victoria Písek | Cuota: 2.15
+2025-04-05 | Partido: Motorlet Praha vs Slovan Velvary | Pronóstico: Victoria Motorlet Praha | Cuota: 2.30
+2025-04-05 | Partido: Adelaide United vs Sydney | Pronóstico: Victoria Adelaide United | Cuota: 2.22
+2025-04-05 | Partido: Kirivong Sok Sen Chey vs Life Sihanoukville | Pronóstico: Victoria Kirivong Sok Sen Chey | Cuota: 1.85
+2025-04-05 | Partido: Epitsentr Dunayivtsi vs UCSA | Pronóstico: Victoria Epitsentr Dunayivtsi | Cuota: 1.73
+2025-04-05 | Partido: Moreton City Excelsior vs Lions | Pronóstico: Victoria Moreton City Excelsior | Cuota: 2.45
+2025-04-05 | Partido: Minai vs Metalurh Zaporizhya | Pronóstico: Victoria Minai | Cuota: 2.10
+2025-04-05 | Partido: Vorskla Poltava vs Zorya Luhansk | Pronóstico: Victoria Vorskla Poltava | Cuota: 2.30
+2025-04-05 | Partido: Rizespor vs Sivasspor | Pronóstico: Victoria Rizespor | Cuota: 1.90
+2025-04-05 | Partido: Prachuap vs Lamphun Warrior | Pronóstico: Victoria Prachuap | Cuota: 1.91
+2025-04-05 | Partido: Kasetsart FC vs Chainat | Pronóstico: Victoria Kasetsart FC | Cuota: 2.05
+2025-04-05 | Partido: Zhetysu vs Zhenys | Pronóstico: Victoria Zhetysu | Cuota: 2.40
+2025-04-05 | Partido: Phnom Penh Crown vs Svay Rieng | Pronóstico: Victoria Phnom Penh Crown | Cuota: 2.50
+2025-04-05 | Partido: Sigma Olomouc vs Karviná | Pronóstico: Victoria Sigma Olomouc | Cuota: 1.88
+2025-04-05 | Partido: Walsall vs Port Vale | Pronóstico: Victoria Walsall | Cuota: 2.25
+2025-04-05 | Partido: Aldershot Town vs Woking | Pronóstico: Victoria Aldershot Town | Cuota: 2.05
+2025-04-05 | Partido: Sichuan Jiuniu vs Henan Jianye | Pronóstico: Victoria Sichuan Jiuniu | Cuota: 2.15
+2025-04-05 | Partido: Girona vs Alaves | Pronóstico: Victoria Girona | Cuota: 2.00
+2025-04-05 | Partido: Union Mauer vs Wiener SC | Pronóstico: Victoria Union Mauer | Cuota: 2.25
+2025-04-05 | Partido: FC Viktoria Köln vs SpVgg Unterhaching | Pronóstico: Victoria FC Viktoria Köln | Cuota: 1.80
+2025-04-05 | Partido: FC Astoria Walldorf vs FC Gießen | Pronóstico: Victoria FC Astoria Walldorf | Cuota: 1.77
+2025-04-05 | Partido: Sportfreunde Lotte vs SV Rodinghausen | Pronóstico: Victoria Sportfreunde Lotte | Cuota: 1.83
+2025-04-05 | Partido: Eidsvold vs Grorud | Pronóstico: Victoria Eidsvold | Cuota: 1.90
+2025-04-05 | Partido: Hønefoss vs Ull/Kisa | Pronóstico: Victoria Hønefoss | Cuota: 1.70
+2025-04-05 | Partido: Kyzyl-Zhar vs Turan Turkistan | Pronóstico: Victoria Kyzyl-Zhar | Cuota: 2.05
+2025-04-05 | Partido: Ilioupoli vs Egaleo | Pronóstico: Victoria Ilioupoli | Cuota: 1.95
+2025-04-05 | Partido: Selangor vs Terengganu | Pronóstico: Victoria Selangor | Cuota: 1.80
+2025-04-05 | Partido: Excelsior Maassluis vs RKAV Volendam | Pronóstico: Victoria Excelsior Maassluis | Cuota: 2.20
+2025-04-05 | Partido: Mes Kerman vs Shahrdari Noshahr | Pronóstico: Victoria Mes Kerman | Cuota: 2.10
+2025-04-05 | Partido: Giana Erminio vs Trento | Pronóstico: Victoria Giana Erminio | Cuota: 2.05
+2025-04-05 | Partido: AS Kigali vs Rwamagana City | Pronóstico: Victoria AS Kigali | Cuota: 1.85
+2025-04-05 | Partido: Milford FC vs Kruger United | Pronóstico: Victoria Milford FC | Cuota: 2.45
+2025-04-05 | Partido: Maroons vs Express | Pronóstico: Victoria Maroons | Cuota: 2.05
+2025-04-05 | Partido: Golden Arrows vs Chippa United | Pronóstico: Victoria Golden Arrows | Cuota: 2.25
+2025-04-05 | Partido: Levanger vs Strommen | Pronóstico: Victoria Levanger | Cuota: 1.95
+2025-04-05 | Partido: Gjilani vs Ferizaj | Pronóstico: Victoria Gjilani | Cuota: 1.95
+2025-04-05 | Partido: Deportivo Capiata vs Resistencia | Pronóstico: Victoria Deportivo Capiata | Cuota: 2.50
+2025-04-05 | Partido: Llantwit Major vs Caerau (Ely) | Pronóstico: Victoria Llantwit Major | Cuota: 2.20
+2025-04-05 | Partido: Aizawl vs Namdhari | Pronóstico: Victoria Aizawl | Cuota: 1.95
+2025-04-05 | Partido: Mes Rafsanjan vs Nassaji Mazandaran | Pronóstico: Victoria Mes Rafsanjan | Cuota: 2.30
+2025-04-05 | Partido: La Viena FC vs Olympic El Qanah | Pronóstico: Victoria La Viena FC | Cuota: 2.35
+2025-04-05 | Partido: AS Trencin vs Komárno | Pronóstico: Victoria AS Trencin | Cuota: 1.83
+2025-04-05 | Partido: Skalica vs Zemplín Michalovce | Pronóstico: Victoria Skalica | Cuota: 2.20
+2025-04-05 | Partido: Millwall vs Portsmouth | Pronóstico: Victoria Millwall | Cuota: 2.48
+2025-04-05 | Partido: Preston vs Stoke City | Pronóstico: Victoria Preston | Cuota: 2.44
+2025-04-05 | Partido: QPR vs Cardiff | Pronóstico: Victoria QPR | Cuota: 2.32
+2025-04-05 | Partido: Sheffield Wednesday vs Hull City | Pronóstico: Victoria Sheffield Wednesday | Cuota: 2.10
+2025-04-05 | Partido: Charlton vs Lincoln | Pronóstico: Victoria Charlton | Cuota: 1.73
+2025-04-05 | Partido: Huddersfield vs Mansfield Town | Pronóstico: Victoria Huddersfield | Cuota: 1.83
+2025-04-05 | Partido: Leyton Orient vs Wigan | Pronóstico: Victoria Leyton Orient | Cuota: 1.95
+2025-04-05 | Partido: Stevenage vs Crawley Town | Pronóstico: Victoria Stevenage | Cuota: 1.85
+2025-04-05 | Partido: Carlisle vs Newport County | Pronóstico: Victoria Carlisle | Cuota: 1.73
+2025-04-05 | Partido: Fleetwood Town vs Swindon Town | Pronóstico: Victoria Fleetwood Town | Cuota: 2.05
+2025-04-05 | Partido: Salford City vs Gillingham | Pronóstico: Victoria Salford City | Cuota: 2.10
+2025-04-05 | Partido: Kilmarnock vs Motherwell | Pronóstico: Victoria Kilmarnock | Cuota: 1.77
+2025-04-05 | Partido: Cove Rangers vs Inverness CT | Pronóstico: Victoria Cove Rangers | Cuota: 2.40
+2025-04-05 | Partido: Stenhousemuir vs Alloa Athletic | Pronóstico: Victoria Stenhousemuir | Cuota: 1.83
+2025-04-05 | Partido: Dunfermline vs Hamilton Academical | Pronóstico: Victoria Dunfermline | Cuota: 1.91
+2025-04-05 | Partido: Spartans vs Stranraer | Pronóstico: Victoria Spartans | Cuota: 2.15
+2025-04-05 | Partido: Tyumen vs FC UFA | Pronóstico: Victoria Tyumen | Cuota: 2.40
+2025-04-05 | Partido: Qatar SC vs Al-Khor | Pronóstico: Victoria Qatar SC | Cuota: 2.15
+2025-04-05 | Partido: Meyrin vs Chênois | Pronóstico: Victoria Meyrin | Cuota: 1.85
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-06 | Partido: Torino vs Verona | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Torino 🆚 Verona
+📅 2025-04-06 ⏰ 08:00
+💥 Victoria Torino (Match Winner)
+💰 Cuota: 1.75
+2025-04-06 | Partido: Atalanta vs Lazio | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Atalanta 🆚 Lazio
+📅 2025-04-06 ⏰ 11:00
+💥 Victoria Atalanta (Match Winner)
+💰 Cuota: 1.75
+2025-04-06 | Partido: Deportivo Pereira vs Chico | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Pereira 🆚 Chico
+📅 2025-04-06 ⏰ 14:00
+💥 Victoria Deportivo Pereira (Match Winner)
+💰 Cuota: 1.69
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-06 | Partido: Torino vs Verona | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Torino 🆚 Verona
+📅 2025-04-06 ⏰ 08:00
+💥 Victoria Torino (Match Winner)
+💰 Cuota: 1.75
+2025-04-06 | Partido: Atalanta vs Lazio | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Atalanta 🆚 Lazio
+📅 2025-04-06 ⏰ 11:00
+💥 Victoria Atalanta (Match Winner)
+💰 Cuota: 1.75
+2025-04-06 | Partido: Deportivo Pereira vs Chico | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Pereira 🆚 Chico
+📅 2025-04-06 ⏰ 14:00
+💥 Victoria Deportivo Pereira (Match Winner)
+💰 Cuota: 1.69
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Primera A
+Deportivo Cali 🆚 La Equidad
+📅 2025-04-05 ⏰ 16:10
+💥 Victoria Deportivo Cali (Match Winner)
+💰 Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | 🔥 PRONÓSTICO AUTOMÁTICO
+🏆 Serie A
+Corinthians 🆚 Vasco DA Gama
+📅 2025-04-05 ⏰ 16:30
+💥 Victoria Corinthians (Match Winner)
+💰 Cuota: 1.67
+2025-04-05 | Partido: Deportivo Cali vs La Equidad | PRONOSTICO AUTOMATICO
+Liga: Primera A
+Deportivo Cali vs La Equidad
+Fecha: 2025-04-05 Hora: 16:10
+Pick: Victoria Deportivo Cali (Match Winner)
+Cuota: 1.75
+2025-04-05 | Partido: Corinthians vs Vasco DA Gama | PRONOSTICO AUTOMATICO
+Liga: Serie A
+Corinthians vs Vasco DA Gama
+Fecha: 2025-04-05 Hora: 16:30
+Pick: Victoria Corinthians (Match Winner)
+Cuota: 1.67
