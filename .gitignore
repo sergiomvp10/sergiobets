@@ -1,3 +1,14 @@
- .env
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.log
+
+# Entorno y claves
+.env
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de VSCode (si usas)
+.vscode/
