@@ -10,5 +10,11 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Archivos de VSCode (si usas)
+# Archivos de VSCode
 .vscode/
+
+# Archivos generados por SergioBets
+partidos.json
+progreso.json
+ultimo_pick.json
+registro_pronosticos.txt

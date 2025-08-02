@@ -1,4 +1,5 @@
 import tkinter as tk
+from footystats_api import obtener_partidos_del_dia
 from tkinter import ttk, messagebox
 from datetime import date, timedelta
 from json_storage import guardar_json, cargar_json
@@ -13,52 +14,34 @@ from tkcalendar import DateEntry  # Importamos DateEntry de la librería tkcalen
 TELEGRAM_TOKEN = '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A'
 TELEGRAM_CHAT_ID = '7659029315'
 
-# Datos simulados para desarrollo sin API
-partidos_simulados = [
-    {
-        "hora": "15:00",
-        "liga": "Premier League",
-        "local": "Manchester City",
-        "visitante": "Arsenal",
-        "cuotas": {
-            "casa": "Bwin",
-            "local": "1.85",
-            "empate": "3.50",
-            "visitante": "4.10"
-        }
-    },
-    {
-        "hora": "17:30",
-        "liga": "La Liga",
-        "local": "Real Madrid",
-        "visitante": "Barcelona",
-        "cuotas": {
-            "casa": "Bwin",
-            "local": "2.10",
-            "empate": "3.30",
-            "visitante": "3.20"
-        }
-    },
-    {
-        "hora": "20:00",
-        "liga": "Serie A",
-        "local": "Juventus",
-        "visitante": "Inter",
-        "cuotas": {
-            "casa": "Bet365",
-            "local": "2.30",
-            "empate": "3.00",
-            "visitante": "3.00"
-        }
-    }
-]
+
+def cargar_partidos_reales(fecha):
+    datos_api = obtener_partidos_del_dia(fecha)
+    partidos = []
+
+    for partido in datos_api:
+        partidos.append({
+            "hora": partido.get("time", "00:00"),
+            "liga": partido.get("league_name", "Desconocida"),
+            "local": partido.get("home_name", "Equipo Local"),
+            "visitante": partido.get("away_name", "Equipo Visitante"),
+            "cuotas": {
+                "casa": "FootyStats",
+                "local": str(partido.get("odds_ft_home_team_win", "1.00")),
+                "empate": str(partido.get("odds_ft_draw", "1.00")),
+                "visitante": str(partido.get("odds_ft_away_team_win", "1.00"))
+            }
+        })
+
+    return partidos
 
 progreso_data = {"deposito": 100, "meta": 300, "saldo_actual": 100}
 mensaje_telegram = ""
 
 
-def guardar_datos_json():
-    guardar_json("partidos.json", partidos_simulados)
+
+def guardar_datos_json(fecha):
+    guardar_json("partidos.json", cargar_partidos_reales(fecha))
     guardar_json("progreso.json", progreso_data)
 
 
@@ -75,7 +58,9 @@ def buscar():
     ligas_disponibles.clear()
     partidos_por_liga = {}
 
-    for partido in partidos_simulados:
+    partidos = cargar_partidos_reales(fecha)
+
+    for partido in partidos:
         liga = partido["liga"]
         ligas_disponibles.add(liga)
 
@@ -104,19 +89,17 @@ def buscar():
             output.insert(tk.END, info)
             mensaje_telegram += info
 
-    guardar_datos_json()
-
+    guardar_datos_json(fecha)
 
 def actualizar_ligas():
-    ligas = sorted(list(ligas_disponibles))
+    ligas = sorted(ligas_disponibles)
     combo_ligas['values'] = ['Todas'] + ligas
     if combo_ligas.get() not in combo_ligas['values']:
         combo_ligas.set('Todas')
 
-
 def enviar_alerta():
     if mensaje_telegram:
-        enviar_telegram(mensaje_telegram)
+        enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_telegram)
         messagebox.showinfo("Enviado", "El mensaje se ha enviado a Telegram.")
     else:
         messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
@@ -190,7 +173,7 @@ def abrir_pronostico():
             f"⚡️ APUESTA GRATUITA {fecha} ⚡️\n\n"
             f"🏆 {liga}\n"
             f"{local} 🆚 {visitante}\n\n"
-            f"💥 {pronóstico}\n\n"
+            f"💥 {pronostico}\n\n"
             f"💰 Cuota: {cuota} | Stake {stake} ♻️ | {hora} ⏰"
         )
 
@@ -201,7 +184,7 @@ def abrir_pronostico():
             with open("registro_pronosticos.txt", "a", encoding="utf-8") as f:
                 f.write(f"{fecha} | Partido: {local} vs {visitante} | Pronóstico: {pronostico} | Cuota: {cuota}\n")
 
-            enviar_telegram(mensaje)
+            enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
             messagebox.showinfo("Enviado", "El pronóstico se ha enviado a Telegram.")
             ventana.destroy()
         except Exception as e:
@@ -237,7 +220,7 @@ def abrir_pronostico():
 
 # --- Interfaz ---
 root = tk.Tk()
-root.title("🧐 SergioBets v.1 - Cuotas de Partidos (Simulado)")
+root.title("🧐 SergioBets v.1 – Cuotas de Partidos (Reales)")
 root.geometry("800x600")
 root.configure(bg="#f1f3f4")
 
@@ -252,13 +235,8 @@ frame_top.pack(pady=15)
 label_fecha = ttk.Label(frame_top, text="📅 Fecha:")
 label_fecha.pack(side=tk.LEFT)
 
-entry_fecha = ttk.Entry(frame_top, width=12)
+entry_fecha = DateEntry(frame_top, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-MM-dd')
 entry_fecha.pack(side=tk.LEFT, padx=5)
-entry_fecha.insert(0, date.today().isoformat())
-
-# Botón para abrir el calendario
-btn_calendario = ttk.Button(frame_top, text="📅", width=3, command=lambda: entry_fecha.event_generate("<Button-1>"))
-btn_calendario.pack(side=tk.LEFT, padx=5)
 
 label_liga = ttk.Label(frame_top, text="🏆 Liga:")
 label_liga.pack(side=tk.LEFT, padx=10)
