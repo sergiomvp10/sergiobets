@@ -77,10 +77,8 @@ def buscar():
     global mensaje_telegram
     fecha = entry_fecha.get()
     output.delete('1.0', tk.END)
-    output.insert(tk.END, f"📅 Partidos programados para la jornada del: {fecha}\n\n")
 
     ligas_disponibles.clear()
-    partidos_por_liga = {}
 
     try:
         partidos = cargar_partidos_reales(fecha)
@@ -88,13 +86,6 @@ def buscar():
         for partido in partidos:
             liga = partido["liga"]
             ligas_disponibles.add(liga)
-
-            info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
-            info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
-
-            if liga not in partidos_por_liga:
-                partidos_por_liga[liga] = []
-            partidos_por_liga[liga].append(info)
 
         actualizar_ligas()
 
@@ -111,6 +102,7 @@ def buscar():
         predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados)
         
         mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada)
+        mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha)
 
         mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
         if liga_filtrada == 'Todas':
@@ -118,46 +110,15 @@ def buscar():
         else:
             mensaje_telegram += f"\n\n⚽ PARTIDOS - {liga_filtrada} ({fecha})\n\n"
 
-        checkboxes_partidos.clear()
-        partidos_actuales.clear()
-        partidos_actuales.extend(partidos_filtrados)
-        
-        frame_checkboxes = tk.Frame(output, bg='#B2F0E8')
-        
-        for liga in sorted(partidos_por_liga.keys()):
+        for liga in sorted(set(p["liga"] for p in partidos_filtrados)):
             if liga_filtrada != 'Todas' and liga_filtrada != liga:
                 continue
-            output.insert(tk.END, f"🔷 {liga}\n")
             mensaje_telegram += f"🔷 {liga}\n"
             
             liga_partidos = [p for p in partidos_filtrados if p["liga"] == liga]
-            
-            for i, partido in enumerate(liga_partidos):
-                var = tk.BooleanVar()
-                checkboxes_partidos.append(var)
-                
-                frame_partido = tk.Frame(frame_checkboxes, bg='#B2F0E8', relief='ridge', bd=1)
-                frame_partido.pack(fill='x', pady=2, padx=5)
-                
-                checkbox_frame = tk.Frame(frame_partido, bg='#B2F0E8')
-                checkbox_frame.pack(fill='x', padx=5, pady=3)
-                
-                checkbox = tk.Checkbutton(checkbox_frame, variable=var, bg='#B2F0E8')
-                checkbox.pack(side=tk.LEFT)
-                
-                partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
-                partido_label = tk.Label(checkbox_frame, text=partido_text, bg='#B2F0E8', 
-                                       font=('Segoe UI', 9), anchor='w')
-                partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-                
-                casa_label = tk.Label(frame_partido, text=f"🏠 Casa: {partido['cuotas']['casa']}", bg='#B2F0E8', 
-                                     font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
-                casa_label.pack(fill='x', padx=25, pady=(0,3))
-                
+            for partido in liga_partidos:
                 mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                 mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
-        
-        output.window_create(tk.END, window=frame_checkboxes)
 
         guardar_datos_json(fecha)
         
@@ -184,6 +145,13 @@ def limpiar_frame_predicciones():
         widget.destroy()
     checkboxes_predicciones.clear()
     predicciones_actuales.clear()
+
+def limpiar_frame_partidos():
+    """Limpiar el frame de partidos y checkboxes"""
+    for widget in frame_partidos.winfo_children():
+        widget.destroy()
+    checkboxes_partidos.clear()
+    partidos_actuales.clear()
 
 def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
     """Mostrar predicciones con checkboxes para selección"""
@@ -226,6 +194,68 @@ def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
         justif_label = tk.Label(pred_frame, text=f"📝 {pred['razon']}", bg="#ecf0f1", 
                                font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
         justif_label.pack(fill='x', padx=25, pady=(0,3))
+
+def mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha):
+    """Mostrar partidos con checkboxes para selección"""
+    limpiar_frame_partidos()
+    
+    if not partidos_filtrados:
+        return
+    
+    titulo_frame = tk.Frame(frame_partidos, bg="#34495e")
+    titulo_frame.pack(fill='x', pady=2)
+    
+    titulo_text = f"🗓️ PARTIDOS PROGRAMADOS PARA LA JORNADA DEL: {fecha}"
+    if liga_filtrada != 'Todas':
+        titulo_text += f" - {liga_filtrada}"
+    
+    titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
+                           font=('Segoe UI', 10, 'bold'), pady=5)
+    titulo_label.pack()
+    
+    partidos_por_liga = {}
+    for partido in partidos_filtrados:
+        liga = partido["liga"]
+        if liga not in partidos_por_liga:
+            partidos_por_liga[liga] = []
+        partidos_por_liga[liga].append(partido)
+    
+    for liga in sorted(partidos_por_liga.keys()):
+        if liga_filtrada != 'Todas' and liga_filtrada != liga:
+            continue
+            
+        liga_frame = tk.Frame(frame_partidos, bg="#2c3e50")
+        liga_frame.pack(fill='x', pady=(10, 2), padx=5)
+        
+        liga_label = tk.Label(liga_frame, text=f"🔷 {liga}", bg="#2c3e50", fg="white",
+                             font=('Segoe UI', 9, 'bold'), pady=3)
+        liga_label.pack()
+        
+        liga_partidos = partidos_por_liga[liga]
+        
+        for i, partido in enumerate(liga_partidos):
+            partidos_actuales.append(partido)
+            
+            partido_frame = tk.Frame(frame_partidos, bg="#B2F0E8", relief='ridge', bd=1)
+            partido_frame.pack(fill='x', pady=2, padx=5)
+            
+            var_checkbox = tk.BooleanVar()
+            checkboxes_partidos.append(var_checkbox)
+            
+            checkbox_frame = tk.Frame(partido_frame, bg="#B2F0E8")
+            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            
+            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
+            checkbox.pack(side=tk.LEFT)
+            
+            partido_text = f"⚽ PARTIDO #{len(partidos_actuales)}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
+            partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
+                                   font=('Segoe UI', 9), anchor='w')
+            partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
+            
+            casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']}", bg="#B2F0E8", 
+                                 font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
+            casa_label.pack(fill='x', padx=25, pady=(0,3))
 
 def reproducir_sonido_exito():
     """Reproducir sonido MP3 cuando se envía exitosamente a Telegram"""
@@ -648,6 +678,9 @@ btn_usuarios.pack(side=tk.LEFT, padx=5)
 
 frame_predicciones = tk.Frame(root, bg="#f1f3f4")
 frame_predicciones.pack(pady=5, padx=10, fill='x')
+
+frame_partidos = tk.Frame(root, bg="#f1f3f4")
+frame_partidos.pack(pady=5, padx=10, fill='x')
 
 output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
 output.pack(pady=10, padx=10, expand=True, fill='both')
