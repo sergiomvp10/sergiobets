@@ -10,6 +10,7 @@ import json
 from telegram_utils import enviar_telegram
 from tkcalendar import DateEntry
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
+from league_utils import detectar_liga_por_imagen
 
 # CONFIG TELEGRAM
 TELEGRAM_TOKEN = '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A'
@@ -26,9 +27,13 @@ def cargar_partidos_reales(fecha):
             return simular_datos_prueba()
 
         for partido in datos_api:
+            liga_detectada = detectar_liga_por_imagen(
+                partido.get("home_image", ""), 
+                partido.get("away_image", "")
+            )
             partidos.append({
-                "hora": partido.get("time", "15:00"),
-                "liga": partido.get("league_name", "Premier League"),
+                "hora": "Por confirmar",
+                "liga": liga_detectada,
                 "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
                 "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
                 "cuotas": {
