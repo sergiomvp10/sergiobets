@@ -55,6 +55,8 @@ def cargar_partidos_reales(fecha):
 
 progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 mensaje_telegram = ""
+predicciones_actuales = []
+checkboxes_predicciones = []
 
 
 
@@ -104,18 +106,7 @@ def buscar():
         
         predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados)
         
-        if predicciones_ia:
-            output.insert(tk.END, "🤖 PREDICCIONES IA - PICKS RECOMENDADOS\n")
-            if liga_filtrada != 'Todas':
-                output.insert(tk.END, f"🏆 Liga: {liga_filtrada}\n")
-            output.insert(tk.END, "=" * 50 + "\n")
-            for i, pred in enumerate(predicciones_ia, 1):
-                output.insert(tk.END, f"🎯 PICK #{i}: {pred['prediccion']}\n")
-                output.insert(tk.END, f"⚽ {pred['partido']} ({pred['liga']})\n")
-                output.insert(tk.END, f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u | ⏰ {pred['hora']}\n")
-                output.insert(tk.END, f"📊 Confianza: {pred['confianza']}% | Valor Esperado: {pred['valor_esperado']}\n")
-                output.insert(tk.END, f"📝 Justificación: {pred['razon']}\n\n")
-            output.insert(tk.END, "=" * 50 + "\n\n")
+        mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada)
 
         mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
         if liga_filtrada == 'Todas':
@@ -150,6 +141,95 @@ def on_liga_changed(event=None):
     """Callback cuando se cambia la selección de liga"""
     if ligas_disponibles:  # Solo actualizar si hay datos cargados
         buscar()
+
+def limpiar_frame_predicciones():
+    """Limpiar el frame de predicciones y checkboxes"""
+    for widget in frame_predicciones.winfo_children():
+        widget.destroy()
+    checkboxes_predicciones.clear()
+    predicciones_actuales.clear()
+
+def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
+    """Mostrar predicciones con checkboxes para selección"""
+    limpiar_frame_predicciones()
+    
+    if not predicciones:
+        return
+    
+    titulo_frame = tk.Frame(frame_predicciones, bg="#34495e")
+    titulo_frame.pack(fill='x', pady=2)
+    
+    titulo_text = "🤖 PREDICCIONES IA - SELECCIONA PICKS PARA ENVIAR"
+    if liga_filtrada != 'Todas':
+        titulo_text += f" - {liga_filtrada}"
+    
+    titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
+                           font=('Segoe UI', 10, 'bold'), pady=5)
+    titulo_label.pack()
+    
+    for i, pred in enumerate(predicciones):
+        predicciones_actuales.append(pred)
+        
+        pred_frame = tk.Frame(frame_predicciones, bg="#ecf0f1", relief='ridge', bd=1)
+        pred_frame.pack(fill='x', pady=2, padx=5)
+        
+        var_checkbox = tk.BooleanVar()
+        checkboxes_predicciones.append(var_checkbox)
+        
+        checkbox_frame = tk.Frame(pred_frame, bg="#ecf0f1")
+        checkbox_frame.pack(fill='x', padx=5, pady=3)
+        
+        checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
+        checkbox.pack(side=tk.LEFT)
+        
+        pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+        pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
+                             font=('Segoe UI', 9), anchor='w')
+        pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
+        
+        justif_label = tk.Label(pred_frame, text=f"📝 {pred['razon']}", bg="#ecf0f1", 
+                               font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
+        justif_label.pack(fill='x', padx=25, pady=(0,3))
+
+def enviar_predicciones_seleccionadas():
+    """Enviar solo las predicciones seleccionadas a Telegram"""
+    predicciones_seleccionadas = []
+    
+    for i, var_checkbox in enumerate(checkboxes_predicciones):
+        if var_checkbox.get():
+            predicciones_seleccionadas.append(predicciones_actuales[i])
+    
+    if not predicciones_seleccionadas:
+        messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico para enviar.")
+        return
+    
+    fecha = entry_fecha.get()
+    mensaje = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+    
+    try:
+        for pred in predicciones_seleccionadas:
+            from ia_bets import guardar_prediccion_historica
+            guardar_prediccion_historica(pred, fecha)
+        
+        with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
+            json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
+        
+        with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
+            f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
+            for pred in predicciones_seleccionadas:
+                f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
+            f.write("\n")
+        
+        exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
+        if exito:
+            messagebox.showinfo("Enviado", f"Se han enviado {len(predicciones_seleccionadas)} pronóstico(s) seleccionado(s) a Telegram.")
+            for var_checkbox in checkboxes_predicciones:
+                var_checkbox.set(False)
+        else:
+            messagebox.showerror("Error", "No se pudieron enviar los pronósticos a Telegram.")
+            
+    except Exception as e:
+        messagebox.showerror("Error", f"Error enviando pronósticos seleccionados: {e}")
 
 def enviar_alerta():
     if mensaje_telegram:
@@ -336,10 +416,13 @@ btn_progreso.pack(side=tk.LEFT, padx=5)
 btn_enviar = ttk.Button(frame_top, text="📢 Enviar a Telegram", command=enviar_alerta)
 btn_enviar.pack(side=tk.LEFT, padx=5)
 
-btn_pronostico = ttk.Button(frame_top, text="📌 Enviar Pronóstico", command=abrir_pronostico)
+btn_pronostico = ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=enviar_predicciones_seleccionadas)
 btn_pronostico.pack(side=tk.LEFT, padx=5)
 
-output = ScrolledText(root, wrap=tk.WORD, width=95, height=28, font=('Segoe UI', 10))
+frame_predicciones = tk.Frame(root, bg="#f1f3f4")
+frame_predicciones.pack(pady=5, padx=10, fill='x')
+
+output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Segoe UI', 10))
 output.pack(pady=10, padx=10, expand=True, fill='both')
 
 ligas_disponibles = set()
