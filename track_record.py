@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from json_storage import cargar_json, guardar_json
 
+VALID_MATCH_STATUSES = ["complete", "finished", "ft", "full-time", "ended"]
+INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended"]
+
 class TrackRecordManager:
     """Manages prediction tracking and performance analysis"""
     
@@ -45,8 +48,9 @@ class TrackRecordManager:
                 if (equipo_local.lower() in home_name or home_name in equipo_local.lower()) and \
                    (equipo_visitante.lower() in away_name or away_name in equipo_visitante.lower()):
                     
-                    status = partido.get("status", "").lower()
-                    if status in ["complete", "finished", "ft"]:
+                    status = partido.get("status", "").lower().strip()
+                    
+                    if status in VALID_MATCH_STATUSES:
                         return {
                             "match_id": partido.get("id"),
                             "status": status,
@@ -64,6 +68,12 @@ class TrackRecordManager:
                                 partido.get("away_goals", 0)
                             )
                         }
+                    elif status in INVALID_MATCH_STATUSES:
+                        print(f"Skipping incomplete match: {partido.get('home_name')} vs {partido.get('away_name')} - Status: {status}")
+                        return None
+                    else:
+                        print(f"Unknown match status: {status} for {partido.get('home_name')} vs {partido.get('away_name')}")
+                        return None
             
             return None
             
@@ -125,14 +135,66 @@ class TrackRecordManager:
             print(f"Error validando predicción: {e}")
             return False, -stake
     
+    def corregir_datos_historicos(self) -> Dict[str, Any]:
+        """
+        Corrige predicciones que fueron marcadas incorrectamente debido a partidos incompletos
+        """
+        try:
+            historial = cargar_json(self.historial_file) or []
+            correcciones = 0
+            predicciones_corregidas = []
+            
+            for prediccion in historial:
+                resultado_real = prediccion.get("resultado_real")
+                
+                if resultado_real is not None:
+                    status = resultado_real.get("status", "").lower().strip()
+                    
+                    if status not in VALID_MATCH_STATUSES:
+                        predicciones_corregidas.append({
+                            "partido": prediccion.get("partido", "unknown"),
+                            "fecha": prediccion.get("fecha", "unknown"),
+                            "status_anterior": status,
+                            "acierto_anterior": prediccion.get("acierto"),
+                            "ganancia_anterior": prediccion.get("ganancia", 0)
+                        })
+                        
+                        prediccion["resultado_real"] = None
+                        prediccion["ganancia"] = None
+                        prediccion["acierto"] = None
+                        if "fecha_actualizacion" in prediccion:
+                            del prediccion["fecha_actualizacion"]
+                        
+                        correcciones += 1
+            
+            if correcciones > 0:
+                guardar_json(self.historial_file, historial)
+                print(f"Corregidas {correcciones} predicciones con estados de partido inválidos")
+                
+                for correccion in predicciones_corregidas:
+                    print(f"  - {correccion['partido']} ({correccion['fecha']}) - Status: {correccion['status_anterior']} - Era: {'Win' if correccion['acierto_anterior'] else 'Loss'}")
+            
+            return {
+                "correcciones": correcciones,
+                "predicciones_corregidas": predicciones_corregidas,
+                "total_predicciones": len(historial)
+            }
+            
+        except Exception as e:
+            print(f"Error corrigiendo datos históricos: {e}")
+            return {"error": str(e)}
+
     def actualizar_historial_con_resultados(self) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
         """
         try:
+            correccion_result = self.corregir_datos_historicos()
+            
             historial = cargar_json(self.historial_file) or []
             actualizaciones = 0
             errores = 0
+            partidos_incompletos = 0
             
             for prediccion in historial:
                 if prediccion.get("resultado_real") is not None:
@@ -154,6 +216,7 @@ class TrackRecordManager:
                     
                     actualizaciones += 1
                 else:
+                    partidos_incompletos += 1
                     errores += 1
             
             guardar_json(self.historial_file, historial)
@@ -161,6 +224,8 @@ class TrackRecordManager:
             return {
                 "actualizaciones": actualizaciones,
                 "errores": errores,
+                "partidos_incompletos": partidos_incompletos,
+                "correcciones_historicas": correccion_result.get("correcciones", 0),
                 "total_procesadas": len([p for p in historial if p.get("resultado_real") is None])
             }
             

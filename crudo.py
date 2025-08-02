@@ -440,10 +440,12 @@ def abrir_track_record():
             if "error" in resultado:
                 messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
             else:
-                messagebox.showinfo("Actualización", 
-                    f"✅ Actualizadas: {resultado['actualizaciones']}\n"
-                    f"❌ Errores: {resultado['errores']}\n"
-                    f"📊 Pendientes: {resultado['total_procesadas']}")
+                mensaje = f"✅ Actualizadas: {resultado['actualizaciones']}\n"
+                mensaje += f"❌ Errores: {resultado['errores']}\n"
+                mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}\n"
+                mensaje += f"🔧 Correcciones históricas: {resultado.get('correcciones_historicas', 0)}\n"
+                mensaje += f"📊 Pendientes: {resultado['total_procesadas']}"
+                messagebox.showinfo("Actualización", mensaje)
                 mostrar_metricas()
         
         def mostrar_metricas():
