@@ -122,44 +122,41 @@ def buscar():
         partidos_actuales.clear()
         partidos_actuales.extend(partidos_filtrados)
         
-        output.insert(tk.END, f"\n📋 SELECCIONAR PARTIDOS PARA ENVIAR\n")
-        output.insert(tk.END, "=" * 50 + "\n")
-        
         frame_checkboxes = tk.Frame(output, bg='#B2F0E8')
         
-        for i, partido in enumerate(partidos_filtrados):
-            var = tk.BooleanVar()
-            checkboxes_partidos.append(var)
-            
-            frame_partido = tk.Frame(frame_checkboxes, bg='#B2F0E8')
-            frame_partido.pack(fill='x', pady=2, padx=5)
-            
-            checkbox = tk.Checkbutton(frame_partido, variable=var, bg='#B2F0E8', 
-                                     font=("Arial", 9))
-            checkbox.pack(side='left')
-            
-            partido_info = f"⚽ {partido['local']} vs {partido['visitante']} - {partido['liga']}"
-            cuotas_info = f"💰 Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}"
-            
-            label_partido = tk.Label(frame_partido, text=partido_info, 
-                                   font=("Arial", 9, "bold"), bg='#B2F0E8', fg="#333")
-            label_partido.pack(side='left', padx=(5, 0))
-            
-            label_cuotas = tk.Label(frame_partido, text=f"  {cuotas_info}", 
-                                  font=("Arial", 8), bg='#B2F0E8', fg="#666")
-            label_cuotas.pack(side='left', padx=(10, 0))
-        
-        output.window_create(tk.END, window=frame_checkboxes)
-        output.insert(tk.END, "\n\n")
-
         for liga in sorted(partidos_por_liga.keys()):
             if liga_filtrada != 'Todas' and liga_filtrada != liga:
                 continue
             output.insert(tk.END, f"🔷 {liga}\n")
             mensaje_telegram += f"🔷 {liga}\n"
-            for info in partidos_por_liga[liga]:
-                output.insert(tk.END, info)
-                mensaje_telegram += info
+            
+            liga_partidos = [p for p in partidos_filtrados if p["liga"] == liga]
+            
+            for i, partido in enumerate(liga_partidos):
+                var = tk.BooleanVar()
+                checkboxes_partidos.append(var)
+                
+                frame_partido = tk.Frame(frame_checkboxes, bg='#B2F0E8')
+                frame_partido.pack(fill='x', pady=2, padx=5)
+                
+                checkbox = tk.Checkbutton(frame_partido, variable=var, bg='#B2F0E8', 
+                                         font=("Arial", 9))
+                checkbox.pack(side='left')
+                
+                info_text = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+                info_text += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}"
+                
+                label_partido = tk.Label(frame_partido, text=info_text, 
+                                       font=("Arial", 9), bg='#B2F0E8', fg="#333", 
+                                       justify='left', anchor='w')
+                label_partido.pack(side='left', padx=(5, 0), fill='x', expand=True)
+                
+                output.insert(tk.END, f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n")
+                output.insert(tk.END, f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n")
+                mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+                mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+        
+        output.window_create(tk.END, window=frame_checkboxes)
 
         guardar_datos_json(fecha)
         
