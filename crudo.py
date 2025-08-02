@@ -9,7 +9,7 @@ import requests
 import json
 import os
 import pygame
-from telegram_utils import enviar_telegram
+from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from tkcalendar import DateEntry
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
 from league_utils import detectar_liga_por_imagen
@@ -325,19 +325,31 @@ def enviar_predicciones_seleccionadas():
             with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
                 f.write(mensaje_partidos)
         
-        exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_completo)
-        if exito:
+        resultado = enviar_telegram_masivo(mensaje_completo, TELEGRAM_TOKEN)
+        if resultado["exito"]:
             reproducir_sonido_exito()
             
             total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
-            messagebox.showinfo("Enviado", f"Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.")
+            mensaje_resultado = f"✅ Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.\n\n"
+            mensaje_resultado += f"📊 Estadísticas de envío:\n"
+            mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+            mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+            if resultado.get('usuarios_bloqueados', 0) > 0:
+                mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+            if resultado.get('errores', 0) > 0:
+                mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+            
+            messagebox.showinfo("Enviado", mensaje_resultado)
             
             for var_checkbox in checkboxes_predicciones:
                 var_checkbox.set(False)
             for var_checkbox in checkboxes_partidos:
                 var_checkbox.set(False)
         else:
-            messagebox.showerror("Error", "No se pudieron enviar los elementos a Telegram.")
+            error_msg = "No se pudieron enviar los elementos a Telegram."
+            if resultado.get('detalles_errores'):
+                error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+            messagebox.showerror("Error", error_msg)
             
     except Exception as e:
         messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
@@ -348,11 +360,22 @@ def enviar_predicciones_seleccionadas():
 def enviar_alerta():
     if mensaje_telegram:
         try:
-            exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_telegram)
-            if exito:
-                messagebox.showinfo("Enviado", "El mensaje se ha enviado a Telegram correctamente.")
+            resultado = enviar_telegram_masivo(mensaje_telegram, TELEGRAM_TOKEN)
+            if resultado["exito"]:
+                mensaje_resultado = f"✅ El mensaje se ha enviado a Telegram correctamente.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                messagebox.showinfo("Enviado", mensaje_resultado)
             else:
-                messagebox.showerror("Error", "No se pudo enviar el mensaje a Telegram. Revisa la conexión.")
+                error_msg = "No se pudo enviar el mensaje a Telegram. Revisa la conexión."
+                if resultado.get('detalles_errores'):
+                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                messagebox.showerror("Error", error_msg)
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando a Telegram: {e}")
     else:
@@ -436,17 +459,23 @@ def abrir_track_record():
         frame_botones.pack(fill='x', pady=(0, 20))
         
         def actualizar_resultados():
-            resultado = tracker.actualizar_historial_con_resultados()
-            if "error" in resultado:
-                messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
-            else:
-                mensaje = f"✅ Actualizadas: {resultado['actualizaciones']}\n"
-                mensaje += f"❌ Errores: {resultado['errores']}\n"
-                mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}\n"
-                mensaje += f"🔧 Correcciones históricas: {resultado.get('correcciones_historicas', 0)}\n"
-                mensaje += f"📊 Pendientes: {resultado['total_procesadas']}"
-                messagebox.showinfo("Actualización", mensaje)
-                mostrar_metricas()
+            btn_actualizar.config(state='disabled', text="🔄 Procesando...")
+            ventana_track.update()
+            
+            try:
+                resultado = tracker.actualizar_historial_con_resultados()
+                if "error" in resultado:
+                    messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
+                else:
+                    mensaje = f"✅ Actualizadas: {resultado['actualizaciones']}\n"
+                    mensaje += f"❌ Errores: {resultado['errores']}\n"
+                    mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}\n"
+                    mensaje += f"🔧 Correcciones históricas: {resultado.get('correcciones_historicas', 0)}\n"
+                    mensaje += f"📊 Total procesadas: {resultado['total_procesadas']}"
+                    messagebox.showinfo("Actualización Completada", mensaje)
+                    mostrar_metricas()
+            finally:
+                btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
         
         def mostrar_metricas():
             metricas = tracker.calcular_metricas_rendimiento()
@@ -672,9 +701,17 @@ def abrir_pronostico():
             with open("registro_pronosticos.txt", "a", encoding="utf-8") as f:
                 f.write(f"{fecha} | {local} vs {visitante} | {pronostico} | {cuota} | {justificacion}\n")
 
-            exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
-            if exito:
-                messagebox.showinfo("Enviado", "El pronóstico avanzado se ha enviado correctamente.")
+            resultado = enviar_telegram_masivo(mensaje, TELEGRAM_TOKEN)
+            if resultado["exito"]:
+                mensaje_resultado = f"✅ El pronóstico avanzado se ha enviado correctamente.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                messagebox.showinfo("Enviado", mensaje_resultado)
                 ventana.destroy()
             else:
                 messagebox.showerror("Error", "No se pudo enviar el pronóstico a Telegram.")
