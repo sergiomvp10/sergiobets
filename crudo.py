@@ -136,20 +136,23 @@ def buscar():
                 var = tk.BooleanVar()
                 checkboxes_partidos.append(var)
                 
-                frame_partido = tk.Frame(frame_checkboxes, bg='#B2F0E8')
+                frame_partido = tk.Frame(frame_checkboxes, bg='#B2F0E8', relief='ridge', bd=1)
                 frame_partido.pack(fill='x', pady=2, padx=5)
                 
-                checkbox = tk.Checkbutton(frame_partido, variable=var, bg='#B2F0E8', 
-                                         font=("Arial", 9))
-                checkbox.pack(side='left')
+                checkbox_frame = tk.Frame(frame_partido, bg='#B2F0E8')
+                checkbox_frame.pack(fill='x', padx=5, pady=3)
                 
-                info_text = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
-                info_text += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}"
+                checkbox = tk.Checkbutton(checkbox_frame, variable=var, bg='#B2F0E8')
+                checkbox.pack(side=tk.LEFT)
                 
-                label_partido = tk.Label(frame_partido, text=info_text, 
-                                       font=("Arial", 9), bg='#B2F0E8', fg="#333", 
-                                       justify='left', anchor='w')
-                label_partido.pack(side='left', padx=(5, 0), fill='x', expand=True)
+                partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
+                partido_label = tk.Label(checkbox_frame, text=partido_text, bg='#B2F0E8', 
+                                       font=('Segoe UI', 9), anchor='w')
+                partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
+                
+                casa_label = tk.Label(frame_partido, text=f"🏠 Casa: {partido['cuotas']['casa']}", bg='#B2F0E8', 
+                                     font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
+                casa_label.pack(fill='x', padx=25, pady=(0,3))
                 
                 mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                 mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
