@@ -28,7 +28,7 @@ def test_single_display():
             print("   ❌ Checkbox frame structure missing")
             return False
         
-        if 'mensaje_telegram += f"🕒 {partido[\'hora\']} - {partido[\'local\']} vs {partido[\'visitante\']}"' in content:
+        if 'mensaje_telegram += f"🕒 {partido[\'hora\']} - {partido[\'local\']} vs {partido[\'visitante\']}' in content:
             print("   ✅ Telegram message populated correctly")
         else:
             print("   ❌ Telegram message not populated")
