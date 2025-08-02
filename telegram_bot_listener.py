@@ -3,7 +3,7 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,7 +51,7 @@ def registrar_usuario(user_id, username, first_name):
         logger.error(f"Error registrando usuario: {e}")
         return False
 
-def start_command(update: Update, context: CallbackContext):
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar comando /start"""
     user = update.effective_user
     user_id = user.id
@@ -65,9 +65,9 @@ def start_command(update: Update, context: CallbackContext):
     else:
         mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰"
     
-    update.message.reply_text(mensaje)
+    await update.message.reply_text(mensaje)
 
-def mensaje_general(update: Update, context: CallbackContext):
+async def mensaje_general(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar cualquier mensaje para registrar usuario automáticamente"""
     user = update.effective_user
     user_id = user.id
@@ -76,24 +76,22 @@ def mensaje_general(update: Update, context: CallbackContext):
     
     registrar_usuario(user_id, username, first_name)
 
-def error_handler(update: Update, context: CallbackContext):
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar errores del bot"""
     logger.warning(f'Update {update} caused error {context.error}')
 
-def iniciar_bot_listener():
+async def iniciar_bot_listener():
     """Iniciar el bot listener para registrar usuarios"""
     try:
-        updater = Updater(TELEGRAM_TOKEN, use_context=True)
-        dispatcher = updater.dispatcher
+        application = Application.builder().token(TELEGRAM_TOKEN).build()
         
-        dispatcher.add_handler(CommandHandler("start", start_command))
-        dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
-        dispatcher.add_error_handler(error_handler)
+        application.add_handler(CommandHandler("start", start_command))
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
+        application.add_error_handler(error_handler)
         
-        updater.start_polling()
         logger.info("Bot listener iniciado - Registrando usuarios automáticamente")
         
-        updater.idle()
+        await application.run_polling()
         
     except Exception as e:
         logger.error(f"Error iniciando bot listener: {e}")
@@ -128,10 +126,11 @@ def contar_usuarios_registrados():
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""
     import threading
+    import asyncio
     
     def ejecutar_bot():
         try:
-            iniciar_bot_listener()
+            asyncio.run(iniciar_bot_listener())
         except Exception as e:
             logger.error(f"Error en hilo del bot: {e}")
     
@@ -141,10 +140,17 @@ def iniciar_bot_en_hilo():
     return hilo_bot
 
 if __name__ == "__main__":
+    import asyncio
+    
     print("🤖 Iniciando SergioBets Bot Listener...")
     print("📝 Registrando usuarios automáticamente...")
     print("💬 Los usuarios pueden usar /start o enviar cualquier mensaje")
     print("📁 Usuarios se guardan en usuarios.txt")
     print("\nPresiona Ctrl+C para detener el bot\n")
     
-    iniciar_bot_listener()
+    try:
+        asyncio.run(iniciar_bot_listener())
+    except KeyboardInterrupt:
+        print("\n👋 Bot detenido por el usuario")
+    except Exception as e:
+        print(f"❌ Error ejecutando bot: {e}")

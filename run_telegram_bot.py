@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import asyncio
 from telegram_bot_listener import iniciar_bot_listener
 
 if __name__ == "__main__":
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     print("\nPresiona Ctrl+C para detener el bot\n")
     
     try:
-        iniciar_bot_listener()
+        asyncio.run(iniciar_bot_listener())
     except KeyboardInterrupt:
         print("\n👋 Bot detenido por el usuario")
     except Exception as e:
