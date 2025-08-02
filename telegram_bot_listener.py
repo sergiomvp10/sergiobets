@@ -80,7 +80,7 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar errores del bot"""
     logger.warning(f'Update {update} caused error {context.error}')
 
-async def iniciar_bot_listener():
+def iniciar_bot_listener():
     """Iniciar el bot listener para registrar usuarios"""
     try:
         application = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -91,7 +91,7 @@ async def iniciar_bot_listener():
         
         logger.info("Bot listener iniciado - Registrando usuarios automáticamente")
         
-        await application.run_polling(stop_signals=None)
+        application.run_polling(stop_signals=None)
         
     except Exception as e:
         logger.error(f"Error iniciando bot listener: {e}")
@@ -126,11 +126,10 @@ def contar_usuarios_registrados():
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""
     import threading
-    import asyncio
     
     def ejecutar_bot():
         try:
-            asyncio.run(iniciar_bot_listener())
+            iniciar_bot_listener()
         except Exception as e:
             logger.error(f"Error en hilo del bot: {e}")
     
@@ -140,8 +139,6 @@ def iniciar_bot_en_hilo():
     return hilo_bot
 
 if __name__ == "__main__":
-    import asyncio
-    
     print("🤖 Iniciando SergioBets Bot Listener...")
     print("📝 Registrando usuarios automáticamente...")
     print("💬 Los usuarios pueden usar /start o enviar cualquier mensaje")
@@ -149,7 +146,7 @@ if __name__ == "__main__":
     print("\nPresiona Ctrl+C para detener el bot\n")
     
     try:
-        asyncio.run(iniciar_bot_listener())
+        iniciar_bot_listener()
     except KeyboardInterrupt:
         print("\n👋 Bot detenido por el usuario")
     except Exception as e:
