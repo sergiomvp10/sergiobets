@@ -744,7 +744,7 @@ frame_top.pack(pady=15)
 label_fecha = ttk.Label(frame_top, text="📅 Fecha:")
 label_fecha.pack(side=tk.LEFT)
 
-entry_fecha = DateEntry(frame_top, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-MM-dd')
+entry_fecha = DateEntry(frame_top, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-MM-dd', showothermonthdays=False, showweeknumbers=False)
 entry_fecha.pack(side=tk.LEFT, padx=5)
 
 label_liga = ttk.Label(frame_top, text="🏆 Liga:")
