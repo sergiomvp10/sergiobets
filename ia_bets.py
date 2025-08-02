@@ -11,7 +11,8 @@ LIGAS_CONOCIDAS = {
     "Champions League", "Europa League", "Championship", "Liga MX",
     "Primeira Liga", "Eredivisie", "Scottish Premiership", "MLS",
     "Copa Libertadores", "Copa Sudamericana", "Liga Argentina",
-    "Brasileirão", "Liga Colombiana"
+    "Brasileirão", "Liga Colombiana", "Primera División Chile",
+    "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana"
 }
 
 CUOTA_MIN = 1.30

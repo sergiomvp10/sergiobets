@@ -6,6 +6,8 @@ def detectar_liga_por_imagen(home_image, away_image):
     """
     if home_image and 'colombia' in home_image.lower():
         return "Liga Colombiana"
+    elif home_image and 'chile' in home_image.lower():
+        return "Primera División Chile"
     elif home_image and 'spain' in home_image.lower():
         return "La Liga"
     elif home_image and 'england' in home_image.lower():
@@ -24,6 +26,20 @@ def detectar_liga_por_imagen(home_image, away_image):
         return "Liga MX"
     elif home_image and 'portugal' in home_image.lower():
         return "Primeira Liga"
+    elif home_image and 'netherlands' in home_image.lower():
+        return "Eredivisie"
+    elif home_image and 'scotland' in home_image.lower():
+        return "Scottish Premiership"
+    elif home_image and 'usa' in home_image.lower() or home_image and 'united-states' in home_image.lower():
+        return "MLS"
+    elif home_image and 'peru' in home_image.lower():
+        return "Liga Peruana"
+    elif home_image and 'ecuador' in home_image.lower():
+        return "Liga Ecuatoriana"
+    elif home_image and 'uruguay' in home_image.lower():
+        return "Liga Uruguaya"
+    elif home_image and 'bolivia' in home_image.lower():
+        return "Liga Boliviana"
     else:
         return "Liga Internacional"
 
