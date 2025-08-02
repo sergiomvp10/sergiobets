@@ -286,6 +286,8 @@ def abrir_pronostico():
 root = tk.Tk()
 root.title("🧐 SergioBets v.1 – Cuotas de Partidos (Reales)")
 root.geometry("800x600")
+root.minsize(800, 600)
+root.state('zoomed')  # Maximizar ventana en Windows
 root.configure(bg="#f1f3f4")
 
 style = ttk.Style()
@@ -322,7 +324,7 @@ btn_pronostico = ttk.Button(frame_top, text="📌 Enviar Pronóstico", command=a
 btn_pronostico.pack(side=tk.LEFT, padx=5)
 
 output = ScrolledText(root, wrap=tk.WORD, width=95, height=28, font=('Segoe UI', 10))
-output.pack(pady=10, padx=10)
+output.pack(pady=10, padx=10, expand=True, fill='both')
 
 ligas_disponibles = set()
 
