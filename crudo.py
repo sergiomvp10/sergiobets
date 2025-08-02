@@ -35,7 +35,7 @@ def cargar_partidos_reales(fecha):
 
     return partidos
 
-progreso_data = {"deposito": 100, "meta": 300, "saldo_actual": 100}
+progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 mensaje_telegram = ""
 
 
@@ -117,7 +117,7 @@ def abrir_progreso():
             progreso_data["saldo_actual"] = saldo
 
             actualizar_barra()
-            guardar_datos_json()
+            guardar_datos_json(entry_fecha.get())
         except ValueError:
             messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
 
@@ -134,17 +134,17 @@ def abrir_progreso():
 
     ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
     entry_deposito = ttk.Entry(ventana)
-    entry_deposito.insert(0, progreso_data["deposito"])
+    entry_deposito.insert(0, str(progreso_data["deposito"]))
     entry_deposito.pack()
 
     ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
     entry_meta = ttk.Entry(ventana)
-    entry_meta.insert(0, progreso_data["meta"])
+    entry_meta.insert(0, str(progreso_data["meta"]))
     entry_meta.pack()
 
     ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
     entry_saldo = ttk.Entry(ventana)
-    entry_saldo.insert(0, progreso_data["saldo_actual"])
+    entry_saldo.insert(0, str(progreso_data["saldo_actual"]))
     entry_saldo.pack()
 
     ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)

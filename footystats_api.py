@@ -6,8 +6,11 @@ from datetime import datetime
 API_KEY = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
 BASE_URL = "https://api.footystats.org"
 
-def obtener_partidos_del_dia():
-    hoy = datetime.now().strftime("%Y-%m-%d")
+def obtener_partidos_del_dia(fecha=None):
+    if fecha is None:
+        hoy = datetime.now().strftime("%Y-%m-%d")
+    else:
+        hoy = fecha
     endpoint = f"{BASE_URL}/league-matches"
     params = {
         "key": API_KEY,
