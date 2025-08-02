@@ -35,7 +35,7 @@ def cargar_partidos_reales(fecha):
 
     return partidos
 
-progreso_data = {"deposito": 100, "meta": 300, "saldo_actual": 100}
+progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 mensaje_telegram = ""
 
 
