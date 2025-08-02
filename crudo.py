@@ -110,13 +110,46 @@ def buscar():
         predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados)
         
         mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada)
-        mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada)
 
         mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
         if liga_filtrada == 'Todas':
             mensaje_telegram += f"\n\n⚽ TODOS LOS PARTIDOS ({fecha})\n\n"
         else:
             mensaje_telegram += f"\n\n⚽ PARTIDOS - {liga_filtrada} ({fecha})\n\n"
+
+        checkboxes_partidos.clear()
+        partidos_actuales.clear()
+        partidos_actuales.extend(partidos_filtrados)
+        
+        output.insert(tk.END, f"\n📋 SELECCIONAR PARTIDOS PARA ENVIAR\n")
+        output.insert(tk.END, "=" * 50 + "\n")
+        
+        frame_checkboxes = tk.Frame(output, bg='#B2F0E8')
+        
+        for i, partido in enumerate(partidos_filtrados):
+            var = tk.BooleanVar()
+            checkboxes_partidos.append(var)
+            
+            frame_partido = tk.Frame(frame_checkboxes, bg='#B2F0E8')
+            frame_partido.pack(fill='x', pady=2, padx=5)
+            
+            checkbox = tk.Checkbutton(frame_partido, variable=var, bg='#B2F0E8', 
+                                     font=("Arial", 9))
+            checkbox.pack(side='left')
+            
+            partido_info = f"⚽ {partido['local']} vs {partido['visitante']} - {partido['liga']}"
+            cuotas_info = f"💰 Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}"
+            
+            label_partido = tk.Label(frame_partido, text=partido_info, 
+                                   font=("Arial", 9, "bold"), bg='#B2F0E8', fg="#333")
+            label_partido.pack(side='left', padx=(5, 0))
+            
+            label_cuotas = tk.Label(frame_partido, text=f"  {cuotas_info}", 
+                                  font=("Arial", 8), bg='#B2F0E8', fg="#666")
+            label_cuotas.pack(side='left', padx=(10, 0))
+        
+        output.window_create(tk.END, window=frame_checkboxes)
+        output.insert(tk.END, "\n\n")
 
         for liga in sorted(partidos_por_liga.keys()):
             if liga_filtrada != 'Todas' and liga_filtrada != liga:
@@ -196,165 +229,89 @@ def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
         justif_label.pack(fill='x', padx=25, pady=(0,3))
 
 def enviar_predicciones_seleccionadas():
-    """Enviar solo las predicciones seleccionadas a Telegram"""
+    """Enviar predicciones y/o partidos seleccionados a Telegram"""
     predicciones_seleccionadas = []
+    partidos_seleccionados = []
     
     for i, var_checkbox in enumerate(checkboxes_predicciones):
         if var_checkbox.get():
             predicciones_seleccionadas.append(predicciones_actuales[i])
     
-    if not predicciones_seleccionadas:
-        messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico para enviar.")
+    for i, var_checkbox in enumerate(checkboxes_partidos):
+        if var_checkbox.get():
+            partidos_seleccionados.append(partidos_actuales[i])
+    
+    if not predicciones_seleccionadas and not partidos_seleccionados:
+        messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico o partido para enviar.")
         return
     
     fecha = entry_fecha.get()
-    mensaje = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+    mensaje_completo = ""
     
     try:
-        for pred in predicciones_seleccionadas:
-            from ia_bets import guardar_prediccion_historica
-            guardar_prediccion_historica(pred, fecha)
-        
-        with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
-            json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
-        
-        with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
-            f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
+        if predicciones_seleccionadas:
+            mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+            mensaje_completo += mensaje_predicciones
+            
             for pred in predicciones_seleccionadas:
-                f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
-            f.write("\n")
+                from ia_bets import guardar_prediccion_historica
+                guardar_prediccion_historica(pred, fecha)
+            
+            with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
+                json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
+            
+            with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
+                f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
+                for pred in predicciones_seleccionadas:
+                    f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
+                f.write("\n")
         
-        exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
+        if partidos_seleccionados:
+            if mensaje_completo:
+                mensaje_completo += "\n\n"
+            
+            mensaje_partidos = f"⚽ PARTIDOS SELECCIONADOS ({fecha})\n\n"
+            
+            partidos_por_liga = {}
+            for partido in partidos_seleccionados:
+                liga = partido["liga"]
+                if liga not in partidos_por_liga:
+                    partidos_por_liga[liga] = []
+                
+                info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+                info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+                partidos_por_liga[liga].append(info)
+            
+            for liga in sorted(partidos_por_liga.keys()):
+                mensaje_partidos += f"🔷 {liga}\n"
+                for info in partidos_por_liga[liga]:
+                    mensaje_partidos += info
+            
+            mensaje_completo += mensaje_partidos
+            
+            with open('partidos_seleccionados.json', 'w', encoding='utf-8') as f:
+                json.dump(partidos_seleccionados, f, indent=2, ensure_ascii=False)
+            
+            with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
+                f.write(mensaje_partidos)
+        
+        exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_completo)
         if exito:
-            messagebox.showinfo("Enviado", f"Se han enviado {len(predicciones_seleccionadas)} pronóstico(s) seleccionado(s) a Telegram.")
+            total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
+            messagebox.showinfo("Enviado", f"Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.")
+            
             for var_checkbox in checkboxes_predicciones:
                 var_checkbox.set(False)
+            for var_checkbox in checkboxes_partidos:
+                var_checkbox.set(False)
         else:
-            messagebox.showerror("Error", "No se pudieron enviar los pronósticos a Telegram.")
+            messagebox.showerror("Error", "No se pudieron enviar los elementos a Telegram.")
             
     except Exception as e:
-        messagebox.showerror("Error", f"Error enviando pronósticos seleccionados: {e}")
+        messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
 
-def limpiar_frame_partidos():
-    """Limpiar el frame de partidos y checkboxes"""
-    for widget in frame_partidos.winfo_children():
-        widget.destroy()
-    checkboxes_partidos.clear()
-    partidos_actuales.clear()
 
-def mostrar_partidos_con_checkboxes(partidos, liga_filtrada):
-    """Mostrar partidos con checkboxes para selección"""
-    limpiar_frame_partidos()
-    
-    if not partidos:
-        return
-    
-    partidos_actuales.extend(partidos)
-    
-    if liga_filtrada == 'Todas':
-        titulo_text = f"⚽ Seleccionar Partidos para Enviar ({len(partidos)} partidos disponibles)"
-    else:
-        titulo_text = f"⚽ Seleccionar Partidos - {liga_filtrada} ({len(partidos)} partidos)"
-    
-    label_titulo = tk.Label(frame_partidos, text=titulo_text, 
-                           font=("Segoe UI", 12, "bold"), bg="#f1f3f4", fg="#333")
-    label_titulo.pack(anchor='w', pady=(5, 10))
-    
-    canvas_partidos = tk.Canvas(frame_partidos, bg="#f1f3f4", height=150)
-    scrollbar_partidos = ttk.Scrollbar(frame_partidos, orient="vertical", command=canvas_partidos.yview)
-    scrollable_frame_partidos = tk.Frame(canvas_partidos, bg="#f1f3f4")
-    
-    scrollable_frame_partidos.bind(
-        "<Configure>",
-        lambda e: canvas_partidos.configure(scrollregion=canvas_partidos.bbox("all"))
-    )
-    
-    canvas_partidos.create_window((0, 0), window=scrollable_frame_partidos, anchor="nw")
-    canvas_partidos.configure(yscrollcommand=scrollbar_partidos.set)
-    
-    for i, partido in enumerate(partidos):
-        var = tk.BooleanVar()
-        checkboxes_partidos.append(var)
-        
-        partido_text = f"{partido['local']} vs {partido['visitante']} - {partido['liga']}"
-        cuotas_text = f"Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}"
-        
-        frame_partido = tk.Frame(scrollable_frame_partidos, bg="#f1f3f4")
-        frame_partido.pack(fill='x', pady=2, padx=5)
-        
-        checkbox = tk.Checkbutton(frame_partido, variable=var, bg="#f1f3f4", 
-                                 font=("Segoe UI", 9))
-        checkbox.pack(side='left')
-        
-        label_partido = tk.Label(frame_partido, text=partido_text, 
-                               font=("Segoe UI", 9, "bold"), bg="#f1f3f4", fg="#333")
-        label_partido.pack(side='left', padx=(5, 0))
-        
-        label_cuotas = tk.Label(frame_partido, text=cuotas_text, 
-                              font=("Segoe UI", 8), bg="#f1f3f4", fg="#666")
-        label_cuotas.pack(side='left', padx=(10, 0))
-    
-    canvas_partidos.pack(side="left", fill="both", expand=True)
-    scrollbar_partidos.pack(side="right", fill="y")
-    
-    btn_enviar_partidos = tk.Button(frame_partidos, 
-                                   text="📤 Enviar pronóstico(s) seleccionado(s)", 
-                                   command=enviar_partidos_seleccionados,
-                                   bg="#4CAF50", fg="white", 
-                                   font=("Segoe UI", 10, "bold"),
-                                   relief="raised", bd=2)
-    btn_enviar_partidos.pack(pady=(10, 5))
 
-def enviar_partidos_seleccionados():
-    """Enviar solo los partidos seleccionados a Telegram"""
-    try:
-        partidos_seleccionados = []
-        
-        for i, var in enumerate(checkboxes_partidos):
-            if var.get():  # Si el checkbox está marcado
-                partidos_seleccionados.append(partidos_actuales[i])
-        
-        if not partidos_seleccionados:
-            messagebox.showwarning("Advertencia", "Selecciona al menos un partido para enviar.")
-            return
-        
-        fecha = entry_fecha.get()
-        
-        mensaje_partidos = f"⚽ PARTIDOS SELECCIONADOS ({fecha})\n\n"
-        
-        partidos_por_liga = {}
-        for partido in partidos_seleccionados:
-            liga = partido["liga"]
-            if liga not in partidos_por_liga:
-                partidos_por_liga[liga] = []
-            
-            info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
-            info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
-            partidos_por_liga[liga].append(info)
-        
-        for liga in sorted(partidos_por_liga.keys()):
-            mensaje_partidos += f"🔷 {liga}\n"
-            for info in partidos_por_liga[liga]:
-                mensaje_partidos += info
-        
-        with open('partidos_seleccionados.json', 'w', encoding='utf-8') as f:
-            json.dump(partidos_seleccionados, f, indent=2, ensure_ascii=False)
-        
-        with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
-            f.write(mensaje_partidos)
-        
-        resultado = enviar_telegram(mensaje_partidos)
-        
-        if resultado:
-            messagebox.showinfo("Éxito", f"✅ {len(partidos_seleccionados)} partido(s) enviado(s) a Telegram correctamente!")
-            for var in checkboxes_partidos:
-                var.set(False)
-        else:
-            messagebox.showerror("Error", "❌ Error al enviar partidos a Telegram")
-            
-    except Exception as e:
-        messagebox.showerror("Error", f"Error enviando partidos: {e}")
-        print(f"Error enviando partidos seleccionados: {e}")
 
 def enviar_alerta():
     if mensaje_telegram:
@@ -672,9 +629,6 @@ btn_usuarios.pack(side=tk.LEFT, padx=5)
 
 frame_predicciones = tk.Frame(root, bg="#f1f3f4")
 frame_predicciones.pack(pady=5, padx=10, fill='x')
-
-frame_partidos = tk.Frame(root, bg="#f1f3f4")
-frame_partidos.pack(pady=5, padx=10, fill='x')
 
 output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
 output.pack(pady=10, padx=10, expand=True, fill='both')
