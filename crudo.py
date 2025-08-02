@@ -151,8 +151,6 @@ def buscar():
                                        justify='left', anchor='w')
                 label_partido.pack(side='left', padx=(5, 0), fill='x', expand=True)
                 
-                output.insert(tk.END, f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n")
-                output.insert(tk.END, f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n")
                 mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                 mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
         
