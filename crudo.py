@@ -7,6 +7,7 @@ from tkinter.scrolledtext import ScrolledText
 import threading
 import requests
 import json
+import os
 from telegram_utils import enviar_telegram
 from tkcalendar import DateEntry
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
@@ -298,6 +299,129 @@ def abrir_progreso():
     actualizar_barra()
 
 
+def abrir_usuarios():
+    """Abrir ventana para mostrar usuarios registrados de Telegram"""
+    ventana_usuarios = tk.Toplevel(root)
+    ventana_usuarios.title("👥 Usuarios Registrados - SergioBets")
+    ventana_usuarios.geometry("700x500")
+    ventana_usuarios.configure(bg="#f1f3f4")
+    
+    frame_header = tk.Frame(ventana_usuarios, bg="#f1f3f4")
+    frame_header.pack(fill=tk.X, padx=10, pady=10)
+    
+    usuarios_data = []
+    total_usuarios = 0
+    
+    try:
+        if os.path.exists('usuarios.txt'):
+            with open('usuarios.txt', 'r', encoding='utf-8') as f:
+                for linea in f:
+                    if linea.strip() and ' - ' in linea:
+                        partes = linea.strip().split(' - ')
+                        if len(partes) >= 3:
+                            usuarios_data.append({
+                                'user_id': partes[0],
+                                'username': partes[1],
+                                'first_name': partes[2]
+                            })
+                            total_usuarios += 1
+    except Exception as e:
+        print(f"Error leyendo usuarios.txt: {e}")
+    
+    titulo_text = f"👥 Usuarios Registrados en Telegram ({total_usuarios} usuarios)"
+    label_titulo = tk.Label(frame_header, text=titulo_text, 
+                           font=("Segoe UI", 14, "bold"), bg="#f1f3f4", fg="#333")
+    label_titulo.pack()
+    
+    frame_lista = tk.Frame(ventana_usuarios, bg="#f1f3f4")
+    frame_lista.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    
+    from tkinter import scrolledtext
+    texto_usuarios = scrolledtext.ScrolledText(frame_lista, 
+                                              font=("Courier", 10),
+                                              bg="white", 
+                                              fg="#333",
+                                              wrap=tk.WORD,
+                                              state=tk.NORMAL)
+    texto_usuarios.pack(fill=tk.BOTH, expand=True)
+    
+    if usuarios_data:
+        texto_usuarios.insert(tk.END, "ID de Usuario       | Username           | Nombre\n")
+        texto_usuarios.insert(tk.END, "-" * 65 + "\n")
+        
+        for usuario in usuarios_data:
+            user_id = usuario['user_id'].ljust(16)
+            username = usuario['username'].ljust(18)
+            first_name = usuario['first_name']
+            
+            linea = f"{user_id} | {username} | {first_name}\n"
+            texto_usuarios.insert(tk.END, linea)
+    else:
+        texto_usuarios.insert(tk.END, "📭 No hay usuarios registrados aún.\n\n")
+        texto_usuarios.insert(tk.END, "Los usuarios se registrarán automáticamente cuando:\n")
+        texto_usuarios.insert(tk.END, "• Envíen /start al bot de Telegram\n")
+        texto_usuarios.insert(tk.END, "• Envíen cualquier mensaje al bot\n\n")
+        texto_usuarios.insert(tk.END, "Asegúrate de que el bot esté ejecutándose:\n")
+        texto_usuarios.insert(tk.END, "python run_telegram_bot.py")
+    
+    texto_usuarios.config(state=tk.DISABLED)
+    
+    btn_refrescar = ttk.Button(ventana_usuarios, text="🔄 Refrescar Lista", 
+                              command=lambda: refrescar_usuarios(texto_usuarios, frame_header))
+    btn_refrescar.pack(pady=10)
+
+
+def refrescar_usuarios(texto_widget, header_frame):
+    """Refrescar la lista de usuarios"""
+    usuarios_data = []
+    total_usuarios = 0
+    
+    try:
+        if os.path.exists('usuarios.txt'):
+            with open('usuarios.txt', 'r', encoding='utf-8') as f:
+                for linea in f:
+                    if linea.strip() and ' - ' in linea:
+                        partes = linea.strip().split(' - ')
+                        if len(partes) >= 3:
+                            usuarios_data.append({
+                                'user_id': partes[0],
+                                'username': partes[1],
+                                'first_name': partes[2]
+                            })
+                            total_usuarios += 1
+    except Exception as e:
+        print(f"Error leyendo usuarios.txt: {e}")
+    
+    for widget in header_frame.winfo_children():
+        if isinstance(widget, tk.Label):
+            titulo_text = f"👥 Usuarios Registrados en Telegram ({total_usuarios} usuarios)"
+            widget.config(text=titulo_text)
+    
+    texto_widget.config(state=tk.NORMAL)
+    texto_widget.delete(1.0, tk.END)
+    
+    if usuarios_data:
+        texto_widget.insert(tk.END, "ID de Usuario       | Username           | Nombre\n")
+        texto_widget.insert(tk.END, "-" * 65 + "\n")
+        
+        for usuario in usuarios_data:
+            user_id = usuario['user_id'].ljust(16)
+            username = usuario['username'].ljust(18)
+            first_name = usuario['first_name']
+            
+            linea = f"{user_id} | {username} | {first_name}\n"
+            texto_widget.insert(tk.END, linea)
+    else:
+        texto_widget.insert(tk.END, "📭 No hay usuarios registrados aún.\n\n")
+        texto_widget.insert(tk.END, "Los usuarios se registrarán automáticamente cuando:\n")
+        texto_widget.insert(tk.END, "• Envíen /start al bot de Telegram\n")
+        texto_widget.insert(tk.END, "• Envíen cualquier mensaje al bot\n\n")
+        texto_widget.insert(tk.END, "Asegúrate de que el bot esté ejecutándose:\n")
+        texto_widget.insert(tk.END, "python run_telegram_bot.py")
+    
+    texto_widget.config(state=tk.DISABLED)
+
+
 def abrir_pronostico():
     def enviar_pick():
         liga = entry_liga.get()
@@ -418,6 +542,9 @@ btn_enviar.pack(side=tk.LEFT, padx=5)
 
 btn_pronostico = ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=enviar_predicciones_seleccionadas)
 btn_pronostico.pack(side=tk.LEFT, padx=5)
+
+btn_usuarios = ttk.Button(frame_top, text="👥 Users", command=abrir_usuarios)
+btn_usuarios.pack(side=tk.LEFT, padx=5)
 
 frame_predicciones = tk.Frame(root, bg="#f1f3f4")
 frame_predicciones.pack(pady=5, padx=10, fill='x')
