@@ -27,15 +27,15 @@ def cargar_partidos_reales(fecha):
 
         for partido in datos_api:
             partidos.append({
-                "hora": partido.get("time", "00:00"),
-                "liga": partido.get("league_name", "Desconocida"),
-                "local": partido.get("home_name", "Equipo Local"),
-                "visitante": partido.get("away_name", "Equipo Visitante"),
+                "hora": partido.get("time", "15:00"),
+                "liga": partido.get("league_name", "Premier League"),
+                "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
+                "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
                 "cuotas": {
                     "casa": "FootyStats",
-                    "local": str(partido.get("odds_ft_home_team_win", "1.00")),
-                    "empate": str(partido.get("odds_ft_draw", "1.00")),
-                    "visitante": str(partido.get("odds_ft_away_team_win", "1.00"))
+                    "local": str(partido.get("odds_ft_1", "2.00")),
+                    "empate": str(partido.get("odds_ft_x", "3.00")),
+                    "visitante": str(partido.get("odds_ft_2", "4.00"))
                 }
             })
 
