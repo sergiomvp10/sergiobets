@@ -29,13 +29,17 @@ def detectar_liga_por_imagen(home_image, away_image):
 
 def convertir_timestamp_unix(timestamp_unix):
     """
-    Convierte timestamp unix a formato legible
+    Convierte timestamp unix a formato legible en zona horaria de Arizona
     """
     if timestamp_unix and timestamp_unix > 0:
         from datetime import datetime
+        import pytz
         try:
-            dt = datetime.fromtimestamp(timestamp_unix)
-            return dt.strftime("%H:%M")
-        except:
+            dt_utc = datetime.fromtimestamp(timestamp_unix, tz=pytz.UTC)
+            arizona_tz = pytz.timezone('US/Arizona')
+            dt_arizona = dt_utc.astimezone(arizona_tz)
+            return dt_arizona.strftime("%H:%M")
+        except Exception as e:
+            print(f"Error convirtiendo timestamp {timestamp_unix}: {e}")
             return "Por confirmar"
     return "Por confirmar"

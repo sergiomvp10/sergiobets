@@ -31,8 +31,11 @@ def cargar_partidos_reales(fecha):
                 partido.get("home_image", ""), 
                 partido.get("away_image", "")
             )
+            from league_utils import convertir_timestamp_unix
+            hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
+            
             partidos.append({
-                "hora": "Por confirmar",
+                "hora": hora_partido,
                 "liga": liga_detectada,
                 "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
                 "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
