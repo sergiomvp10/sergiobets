@@ -549,7 +549,7 @@ btn_usuarios.pack(side=tk.LEFT, padx=5)
 frame_predicciones = tk.Frame(root, bg="#f1f3f4")
 frame_predicciones.pack(pady=5, padx=10, fill='x')
 
-output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Segoe UI', 10))
+output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Arial', 18), bg='#B2F0E8')
 output.pack(pady=10, padx=10, expand=True, fill='both')
 
 ligas_disponibles = set()
