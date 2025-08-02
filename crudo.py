@@ -88,7 +88,8 @@ def buscar():
                 output.insert(tk.END, f"🎯 PICK #{i}: {pred['prediccion']}\n")
                 output.insert(tk.END, f"⚽ {pred['partido']} ({pred['liga']})\n")
                 output.insert(tk.END, f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u | ⏰ {pred['hora']}\n")
-                output.insert(tk.END, f"📊 Confianza: {pred['confianza']}% | Valor Esperado: {pred['valor_esperado']}\n\n")
+                output.insert(tk.END, f"📊 Confianza: {pred['confianza']}% | Valor Esperado: {pred['valor_esperado']}\n")
+                output.insert(tk.END, f"📝 Justificación: {pred['razon']}\n\n")
             output.insert(tk.END, "=" * 50 + "\n\n")
 
         for partido in partidos:
@@ -211,26 +212,41 @@ def abrir_pronostico():
         cuota = entry_cuota.get()
         stake = entry_stake.get()
         hora = entry_hora.get()
+        justificacion = entry_justificacion.get()
         fecha = date.today().strftime('%Y-%m-%d')
 
         mensaje = (
-            f"⚡️ APUESTA GRATUITA {fecha} ⚡️\n\n"
+            f"⚡️ PICK AVANZADO IA {fecha} ⚡️\n\n"
             f"🏆 {liga}\n"
             f"{local} 🆚 {visitante}\n\n"
-            f"💥 {pronostico}\n\n"
-            f"💰 Cuota: {cuota} | Stake {stake} ♻️ | {hora} ⏰"
+            f"💥 {pronostico}\n"
+            f"📝 {justificacion}\n\n"
+            f"💰 Cuota: {cuota} | Stake {stake}u | {hora} ⏰\n"
+            f"🧠 Análisis probabilístico IA"
         )
 
         try:
+            from ia_bets import guardar_prediccion_historica
+            prediccion_data = {
+                "partido": f"{local} vs {visitante}",
+                "liga": liga,
+                "prediccion": pronostico,
+                "cuota": float(cuota) if cuota else 0,
+                "stake_recomendado": int(stake) if stake else 1,
+                "valor_esperado": 0,
+                "confianza": 0
+            }
+            guardar_prediccion_historica(prediccion_data, fecha)
+
             with open("ultimo_pick.json", "w", encoding="utf-8") as f:
                 json.dump({"mensaje": mensaje}, f, ensure_ascii=False, indent=4)
 
             with open("registro_pronosticos.txt", "a", encoding="utf-8") as f:
-                f.write(f"{fecha} | Partido: {local} vs {visitante} | Pronóstico: {pronostico} | Cuota: {cuota}\n")
+                f.write(f"{fecha} | {local} vs {visitante} | {pronostico} | {cuota} | {justificacion}\n")
 
             exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
             if exito:
-                messagebox.showinfo("Enviado", "El pronóstico se ha enviado a Telegram correctamente.")
+                messagebox.showinfo("Enviado", "El pronóstico avanzado se ha enviado correctamente.")
                 ventana.destroy()
             else:
                 messagebox.showerror("Error", "No se pudo enviar el pronóstico a Telegram.")
@@ -249,7 +265,8 @@ def abrir_pronostico():
         ("🔮 Pronóstico", ""),
         ("💰 Cuota", ""),
         ("♻️ Stake", ""),
-        ("⏰ Hora", "")
+        ("⏰ Hora", ""),
+        ("📝 Justificación", "")
     ]
 
     entries = []
@@ -260,7 +277,7 @@ def abrir_pronostico():
         entry.pack()
         entries.append(entry)
 
-    entry_liga, entry_local, entry_visitante, entry_pronostico, entry_cuota, entry_stake, entry_hora = entries
+    entry_liga, entry_local, entry_visitante, entry_pronostico, entry_cuota, entry_stake, entry_hora, entry_justificacion = entries
 
     ttk.Button(ventana, text="📤 Enviar Pronóstico", command=enviar_pick).pack(pady=15)
 
