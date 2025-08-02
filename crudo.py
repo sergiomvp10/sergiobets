@@ -429,6 +429,100 @@ def abrir_progreso():
     actualizar_barra()
 
 
+def abrir_track_record():
+    """Abre ventana de track record de predicciones"""
+    try:
+        from track_record import TrackRecordManager
+        
+        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        tracker = TrackRecordManager(api_key)
+        
+        ventana_track = tk.Toplevel(root)
+        ventana_track.title("📊 Track Record - SergioBets IA")
+        ventana_track.geometry("800x600")
+        ventana_track.configure(bg="#2c3e50")
+        
+        frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
+        frame_principal.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        titulo = tk.Label(frame_principal, text="📊 TRACK RECORD DE PREDICCIONES", 
+                         bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
+        titulo.pack(pady=(0, 20))
+        
+        frame_botones = tk.Frame(frame_principal, bg="#2c3e50")
+        frame_botones.pack(fill='x', pady=(0, 20))
+        
+        def actualizar_resultados():
+            resultado = tracker.actualizar_historial_con_resultados()
+            if "error" in resultado:
+                messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
+            else:
+                messagebox.showinfo("Actualización", 
+                    f"✅ Actualizadas: {resultado['actualizaciones']}\n"
+                    f"❌ Errores: {resultado['errores']}\n"
+                    f"📊 Pendientes: {resultado['total_procesadas']}")
+                mostrar_metricas()
+        
+        def mostrar_metricas():
+            metricas = tracker.calcular_metricas_rendimiento()
+            
+            for widget in frame_resultados.winfo_children():
+                widget.destroy()
+            
+            if "error" in metricas:
+                error_label = tk.Label(frame_resultados, text=f"❌ {metricas['error']}", 
+                                     bg="#ecf0f1", fg="red", font=('Segoe UI', 12))
+                error_label.pack(pady=10)
+                return
+            
+            if "mensaje" in metricas:
+                mensaje_label = tk.Label(frame_resultados, text=f"ℹ️ {metricas['mensaje']}", 
+                                       bg="#ecf0f1", fg="blue", font=('Segoe UI', 12))
+                mensaje_label.pack(pady=10)
+                return
+            
+            metricas_text = f"""
+📈 MÉTRICAS GENERALES:
+• Total predicciones: {metricas['total_predicciones']}
+• Predicciones resueltas: {metricas['predicciones_resueltas']}
+• Aciertos: {metricas['aciertos']}
+• Tasa de acierto: {metricas['tasa_acierto']:.1f}%
+
+💰 MÉTRICAS FINANCIERAS:
+• Total apostado: ${metricas['total_apostado']:.2f}
+• Ganancia total: ${metricas['total_ganancia']:.2f}
+• ROI: {metricas['roi']:.2f}%
+• Valor esperado promedio: {metricas['valor_esperado_promedio']:.3f}
+
+🎯 RENDIMIENTO POR TIPO:
+"""
+            
+            for tipo, datos in metricas.get('tipos_apuesta', {}).items():
+                metricas_text += f"• {tipo}: {datos['aciertos']}/{datos['total']} ({datos['win_rate']:.1f}%) - ${datos['ganancia']:.2f}\n"
+            
+            metricas_label = tk.Label(frame_resultados, text=metricas_text, 
+                                    bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 10),
+                                    justify='left', anchor='nw')
+            metricas_label.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        btn_actualizar = tk.Button(frame_botones, text="🔄 Actualizar Resultados", 
+                                  command=actualizar_resultados, bg="#3498db", fg="white",
+                                  font=('Segoe UI', 10, 'bold'), padx=20, pady=5)
+        btn_actualizar.pack(side='left', padx=(0, 10))
+        
+        btn_metricas = tk.Button(frame_botones, text="📊 Mostrar Métricas", 
+                               command=mostrar_metricas, bg="#27ae60", fg="white",
+                               font=('Segoe UI', 10, 'bold'), padx=20, pady=5)
+        btn_metricas.pack(side='left')
+        
+        frame_resultados = tk.Frame(frame_principal, bg="#ecf0f1", relief='ridge', bd=2)
+        frame_resultados.pack(fill='both', expand=True)
+        
+        mostrar_metricas()
+        
+    except Exception as e:
+        messagebox.showerror("Error", f"Error abriendo track record: {e}")
+
 def abrir_usuarios():
     """Abrir ventana para mostrar usuarios registrados de Telegram"""
     ventana_usuarios = tk.Toplevel(root)
@@ -672,6 +766,9 @@ btn_enviar.pack(side=tk.LEFT, padx=5)
 
 btn_pronostico = ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=enviar_predicciones_seleccionadas)
 btn_pronostico.pack(side=tk.LEFT, padx=5)
+
+btn_track_record = ttk.Button(frame_top, text="📊 Track Record", command=abrir_track_record)
+btn_track_record.pack(side=tk.LEFT, padx=5)
 
 btn_usuarios = ttk.Button(frame_top, text="👥 Users", command=abrir_usuarios)
 btn_usuarios.pack(side=tk.LEFT, padx=5)

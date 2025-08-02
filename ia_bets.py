@@ -566,27 +566,14 @@ def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None
         print(f"Error guardando predicción histórica: {e}")
 
 def generar_reporte_rendimiento() -> Dict[str, Any]:
-    """Genera reporte de rendimiento de las predicciones"""
+    """Genera reporte de rendimiento de las predicciones (DEPRECATED - usar TrackRecordManager)"""
     try:
-        from json_storage import cargar_json
+        from track_record import TrackRecordManager
         
-        historial = cargar_json("historial_predicciones.json") or []
+        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        tracker = TrackRecordManager(api_key)
         
-        if not historial:
-            return {"total_predicciones": 0, "mensaje": "No hay historial disponible"}
-        
-        total = len(historial)
-        con_resultado = [p for p in historial if p.get("resultado_real") is not None]
-        aciertos = [p for p in con_resultado if p.get("ganancia", 0) > 0]
-        
-        return {
-            "total_predicciones": total,
-            "predicciones_resueltas": len(con_resultado),
-            "aciertos": len(aciertos),
-            "tasa_acierto": len(aciertos) / len(con_resultado) * 100 if con_resultado else 0,
-            "roi_total": sum(p.get("ganancia", 0) for p in con_resultado),
-            "valor_esperado_promedio": sum(p["valor_esperado"] for p in historial) / total
-        }
+        return tracker.calcular_metricas_rendimiento()
         
     except Exception as e:
         print(f"Error generando reporte: {e}")
