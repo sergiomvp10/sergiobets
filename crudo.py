@@ -79,19 +79,6 @@ def buscar():
     try:
         partidos = cargar_partidos_reales(fecha)
         
-        predicciones_ia = filtrar_apuestas_inteligentes(partidos)
-        
-        if predicciones_ia:
-            output.insert(tk.END, "🤖 PREDICCIONES IA - PICKS RECOMENDADOS\n")
-            output.insert(tk.END, "=" * 50 + "\n")
-            for i, pred in enumerate(predicciones_ia, 1):
-                output.insert(tk.END, f"🎯 PICK #{i}: {pred['prediccion']}\n")
-                output.insert(tk.END, f"⚽ {pred['partido']} ({pred['liga']})\n")
-                output.insert(tk.END, f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u | ⏰ {pred['hora']}\n")
-                output.insert(tk.END, f"📊 Confianza: {pred['confianza']}% | Valor Esperado: {pred['valor_esperado']}\n")
-                output.insert(tk.END, f"📝 Justificación: {pred['razon']}\n\n")
-            output.insert(tk.END, "=" * 50 + "\n\n")
-
         for partido in partidos:
             liga = partido["liga"]
             ligas_disponibles.add(liga)
@@ -110,8 +97,31 @@ def buscar():
             combo_ligas.set('Todas')
             liga_filtrada = 'Todas'
 
+        if liga_filtrada == 'Todas':
+            partidos_filtrados = partidos
+        else:
+            partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
+        
+        predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados)
+        
+        if predicciones_ia:
+            output.insert(tk.END, "🤖 PREDICCIONES IA - PICKS RECOMENDADOS\n")
+            if liga_filtrada != 'Todas':
+                output.insert(tk.END, f"🏆 Liga: {liga_filtrada}\n")
+            output.insert(tk.END, "=" * 50 + "\n")
+            for i, pred in enumerate(predicciones_ia, 1):
+                output.insert(tk.END, f"🎯 PICK #{i}: {pred['prediccion']}\n")
+                output.insert(tk.END, f"⚽ {pred['partido']} ({pred['liga']})\n")
+                output.insert(tk.END, f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u | ⏰ {pred['hora']}\n")
+                output.insert(tk.END, f"📊 Confianza: {pred['confianza']}% | Valor Esperado: {pred['valor_esperado']}\n")
+                output.insert(tk.END, f"📝 Justificación: {pred['razon']}\n\n")
+            output.insert(tk.END, "=" * 50 + "\n\n")
+
         mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
-        mensaje_telegram += f"\n\n⚽ TODOS LOS PARTIDOS ({fecha})\n\n"
+        if liga_filtrada == 'Todas':
+            mensaje_telegram += f"\n\n⚽ TODOS LOS PARTIDOS ({fecha})\n\n"
+        else:
+            mensaje_telegram += f"\n\n⚽ PARTIDOS - {liga_filtrada} ({fecha})\n\n"
 
         for liga in sorted(partidos_por_liga.keys()):
             if liga_filtrada != 'Todas' and liga_filtrada != liga:
@@ -135,6 +145,11 @@ def actualizar_ligas():
     combo_ligas['values'] = ['Todas'] + ligas
     if combo_ligas.get() not in combo_ligas['values']:
         combo_ligas.set('Todas')
+
+def on_liga_changed(event=None):
+    """Callback cuando se cambia la selección de liga"""
+    if ligas_disponibles:  # Solo actualizar si hay datos cargados
+        buscar()
 
 def enviar_alerta():
     if mensaje_telegram:
@@ -310,6 +325,7 @@ label_liga.pack(side=tk.LEFT, padx=10)
 combo_ligas = ttk.Combobox(frame_top, state='readonly', width=30)
 combo_ligas.pack(side=tk.LEFT)
 combo_ligas.set('Todas')
+combo_ligas.bind('<<ComboboxSelected>>', on_liga_changed)
 
 btn_buscar = ttk.Button(frame_top, text="🔍 Buscar", command=buscar_en_hilo)
 btn_buscar.pack(side=tk.LEFT, padx=5)
