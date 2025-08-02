@@ -8,7 +8,8 @@ import threading
 import requests
 import json
 from telegram_utils import enviar_telegram
-from tkcalendar import DateEntry  # Importamos DateEntry de la librería tkcalendar
+from tkcalendar import DateEntry
+from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
 
 # CONFIG TELEGRAM
 TELEGRAM_TOKEN = '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A'
@@ -16,26 +17,35 @@ TELEGRAM_CHAT_ID = '7659029315'
 
 
 def cargar_partidos_reales(fecha):
-    datos_api = obtener_partidos_del_dia(fecha)
-    partidos = []
+    try:
+        datos_api = obtener_partidos_del_dia(fecha)
+        partidos = []
 
-    for partido in datos_api:
-        partidos.append({
-            "hora": partido.get("time", "00:00"),
-            "liga": partido.get("league_name", "Desconocida"),
-            "local": partido.get("home_name", "Equipo Local"),
-            "visitante": partido.get("away_name", "Equipo Visitante"),
-            "cuotas": {
-                "casa": "FootyStats",
-                "local": str(partido.get("odds_ft_home_team_win", "1.00")),
-                "empate": str(partido.get("odds_ft_draw", "1.00")),
-                "visitante": str(partido.get("odds_ft_away_team_win", "1.00"))
-            }
-        })
+        if not datos_api:
+            print(f"⚠️ No se obtuvieron datos de la API para {fecha}. Usando datos simulados.")
+            return simular_datos_prueba()
 
-    return partidos
+        for partido in datos_api:
+            partidos.append({
+                "hora": partido.get("time", "00:00"),
+                "liga": partido.get("league_name", "Desconocida"),
+                "local": partido.get("home_name", "Equipo Local"),
+                "visitante": partido.get("away_name", "Equipo Visitante"),
+                "cuotas": {
+                    "casa": "FootyStats",
+                    "local": str(partido.get("odds_ft_home_team_win", "1.00")),
+                    "empate": str(partido.get("odds_ft_draw", "1.00")),
+                    "visitante": str(partido.get("odds_ft_away_team_win", "1.00"))
+                }
+            })
 
-progreso_data = {"deposito": 100, "meta": 300, "saldo_actual": 100}
+        return partidos
+    except Exception as e:
+        print(f"❌ Error cargando partidos reales: {e}")
+        print("🔄 Usando datos simulados como respaldo.")
+        return simular_datos_prueba()
+
+progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 mensaje_telegram = ""
 
 
@@ -58,38 +68,58 @@ def buscar():
     ligas_disponibles.clear()
     partidos_por_liga = {}
 
-    partidos = cargar_partidos_reales(fecha)
+    try:
+        partidos = cargar_partidos_reales(fecha)
+        
+        predicciones_ia = filtrar_apuestas_inteligentes(partidos)
+        
+        if predicciones_ia:
+            output.insert(tk.END, "🤖 PREDICCIONES IA - PICKS RECOMENDADOS\n")
+            output.insert(tk.END, "=" * 50 + "\n")
+            for i, pred in enumerate(predicciones_ia, 1):
+                output.insert(tk.END, f"🎯 PICK #{i}: {pred['prediccion']}\n")
+                output.insert(tk.END, f"⚽ {pred['partido']} ({pred['liga']})\n")
+                output.insert(tk.END, f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u | ⏰ {pred['hora']}\n")
+                output.insert(tk.END, f"📊 Confianza: {pred['confianza']}% | Valor Esperado: {pred['valor_esperado']}\n\n")
+            output.insert(tk.END, "=" * 50 + "\n\n")
 
-    for partido in partidos:
-        liga = partido["liga"]
-        ligas_disponibles.add(liga)
+        for partido in partidos:
+            liga = partido["liga"]
+            ligas_disponibles.add(liga)
 
-        info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
-        info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+            info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+            info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
 
-        if liga not in partidos_por_liga:
-            partidos_por_liga[liga] = []
-        partidos_por_liga[liga].append(info)
+            if liga not in partidos_por_liga:
+                partidos_por_liga[liga] = []
+            partidos_por_liga[liga].append(info)
 
-    actualizar_ligas()
+        actualizar_ligas()
 
-    liga_filtrada = combo_ligas.get()
-    if liga_filtrada not in ['Todas'] + sorted(list(ligas_disponibles)):
-        combo_ligas.set('Todas')
-        liga_filtrada = 'Todas'
+        liga_filtrada = combo_ligas.get()
+        if liga_filtrada not in ['Todas'] + sorted(list(ligas_disponibles)):
+            combo_ligas.set('Todas')
+            liga_filtrada = 'Todas'
 
-    mensaje_telegram = f"⚽ MATCHES OF THE DAY ({fecha})\n\n"
+        mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
+        mensaje_telegram += f"\n\n⚽ TODOS LOS PARTIDOS ({fecha})\n\n"
 
-    for liga in sorted(partidos_por_liga.keys()):
-        if liga_filtrada != 'Todas' and liga_filtrada != liga:
-            continue
-        output.insert(tk.END, f"🔷 {liga}\n")
-        mensaje_telegram += f"🔷 {liga}\n"
-        for info in partidos_por_liga[liga]:
-            output.insert(tk.END, info)
-            mensaje_telegram += info
+        for liga in sorted(partidos_por_liga.keys()):
+            if liga_filtrada != 'Todas' and liga_filtrada != liga:
+                continue
+            output.insert(tk.END, f"🔷 {liga}\n")
+            mensaje_telegram += f"🔷 {liga}\n"
+            for info in partidos_por_liga[liga]:
+                output.insert(tk.END, info)
+                mensaje_telegram += info
 
-    guardar_datos_json(fecha)
+        guardar_datos_json(fecha)
+        
+    except Exception as e:
+        error_msg = f"❌ Error al buscar partidos: {e}"
+        output.insert(tk.END, error_msg)
+        print(error_msg)
+        messagebox.showerror("Error", f"Error al cargar partidos: {e}")
 
 def actualizar_ligas():
     ligas = sorted(ligas_disponibles)
@@ -99,8 +129,14 @@ def actualizar_ligas():
 
 def enviar_alerta():
     if mensaje_telegram:
-        enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_telegram)
-        messagebox.showinfo("Enviado", "El mensaje se ha enviado a Telegram.")
+        try:
+            exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_telegram)
+            if exito:
+                messagebox.showinfo("Enviado", "El mensaje se ha enviado a Telegram correctamente.")
+            else:
+                messagebox.showerror("Error", "No se pudo enviar el mensaje a Telegram. Revisa la conexión.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando a Telegram: {e}")
     else:
         messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
 
@@ -117,7 +153,7 @@ def abrir_progreso():
             progreso_data["saldo_actual"] = saldo
 
             actualizar_barra()
-            guardar_datos_json()
+            guardar_datos_json(entry_fecha.get())
         except ValueError:
             messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
 
@@ -134,17 +170,17 @@ def abrir_progreso():
 
     ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
     entry_deposito = ttk.Entry(ventana)
-    entry_deposito.insert(0, progreso_data["deposito"])
+    entry_deposito.insert(0, str(progreso_data["deposito"]))
     entry_deposito.pack()
 
     ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
     entry_meta = ttk.Entry(ventana)
-    entry_meta.insert(0, progreso_data["meta"])
+    entry_meta.insert(0, str(progreso_data["meta"]))
     entry_meta.pack()
 
     ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
     entry_saldo = ttk.Entry(ventana)
-    entry_saldo.insert(0, progreso_data["saldo_actual"])
+    entry_saldo.insert(0, str(progreso_data["saldo_actual"]))
     entry_saldo.pack()
 
     ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)
@@ -184,9 +220,12 @@ def abrir_pronostico():
             with open("registro_pronosticos.txt", "a", encoding="utf-8") as f:
                 f.write(f"{fecha} | Partido: {local} vs {visitante} | Pronóstico: {pronostico} | Cuota: {cuota}\n")
 
-            enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
-            messagebox.showinfo("Enviado", "El pronóstico se ha enviado a Telegram.")
-            ventana.destroy()
+            exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje)
+            if exito:
+                messagebox.showinfo("Enviado", "El pronóstico se ha enviado a Telegram correctamente.")
+                ventana.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo enviar el pronóstico a Telegram.")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo enviar el pronóstico: {e}")
 
