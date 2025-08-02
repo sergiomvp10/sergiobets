@@ -8,6 +8,7 @@ import threading
 import requests
 import json
 import os
+import pygame
 from telegram_utils import enviar_telegram
 from tkcalendar import DateEntry
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
@@ -228,6 +229,24 @@ def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
                                font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
         justif_label.pack(fill='x', padx=25, pady=(0,3))
 
+def reproducir_sonido_exito():
+    """Reproducir sonido MP3 cuando se envía exitosamente a Telegram"""
+    try:
+        pygame.mixer.init()
+        
+        archivos_sonido = ['sonido_exito.mp3', 'success.mp3', 'notification.mp3', 'alert.mp3']
+        
+        for archivo in archivos_sonido:
+            if os.path.exists(archivo):
+                pygame.mixer.music.load(archivo)
+                pygame.mixer.music.play()
+                return
+        
+        print("No se encontró archivo de sonido MP3. Archivos buscados:", archivos_sonido)
+        
+    except Exception as e:
+        print(f"Error reproduciendo sonido: {e}")
+
 def enviar_predicciones_seleccionadas():
     """Enviar predicciones y/o partidos seleccionados a Telegram"""
     predicciones_seleccionadas = []
@@ -297,6 +316,8 @@ def enviar_predicciones_seleccionadas():
         
         exito = enviar_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, mensaje_completo)
         if exito:
+            reproducir_sonido_exito()
+            
             total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
             messagebox.showinfo("Enviado", f"Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.")
             
