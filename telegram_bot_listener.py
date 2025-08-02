@@ -91,7 +91,7 @@ async def iniciar_bot_listener():
         
         logger.info("Bot listener iniciado - Registrando usuarios automáticamente")
         
-        await application.run_polling()
+        await application.run_polling(stop_signals=None)
         
     except Exception as e:
         logger.error(f"Error iniciando bot listener: {e}")
