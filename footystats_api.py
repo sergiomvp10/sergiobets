@@ -4,14 +4,15 @@ import requests
 from datetime import datetime
 
 API_KEY = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
-BASE_URL = "https://api.footystats.org"
+BASE_URL = "https://api.football-data-api.com"
 
-def obtener_partidos_del_dia():
-    hoy = datetime.now().strftime("%Y-%m-%d")
-    endpoint = f"{BASE_URL}/league-matches"
+def obtener_partidos_del_dia(fecha=None):
+    if fecha is None:
+        fecha = datetime.now().strftime("%Y-%m-%d")
+    endpoint = f"{BASE_URL}/todays-matches"
     params = {
         "key": API_KEY,
-        "date": hoy,
+        "date": fecha,
         "timezone": "America/Bogota"
     }
 
