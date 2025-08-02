@@ -196,7 +196,7 @@ def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
         justif_label.pack(fill='x', padx=25, pady=(0,3))
 
 def mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha):
-    """Mostrar partidos con checkboxes para selección"""
+    """Mostrar partidos con checkboxes para selección - diseño unificado con Predicciones IA"""
     limpiar_frame_partidos()
     
     if not partidos_filtrados:
@@ -213,49 +213,32 @@ def mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha):
                            font=('Segoe UI', 10, 'bold'), pady=5)
     titulo_label.pack()
     
-    partidos_por_liga = {}
-    for partido in partidos_filtrados:
-        liga = partido["liga"]
-        if liga not in partidos_por_liga:
-            partidos_por_liga[liga] = []
-        partidos_por_liga[liga].append(partido)
-    
-    for liga in sorted(partidos_por_liga.keys()):
-        if liga_filtrada != 'Todas' and liga_filtrada != liga:
-            continue
-            
-        liga_frame = tk.Frame(frame_partidos, bg="#2c3e50")
-        liga_frame.pack(fill='x', pady=(10, 2), padx=5)
+    for i, partido in enumerate(partidos_filtrados):
+        partidos_actuales.append(partido)
         
-        liga_label = tk.Label(liga_frame, text=f"🔷 {liga}", bg="#2c3e50", fg="white",
-                             font=('Segoe UI', 9, 'bold'), pady=3)
-        liga_label.pack()
+        partido_frame = tk.Frame(frame_partidos, bg="#B2F0E8", relief='ridge', bd=1)
+        partido_frame.pack(fill='x', pady=2, padx=5)
         
-        liga_partidos = partidos_por_liga[liga]
+        var_checkbox = tk.BooleanVar()
+        checkboxes_partidos.append(var_checkbox)
         
-        for i, partido in enumerate(liga_partidos):
-            partidos_actuales.append(partido)
-            
-            partido_frame = tk.Frame(frame_partidos, bg="#B2F0E8", relief='ridge', bd=1)
-            partido_frame.pack(fill='x', pady=2, padx=5)
-            
-            var_checkbox = tk.BooleanVar()
-            checkboxes_partidos.append(var_checkbox)
-            
-            checkbox_frame = tk.Frame(partido_frame, bg="#B2F0E8")
-            checkbox_frame.pack(fill='x', padx=5, pady=3)
-            
-            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
-            checkbox.pack(side=tk.LEFT)
-            
-            partido_text = f"⚽ PARTIDO #{len(partidos_actuales)}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
-            partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
-                                   font=('Segoe UI', 9), anchor='w')
-            partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-            
-            casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']}", bg="#B2F0E8", 
-                                 font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
-            casa_label.pack(fill='x', padx=25, pady=(0,3))
+        # Frame del checkbox con el mismo layout que predicciones
+        checkbox_frame = tk.Frame(partido_frame, bg="#B2F0E8")
+        checkbox_frame.pack(fill='x', padx=5, pady=3)
+        
+        checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
+        checkbox.pack(side=tk.LEFT)
+        
+        # Texto principal con el mismo formato que predicciones
+        partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
+        partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
+                               font=('Segoe UI', 9), anchor='w')
+        partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
+        
+        # Información adicional con el mismo estilo que predicciones
+        casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}", bg="#B2F0E8", 
+                             font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
+        casa_label.pack(fill='x', padx=25, pady=(0,3))
 
 def reproducir_sonido_exito():
     """Reproducir sonido MP3 cuando se envía exitosamente a Telegram"""
