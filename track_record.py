@@ -187,8 +187,11 @@ class TrackRecordManager:
     def actualizar_historial_con_resultados(self) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
+        Optimizado para procesar matches únicos y evitar crashes por exceso de API calls
         """
         try:
+            import time
+            
             correccion_result = self.corregir_datos_historicos()
             
             historial = cargar_json(self.historial_file) or []
@@ -196,41 +199,92 @@ class TrackRecordManager:
             errores = 0
             partidos_incompletos = 0
             
-            for prediccion in historial:
-                if prediccion.get("resultado_real") is not None:
+            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
+            
+            if not predicciones_pendientes:
+                return {
+                    "actualizaciones": 0,
+                    "errores": 0,
+                    "partidos_incompletos": 0,
+                    "correcciones_historicas": correccion_result.get("correcciones", 0),
+                    "total_procesadas": 0
+                }
+            
+            matches_unicos = {}
+            for prediccion in predicciones_pendientes:
+                partido = prediccion["partido"]
+                fecha = prediccion["fecha"]
+                key = f"{fecha}|{partido}"
+                
+                if key not in matches_unicos:
+                    matches_unicos[key] = {
+                        "fecha": fecha,
+                        "partido": partido,
+                        "equipo_local": partido.split(" vs ")[0].strip(),
+                        "equipo_visitante": partido.split(" vs ")[1].strip(),
+                        "predicciones": []
+                    }
+                matches_unicos[key]["predicciones"].append(prediccion)
+            
+            print(f"Procesando {len(matches_unicos)} matches únicos para {len(predicciones_pendientes)} predicciones...")
+            
+            for i, (key, match_data) in enumerate(matches_unicos.items()):
+                try:
+                    print(f"Procesando {i+1}/{len(matches_unicos)}: {match_data['partido']}")
+                    
+                    if i > 0:
+                        time.sleep(2)
+                    
+                    resultado = self.obtener_resultado_partido(
+                        match_data["fecha"],
+                        match_data["equipo_local"],
+                        match_data["equipo_visitante"]
+                    )
+                    
+                    if resultado:
+                        for prediccion in match_data["predicciones"]:
+                            try:
+                                acierto, ganancia = self.validar_prediccion(prediccion, resultado)
+                                
+                                prediccion["resultado_real"] = resultado
+                                prediccion["ganancia"] = ganancia
+                                prediccion["acierto"] = acierto
+                                prediccion["fecha_actualizacion"] = datetime.now().isoformat()
+                                
+                                actualizaciones += 1
+                                
+                            except Exception as e:
+                                print(f"    ❌ Error validando predicción {prediccion.get('prediccion', 'Unknown')}: {e}")
+                                errores += 1
+                        
+                        print(f"  ✅ Match actualizado: {len(match_data['predicciones'])} predicciones procesadas")
+                    else:
+                        partidos_incompletos += 1
+                        errores += len(match_data["predicciones"])
+                        print(f"  ⏳ Match incompleto: {len(match_data['predicciones'])} predicciones pendientes")
+                        
+                except Exception as e:
+                    print(f"  ❌ Error procesando match {match_data['partido']}: {e}")
+                    errores += len(match_data["predicciones"])
                     continue
-                
-                resultado = self.obtener_resultado_partido(
-                    prediccion["fecha"],
-                    prediccion["partido"].split(" vs ")[0].strip(),
-                    prediccion["partido"].split(" vs ")[1].strip()
-                )
-                
-                if resultado:
-                    acierto, ganancia = self.validar_prediccion(prediccion, resultado)
-                    
-                    prediccion["resultado_real"] = resultado
-                    prediccion["ganancia"] = ganancia
-                    prediccion["acierto"] = acierto
-                    prediccion["fecha_actualizacion"] = datetime.now().isoformat()
-                    
-                    actualizaciones += 1
-                else:
-                    partidos_incompletos += 1
-                    errores += 1
             
             guardar_json(self.historial_file, historial)
+            
+            print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos")
             
             return {
                 "actualizaciones": actualizaciones,
                 "errores": errores,
                 "partidos_incompletos": partidos_incompletos,
                 "correcciones_historicas": correccion_result.get("correcciones", 0),
-                "total_procesadas": len([p for p in historial if p.get("resultado_real") is None])
+                "total_procesadas": len(predicciones_pendientes),
+                "matches_procesados": len(matches_unicos)
             }
             
         except Exception as e:
-            print(f"Error actualizando historial: {e}")
+            print(f"Error crítico actualizando historial: {e}")
+            import traceback
+            traceback.print_exc()
             return {"error": str(e)}
     
     def calcular_metricas_rendimiento(self) -> Dict[str, Any]:
