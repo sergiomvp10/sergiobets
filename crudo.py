@@ -18,32 +18,51 @@ TELEGRAM_CHAT_ID = '7659029315'
 
 def cargar_partidos_reales(fecha):
     try:
-        datos_api = obtener_partidos_del_dia(fecha)
-        partidos = []
-
-        if not datos_api:
-            print(f"⚠️ No se obtuvieron datos de la API para {fecha}. Usando datos simulados.")
+        from odds_api import OddsAPIManager
+        from api_config import THE_ODDS_API_KEY, FOOTYSTATS_API_KEY
+        
+        odds_manager = OddsAPIManager(THE_ODDS_API_KEY, FOOTYSTATS_API_KEY)
+        
+        partidos = odds_manager.get_enhanced_odds(fecha)
+        
+        if not partidos:
+            print(f"⚠️ No se obtuvieron datos de las APIs para {fecha}. Usando datos simulados.")
             return simular_datos_prueba()
-
-        for partido in datos_api:
-            partidos.append({
-                "hora": partido.get("time", "15:00"),
-                "liga": partido.get("league_name", "Premier League"),
-                "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
-                "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
-                "cuotas": {
-                    "casa": "FootyStats",
-                    "local": str(partido.get("odds_ft_1", "2.00")),
-                    "empate": str(partido.get("odds_ft_x", "3.00")),
-                    "visitante": str(partido.get("odds_ft_2", "4.00"))
-                }
-            })
-
+        
+        print(f"✅ Cargados {len(partidos)} partidos con cuotas mejoradas para {fecha}")
         return partidos
+        
     except Exception as e:
-        print(f"❌ Error cargando partidos reales: {e}")
-        print("🔄 Usando datos simulados como respaldo.")
-        return simular_datos_prueba()
+        print(f"❌ Error cargando partidos con cuotas mejoradas: {e}")
+        print("🔄 Intentando con FootyStats como respaldo...")
+        
+        try:
+            datos_api = obtener_partidos_del_dia(fecha)
+            partidos = []
+
+            if not datos_api:
+                print(f"⚠️ No se obtuvieron datos de la API para {fecha}. Usando datos simulados.")
+                return simular_datos_prueba()
+
+            for partido in datos_api:
+                partidos.append({
+                    "hora": partido.get("time", "15:00"),
+                    "liga": partido.get("league_name", "Premier League"),
+                    "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
+                    "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
+                    "cuotas": {
+                        "casa": "FootyStats",
+                        "local": str(partido.get("odds_ft_1", "2.00")),
+                        "empate": str(partido.get("odds_ft_x", "3.00")),
+                        "visitante": str(partido.get("odds_ft_2", "4.00"))
+                    }
+                })
+
+            return partidos
+        except Exception as fallback_error:
+            print(f"❌ Error con respaldo FootyStats: {fallback_error}")
+            print("🔄 Usando datos simulados como último recurso.")
+            return simular_datos_prueba()
 
 progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 mensaje_telegram = ""
@@ -88,7 +107,20 @@ def buscar():
             ligas_disponibles.add(liga)
 
             info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
-            info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+            
+            cuotas = partido['cuotas']
+            info += f"🏦 Casa: {cuotas['casa']} | 💰 1X2 -> Local: {cuotas['local']}, Empate: {cuotas['empate']}, Visitante: {cuotas['visitante']}\n"
+            
+            if cuotas.get('btts_si') != 'N/A':
+                info += f"🎯 BTTS -> Sí: {cuotas.get('btts_si', 'N/A')}, No: {cuotas.get('btts_no', 'N/A')}\n"
+            
+            if cuotas.get('over_25') != 'N/A':
+                info += f"⚽ O/U 2.5 -> Over: {cuotas.get('over_25', 'N/A')}, Under: {cuotas.get('under_25', 'N/A')}\n"
+            
+            if 'bookmakers' in partido and len(partido['bookmakers']) > 1:
+                info += f"📊 Mejores cuotas de {len(partido['bookmakers'])} casas\n"
+            
+            info += "\n"
 
             if liga not in partidos_por_liga:
                 partidos_por_liga[liga] = []
