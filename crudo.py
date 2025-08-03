@@ -79,6 +79,9 @@ def buscar():
     output.delete('1.0', tk.END)
 
     ligas_disponibles.clear()
+    
+    from ia_bets import limpiar_cache_predicciones
+    limpiar_cache_predicciones()
 
     try:
         partidos = cargar_partidos_reales(fecha)

@@ -1,6 +1,7 @@
 import random
 import json
 import os
+import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
@@ -17,6 +18,19 @@ LIGAS_CONOCIDAS = {
 
 CUOTA_MIN = 1.30
 CUOTA_MAX = 1.60
+
+_cache_predicciones = {}
+
+def generar_semilla_partido(local: str, visitante: str, fecha: str, cuotas: Dict[str, str]) -> int:
+    """Genera semilla determinística basada en datos del partido"""
+    datos_partido = f"{local}|{visitante}|{fecha}|{cuotas.get('local', '2.0')}|{cuotas.get('empate', '3.0')}|{cuotas.get('visitante', '4.0')}"
+    hash_objeto = hashlib.md5(datos_partido.encode())
+    return int(hash_objeto.hexdigest()[:8], 16)
+
+def limpiar_cache_predicciones():
+    """Limpia el cache de predicciones"""
+    global _cache_predicciones
+    _cache_predicciones.clear()
 
 def es_liga_conocida(liga: str) -> bool:
     return any(liga_conocida.lower() in liga.lower() for liga_conocida in LIGAS_CONOCIDAS)
@@ -45,23 +59,25 @@ def calcular_probabilidades_1x2(cuotas: Dict[str, str]) -> Dict[str, float]:
     except (ValueError, TypeError):
         return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
 
-def calcular_probabilidades_btts() -> Dict[str, float]:
-    """Calcula probabilidades de Both Teams To Score basado en estadísticas simuladas"""
-    prob_btts_si = np.random.normal(0.52, 0.15)  # Media 52% con variación
-    prob_btts_si = max(0.25, min(0.75, prob_btts_si))  # Límites realistas
+def calcular_probabilidades_btts(semilla: int) -> Dict[str, float]:
+    """Calcula probabilidades de Both Teams To Score basado en estadísticas determinísticas"""
+    np.random.seed(semilla + 1)
+    prob_btts_si = np.random.normal(0.52, 0.15)
+    prob_btts_si = max(0.25, min(0.75, prob_btts_si))
     
     return {
         "btts_si": prob_btts_si,
         "btts_no": 1 - prob_btts_si
     }
 
-def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
     """Calcula probabilidades de Over/Under con análisis contextual"""
+    np.random.seed(semilla + 2)
     goles_esperados = float(np.random.normal(2.7, 0.8))
     
     if rendimiento_equipos:
         factor_ofensivo = rendimiento_equipos.get("goles_promedio_local", 1.3) + rendimiento_equipos.get("goles_promedio_visitante", 1.3)
-        goles_esperados = goles_esperados * (factor_ofensivo / 2.6)  # Normalizar
+        goles_esperados = goles_esperados * (factor_ofensivo / 2.6)
     
     goles_esperados = max(1.5, min(4.5, goles_esperados))
     
@@ -76,8 +92,9 @@ def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, A
         "goles_esperados": goles_esperados
     }
 
-def calcular_probabilidades_primera_mitad() -> Dict[str, float]:
+def calcular_probabilidades_primera_mitad(semilla: int) -> Dict[str, float]:
     """Calcula probabilidades de goles en primera mitad"""
+    np.random.seed(semilla + 3)
     goles_primera_mitad = float(np.random.normal(1.2, 0.5))
     goles_primera_mitad = max(0.5, min(2.5, goles_primera_mitad))
     
@@ -90,8 +107,9 @@ def calcular_probabilidades_primera_mitad() -> Dict[str, float]:
         "goles_esperados_1h": goles_primera_mitad
     }
 
-def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
     """Calcula probabilidades de tarjetas con análisis contextual"""
+    np.random.seed(semilla + 4)
     tarjetas_esperadas = float(np.random.normal(4.8, 1.2))
     
     if rendimiento_equipos:
@@ -109,8 +127,9 @@ def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any
         "tarjetas_esperadas": tarjetas_esperadas
     }
 
-def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
     """Calcula probabilidades de corners totales"""
+    np.random.seed(semilla + 5)
     corners_esperados = float(np.random.normal(10.5, 2.5))
     
     if rendimiento_equipos:
@@ -159,8 +178,10 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
             "handicap_visitante_15": 0.65
         }
 
-def analizar_rendimiento_equipos(local: str, visitante: str) -> Dict[str, Any]:
+def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
     """Simula análisis de rendimiento reciente y enfrentamientos directos"""
+    np.random.seed(semilla + 6)
+    
     rendimiento_local = {
         "goles_favor": float(np.random.normal(1.4, 0.6)),
         "goles_contra": float(np.random.normal(1.1, 0.5)),
@@ -194,19 +215,22 @@ def analizar_rendimiento_equipos(local: str, visitante: str) -> Dict[str, Any]:
     }
 
 def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
-    """Análisis completo de un partido con múltiples mercados y contexto"""
+    """Análisis completo de un partido con múltiples mercados y contexto determinístico"""
     cuotas = partido.get("cuotas", {})
     local = partido.get('local', 'Local')
     visitante = partido.get('visitante', 'Visitante')
+    fecha = partido.get('fecha', datetime.now().strftime('%Y-%m-%d'))
     
-    rendimiento = analizar_rendimiento_equipos(local, visitante)
+    semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
+    
+    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla)
     
     prob_1x2 = calcular_probabilidades_1x2(cuotas)
-    prob_btts = calcular_probabilidades_btts()
-    prob_over_under = calcular_probabilidades_over_under(rendimiento)
-    prob_primera_mitad = calcular_probabilidades_primera_mitad()
-    prob_tarjetas = calcular_probabilidades_tarjetas(rendimiento)
-    prob_corners = calcular_probabilidades_corners(rendimiento)
+    prob_btts = calcular_probabilidades_btts(semilla)
+    prob_over_under = calcular_probabilidades_over_under(rendimiento, semilla)
+    prob_primera_mitad = calcular_probabilidades_primera_mitad(semilla)
+    prob_tarjetas = calcular_probabilidades_tarjetas(rendimiento, semilla)
+    prob_corners = calcular_probabilidades_corners(rendimiento, semilla)
     prob_handicap = calcular_probabilidades_handicap(cuotas, rendimiento)
     
     return {
@@ -501,7 +525,16 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]]) -> List[Dict[s
     
     for partido in partidos:
         try:
-            prediccion = generar_prediccion(partido)
+            clave_partido = f"{partido.get('local', '')}|{partido.get('visitante', '')}|{fecha}"
+            
+            if clave_partido in _cache_predicciones:
+                prediccion = _cache_predicciones[clave_partido]
+            else:
+                partido_con_fecha = {**partido, 'fecha': fecha}
+                prediccion = generar_prediccion(partido_con_fecha)
+                if prediccion:
+                    _cache_predicciones[clave_partido] = prediccion
+            
             if prediccion:
                 predicciones_validas.append(prediccion)
                 guardar_prediccion_historica(prediccion, fecha)
