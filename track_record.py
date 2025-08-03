@@ -27,54 +27,80 @@ class TrackRecordManager:
         """
         try:
             endpoint = f"{self.base_url}/todays-matches"
-            params = {
-                "key": self.api_key,
-                "date": fecha,
-                "timezone": "America/Bogota"
-            }
             
-            response = requests.get(endpoint, params=params)
-            if response.status_code != 200:
-                print(f"Error API: {response.status_code}")
-                return None
+            dates_to_try = [fecha]
             
-            data = response.json()
-            partidos = data.get("data", [])
+            try:
+                fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
+                dates_to_try.extend([
+                    (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d'),
+                    (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+                ])
+            except:
+                pass
             
-            for partido in partidos:
-                home_name = partido.get("home_name", "").lower()
-                away_name = partido.get("away_name", "").lower()
+            for date_to_try in dates_to_try:
+                params = {
+                    "key": self.api_key,
+                    "date": date_to_try,
+                    "timezone": "America/Bogota"
+                }
                 
-                if (equipo_local.lower() in home_name or home_name in equipo_local.lower()) and \
-                   (equipo_visitante.lower() in away_name or away_name in equipo_visitante.lower()):
+                response = requests.get(endpoint, params=params)
+                if response.status_code != 200:
+                    print(f"Error API for {date_to_try}: {response.status_code}")
+                    continue
+                
+                data = response.json()
+                partidos = data.get("data", [])
+                
+                for partido in partidos:
+                    home_name = partido.get("home_name", "").lower()
+                    away_name = partido.get("away_name", "").lower()
                     
-                    status = partido.get("status", "").lower().strip()
+                    local_match = (
+                        equipo_local.lower() in home_name or 
+                        home_name in equipo_local.lower() or
+                        any(word in home_name for word in equipo_local.lower().split() if len(word) > 3)
+                    )
                     
-                    if status in VALID_MATCH_STATUSES:
-                        return {
-                            "match_id": partido.get("id"),
-                            "status": status,
-                            "home_score": partido.get("home_goals", 0),
-                            "away_score": partido.get("away_goals", 0),
-                            "total_goals": partido.get("home_goals", 0) + partido.get("away_goals", 0),
-                            "corners_home": partido.get("home_corners", 0),
-                            "corners_away": partido.get("away_corners", 0),
-                            "total_corners": partido.get("home_corners", 0) + partido.get("away_corners", 0),
-                            "cards_home": partido.get("home_cards", 0),
-                            "cards_away": partido.get("away_cards", 0),
-                            "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
-                            "resultado_1x2": self._determinar_resultado_1x2(
-                                partido.get("home_goals", 0), 
-                                partido.get("away_goals", 0)
-                            )
-                        }
-                    elif status in INVALID_MATCH_STATUSES:
-                        print(f"Skipping incomplete match: {partido.get('home_name')} vs {partido.get('away_name')} - Status: {status}")
-                        return None
-                    else:
-                        print(f"Unknown match status: {status} for {partido.get('home_name')} vs {partido.get('away_name')}")
-                        return None
+                    visitante_match = (
+                        equipo_visitante.lower() in away_name or 
+                        away_name in equipo_visitante.lower() or
+                        any(word in away_name for word in equipo_visitante.lower().split() if len(word) > 3)
+                    )
+                    
+                    if local_match and visitante_match:
+                        
+                        status = partido.get("status", "").lower().strip()
+                        print(f"Found match: {partido.get('home_name')} vs {partido.get('away_name')} on {date_to_try} - Status: {status}")
+                        
+                        if status in VALID_MATCH_STATUSES:
+                            return {
+                                "match_id": partido.get("id"),
+                                "status": status,
+                                "home_score": partido.get("home_goals", 0),
+                                "away_score": partido.get("away_goals", 0),
+                                "total_goals": partido.get("home_goals", 0) + partido.get("away_goals", 0),
+                                "corners_home": partido.get("home_corners", 0),
+                                "corners_away": partido.get("away_corners", 0),
+                                "total_corners": partido.get("home_corners", 0) + partido.get("away_corners", 0),
+                                "cards_home": partido.get("home_cards", 0),
+                                "cards_away": partido.get("away_cards", 0),
+                                "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
+                                "resultado_1x2": self._determinar_resultado_1x2(
+                                    partido.get("home_goals", 0), 
+                                    partido.get("away_goals", 0)
+                                )
+                            }
+                        elif status in INVALID_MATCH_STATUSES:
+                            print(f"Skipping incomplete match: {partido.get('home_name')} vs {partido.get('away_name')} - Status: {status}")
+                            return None
+                        else:
+                            print(f"Unknown match status: {status} for {partido.get('home_name')} vs {partido.get('away_name')}")
+                            return None
             
+            print(f"No match found for {equipo_local} vs {equipo_visitante} on any date")
             return None
             
         except Exception as e:
@@ -231,6 +257,7 @@ class TrackRecordManager:
             for i, (key, match_data) in enumerate(matches_unicos.items()):
                 try:
                     print(f"Procesando {i+1}/{len(matches_unicos)}: {match_data['partido']}")
+                    print(f"  Buscando: {match_data['equipo_local']} vs {match_data['equipo_visitante']} en {match_data['fecha']}")
                     
                     if i > 0:
                         time.sleep(2)
@@ -242,6 +269,7 @@ class TrackRecordManager:
                     )
                     
                     if resultado:
+                        print(f"  ✅ Resultado encontrado: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
                         for prediccion in match_data["predicciones"]:
                             try:
                                 acierto, ganancia = self.validar_prediccion(prediccion, resultado)
@@ -252,6 +280,7 @@ class TrackRecordManager:
                                 prediccion["fecha_actualizacion"] = datetime.now().isoformat()
                                 
                                 actualizaciones += 1
+                                print(f"    ✅ Predicción '{prediccion['prediccion']}': {'WIN' if acierto else 'LOSS'} (${ganancia:.2f})")
                                 
                             except Exception as e:
                                 print(f"    ❌ Error validando predicción {prediccion.get('prediccion', 'Unknown')}: {e}")
