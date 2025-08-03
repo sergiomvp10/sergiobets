@@ -73,7 +73,7 @@ def buscar_en_hilo():
     threading.Thread(target=buscar).start()
 
 
-def buscar():
+def buscar(opcion_numero=1):
     global mensaje_telegram
     fecha = entry_fecha.get()
     output.delete('1.0', tk.END)
@@ -81,7 +81,8 @@ def buscar():
     ligas_disponibles.clear()
     
     from ia_bets import limpiar_cache_predicciones
-    limpiar_cache_predicciones()
+    if opcion_numero == 1:
+        limpiar_cache_predicciones()
 
     try:
         partidos = cargar_partidos_reales(fecha)
@@ -102,9 +103,13 @@ def buscar():
         else:
             partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
         
-        predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados)
+        predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
         
-        mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada)
+        titulo_extra = ""
+        if opcion_numero == 2:
+            titulo_extra = " - ALTERNATIVAS (2das OPCIONES)"
+        
+        mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada, titulo_extra)
         mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha)
 
         mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
@@ -156,7 +161,7 @@ def limpiar_frame_partidos():
     checkboxes_partidos.clear()
     partidos_actuales.clear()
 
-def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
+def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada, titulo_extra=""):
     """Mostrar predicciones con checkboxes para selección"""
     limpiar_frame_predicciones()
     
@@ -169,6 +174,7 @@ def mostrar_predicciones_con_checkboxes(predicciones, liga_filtrada):
     titulo_text = "🤖 PREDICCIONES IA - SELECCIONA PICKS PARA ENVIAR"
     if liga_filtrada != 'Todas':
         titulo_text += f" - {liga_filtrada}"
+    titulo_text += titulo_extra
     
     titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
                            font=('Segoe UI', 10, 'bold'), pady=5)
@@ -865,6 +871,12 @@ combo_ligas.bind('<<ComboboxSelected>>', on_liga_changed)
 
 btn_buscar = ttk.Button(frame_top, text="🔍 Buscar", command=buscar_en_hilo)
 btn_buscar.pack(side=tk.LEFT, padx=5)
+
+def regenerar_en_hilo():
+    threading.Thread(target=lambda: buscar(opcion_numero=2)).start()
+
+btn_regenerar = ttk.Button(frame_top, text="🔄 Regenerar", command=regenerar_en_hilo)
+btn_regenerar.pack(side=tk.LEFT, padx=2)
 
 btn_progreso = ttk.Button(frame_top, text="📊 Progreso", command=abrir_progreso)
 btn_progreso.pack(side=tk.LEFT, padx=5)

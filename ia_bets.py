@@ -255,8 +255,8 @@ def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tu
     
     return valor_esperado, es_value_bet
 
-def encontrar_mejor_apuesta(analisis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Encuentra la mejor apuesta basada en value betting con múltiples mercados"""
+def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) -> List[Dict[str, Any]]:
+    """Encuentra las mejores apuestas basadas en value betting con múltiples mercados"""
     mejores_apuestas = []
     
     prob_1x2 = analisis["probabilidades_1x2"]
@@ -463,17 +463,19 @@ def encontrar_mejor_apuesta(analisis: Dict[str, Any]) -> Optional[Dict[str, Any]
     
     if mejores_apuestas:
         mejores_apuestas.sort(key=lambda x: x["valor_esperado"], reverse=True)
-        mejor = mejores_apuestas[0]
         
-        kelly_fraction = mejor["valor_esperado"] / (mejor["cuota"] - 1)
-        stake_recomendado = min(10, max(1, int(kelly_fraction * 100)))
+        opciones_finales = mejores_apuestas[:num_opciones]
         
-        mejor["stake_recomendado"] = stake_recomendado
-        mejor["justificacion"] = generar_justificacion(mejor, analisis)
+        for opcion in opciones_finales:
+            kelly_fraction = opcion["valor_esperado"] / (opcion["cuota"] - 1)
+            stake_recomendado = min(10, max(1, int(kelly_fraction * 100)))
+            
+            opcion["stake_recomendado"] = stake_recomendado
+            opcion["justificacion"] = generar_justificacion(opcion, analisis)
         
-        return mejor
+        return opciones_finales
     
-    return None
+    return []
 
 def generar_justificacion(apuesta: Dict[str, Any], analisis: Dict[str, Any]) -> str:
     """Genera justificación técnica para la apuesta recomendada"""
@@ -493,16 +495,22 @@ def generar_justificacion(apuesta: Dict[str, Any], analisis: Dict[str, Any]) -> 
     
     return justificaciones.get(tipo, f"Value bet identificada: {ve_pct}% valor esperado con {conf_pct}% confianza basada en análisis contextual.")
 
-def generar_prediccion(partido: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optional[Dict[str, Any]]:
     try:
         analisis = analizar_partido_completo(partido)
-        mejor_apuesta = encontrar_mejor_apuesta(analisis)
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=2)
         
-        if not mejor_apuesta:
+        if not mejores_apuestas:
             return None
             
         if not es_liga_conocida(analisis["liga"]):
             return None
+        
+        indice_opcion = opcion_numero - 1
+        if indice_opcion >= len(mejores_apuestas):
+            return None
+            
+        mejor_apuesta = mejores_apuestas[indice_opcion]
         
         return {
             "partido": analisis["partido"],
@@ -513,31 +521,34 @@ def generar_prediccion(partido: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "stake_recomendado": mejor_apuesta["stake_recomendado"],
             "confianza": round(mejor_apuesta["confianza"], 1),
             "valor_esperado": round(mejor_apuesta["valor_esperado"], 3),
-            "razon": mejor_apuesta["justificacion"]
+            "razon": mejor_apuesta["justificacion"],
+            "opcion_numero": opcion_numero,
+            "total_opciones": len(mejores_apuestas)
         }
     except Exception as e:
         print(f"Error generando predicción para partido: {e}")
         return None
 
-def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero: int = 1) -> List[Dict[str, Any]]:
     predicciones_validas = []
     fecha = datetime.now().strftime('%Y-%m-%d')
     
     for partido in partidos:
         try:
-            clave_partido = f"{partido.get('local', '')}|{partido.get('visitante', '')}|{fecha}"
+            clave_partido = f"{partido.get('local', '')}|{partido.get('visitante', '')}|{fecha}|opcion_{opcion_numero}"
             
             if clave_partido in _cache_predicciones:
                 prediccion = _cache_predicciones[clave_partido]
             else:
                 partido_con_fecha = {**partido, 'fecha': fecha}
-                prediccion = generar_prediccion(partido_con_fecha)
+                prediccion = generar_prediccion(partido_con_fecha, opcion_numero)
                 if prediccion:
                     _cache_predicciones[clave_partido] = prediccion
             
             if prediccion:
                 predicciones_validas.append(prediccion)
-                guardar_prediccion_historica(prediccion, fecha)
+                if opcion_numero == 1:
+                    guardar_prediccion_historica(prediccion, fecha)
         except Exception as e:
             print(f"Error procesando partido {partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}: {e}")
             continue
@@ -598,6 +609,11 @@ def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None
         
     except Exception as e:
         print(f"Error guardando predicción histórica: {e}")
+
+def encontrar_mejor_apuesta(analisis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Función de compatibilidad - devuelve solo la mejor apuesta"""
+    mejores = encontrar_mejores_apuestas(analisis, num_opciones=1)
+    return mejores[0] if mejores else None
 
 def generar_reporte_rendimiento() -> Dict[str, Any]:
     """Genera reporte de rendimiento de las predicciones (DEPRECATED - usar TrackRecordManager)"""
