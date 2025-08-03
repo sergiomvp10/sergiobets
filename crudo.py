@@ -436,16 +436,17 @@ def abrir_progreso():
 
 
 def abrir_track_record():
-    """Abre ventana de track record de predicciones"""
+    """Abre ventana de track record de predicciones con UI organizada"""
     try:
         from track_record import TrackRecordManager
+        import os
         
         api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
         tracker = TrackRecordManager(api_key)
         
         ventana_track = tk.Toplevel(root)
         ventana_track.title("📊 Track Record - SergioBets IA")
-        ventana_track.geometry("800x600")
+        ventana_track.geometry("900x700")
         ventana_track.configure(bg="#2c3e50")
         
         frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
@@ -455,30 +456,69 @@ def abrir_track_record():
                          bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
         titulo.pack(pady=(0, 20))
         
-        frame_botones = tk.Frame(frame_principal, bg="#2c3e50")
-        frame_botones.pack(fill='x', pady=(0, 20))
+        frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
+        frame_acciones.pack(fill='x', pady=(0, 10))
+        
+        frame_visualizacion = tk.Frame(frame_principal, bg="#2c3e50")
+        frame_visualizacion.pack(fill='x', pady=(0, 20))
+        
+        vista_actual = tk.StringVar(value="general")
         
         def actualizar_resultados():
             btn_actualizar.config(state='disabled', text="🔄 Procesando...")
             ventana_track.update()
             
             try:
+                import time
+                start_time = time.time()
                 resultado = tracker.actualizar_historial_con_resultados()
+                end_time = time.time()
+                
                 if "error" in resultado:
                     messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
                 else:
-                    mensaje = f"✅ Predicciones actualizadas: {resultado['actualizaciones']}\n"
-                    mensaje += f"🎯 Matches procesados: {resultado.get('matches_procesados', 0)}\n"
+                    mensaje = f"✅ Actualización completada en {end_time - start_time:.1f}s\n\n"
+                    mensaje += f"📊 Predicciones actualizadas: {resultado['actualizaciones']}\n"
+                    mensaje += f"🎯 Matches únicos procesados: {resultado.get('matches_procesados', 0)}\n"
                     mensaje += f"❌ Errores: {resultado['errores']}\n"
                     mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}\n"
                     mensaje += f"🔧 Correcciones históricas: {resultado.get('correcciones_historicas', 0)}\n"
-                    mensaje += f"📊 Total procesadas: {resultado['total_procesadas']}"
+                    mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}"
                     messagebox.showinfo("Actualización Completada", mensaje)
-                    mostrar_metricas()
+                    mostrar_vista_actual()
             finally:
                 btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
         
-        def mostrar_metricas():
+        def limpiar_historial():
+            respuesta = messagebox.askyesno("Confirmar", 
+                "¿Estás seguro de que quieres limpiar todo el historial de predicciones?\n\n" +
+                "Esta acción no se puede deshacer.")
+            
+            if respuesta:
+                try:
+                    if os.path.exists('historial_predicciones.json'):
+                        with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                            f.write('[]')
+                        messagebox.showinfo("Éxito", "Historial limpiado correctamente")
+                        mostrar_vista_actual()
+                    else:
+                        messagebox.showinfo("Info", "No hay historial para limpiar")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error limpiando historial: {e}")
+        
+        def mostrar_metricas_generales():
+            vista_actual.set("general")
+            mostrar_vista_actual()
+        
+        def mostrar_metricas_financieras():
+            vista_actual.set("financieras")
+            mostrar_vista_actual()
+        
+        def mostrar_rendimiento_tipos():
+            vista_actual.set("tipos")
+            mostrar_vista_actual()
+        
+        def mostrar_vista_actual():
             metricas = tracker.calcular_metricas_rendimiento()
             
             for widget in frame_resultados.winfo_children():
@@ -496,44 +536,86 @@ def abrir_track_record():
                 mensaje_label.pack(pady=10)
                 return
             
-            metricas_text = f"""
-📈 MÉTRICAS GENERALES:
+            vista = vista_actual.get()
+            
+            if vista == "general":
+                contenido = f"""
+📈 MÉTRICAS GENERALES
+
 • Total predicciones: {metricas['total_predicciones']}
 • Predicciones resueltas: {metricas['predicciones_resueltas']}
 • Aciertos: {metricas['aciertos']}
+• Fallos: {metricas['predicciones_resueltas'] - metricas['aciertos']}
 • Tasa de acierto: {metricas['tasa_acierto']:.1f}%
 
-💰 MÉTRICAS FINANCIERAS:
+📊 ESTADO DEL SISTEMA:
+• Predicciones pendientes: {metricas['total_predicciones'] - metricas['predicciones_resueltas']}
+• Eficiencia de procesamiento: {(metricas['predicciones_resueltas'] / metricas['total_predicciones'] * 100):.1f}%
+"""
+            
+            elif vista == "financieras":
+                contenido = f"""
+💰 MÉTRICAS FINANCIERAS
+
 • Total apostado: ${metricas['total_apostado']:.2f}
 • Ganancia total: ${metricas['total_ganancia']:.2f}
+• Ganancia neta: ${metricas['total_ganancia'] - metricas['total_apostado']:.2f}
 • ROI: {metricas['roi']:.2f}%
 • Valor esperado promedio: {metricas['valor_esperado_promedio']:.3f}
 
-🎯 RENDIMIENTO POR TIPO:
+📈 ANÁLISIS FINANCIERO:
+• Stake promedio: ${metricas['total_apostado'] / max(metricas['predicciones_resueltas'], 1):.2f}
+• Ganancia por predicción: ${metricas['total_ganancia'] / max(metricas['predicciones_resueltas'], 1):.2f}
 """
             
-            for tipo, datos in metricas.get('tipos_apuesta', {}).items():
-                metricas_text += f"• {tipo}: {datos['aciertos']}/{datos['total']} ({datos['win_rate']:.1f}%) - ${datos['ganancia']:.2f}\n"
+            elif vista == "tipos":
+                contenido = "🎯 RENDIMIENTO POR TIPO DE APUESTA\n\n"
+                
+                if metricas.get('tipos_apuesta'):
+                    for tipo, datos in metricas['tipos_apuesta'].items():
+                        roi_tipo = ((datos['ganancia'] - datos['total'] * (datos['ganancia'] / max(datos['total'], 1))) / max(datos['total'], 1)) * 100
+                        contenido += f"• {tipo}:\n"
+                        contenido += f"  - Predicciones: {datos['total']}\n"
+                        contenido += f"  - Aciertos: {datos['aciertos']} ({datos['win_rate']:.1f}%)\n"
+                        contenido += f"  - Ganancia: ${datos['ganancia']:.2f}\n"
+                        contenido += f"  - ROI: {roi_tipo:.1f}%\n\n"
+                else:
+                    contenido += "No hay datos de tipos de apuesta disponibles."
             
-            metricas_label = tk.Label(frame_resultados, text=metricas_text, 
-                                    bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 10),
-                                    justify='left', anchor='nw')
+            metricas_label = tk.Label(frame_resultados, text=contenido, 
+                                    bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 11),
+                                    justify='left', anchor='nw', padx=20, pady=20)
             metricas_label.pack(fill='both', expand=True, padx=10, pady=10)
         
-        btn_actualizar = tk.Button(frame_botones, text="🔄 Actualizar Resultados", 
+        btn_actualizar = tk.Button(frame_acciones, text="🔄 Actualizar Resultados", 
                                   command=actualizar_resultados, bg="#3498db", fg="white",
-                                  font=('Segoe UI', 10, 'bold'), padx=20, pady=5)
+                                  font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
         btn_actualizar.pack(side='left', padx=(0, 10))
         
-        btn_metricas = tk.Button(frame_botones, text="📊 Mostrar Métricas", 
-                               command=mostrar_metricas, bg="#27ae60", fg="white",
-                               font=('Segoe UI', 10, 'bold'), padx=20, pady=5)
-        btn_metricas.pack(side='left')
+        btn_limpiar = tk.Button(frame_acciones, text="🧹 Limpiar Historial", 
+                               command=limpiar_historial, bg="#e74c3c", fg="white",
+                               font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_limpiar.pack(side='left', padx=(0, 10))
+        
+        btn_general = tk.Button(frame_visualizacion, text="📈 Métricas Generales", 
+                               command=mostrar_metricas_generales, bg="#27ae60", fg="white",
+                               font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_general.pack(side='left', padx=(0, 10))
+        
+        btn_financieras = tk.Button(frame_visualizacion, text="💰 Métricas Financieras", 
+                                   command=mostrar_metricas_financieras, bg="#f39c12", fg="white",
+                                   font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_financieras.pack(side='left', padx=(0, 10))
+        
+        btn_tipos = tk.Button(frame_visualizacion, text="🎯 Rendimiento por Tipo", 
+                             command=mostrar_rendimiento_tipos, bg="#9b59b6", fg="white",
+                             font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_tipos.pack(side='left')
         
         frame_resultados = tk.Frame(frame_principal, bg="#ecf0f1", relief='ridge', bd=2)
         frame_resultados.pack(fill='both', expand=True)
         
-        mostrar_metricas()
+        mostrar_vista_actual()
         
     except Exception as e:
         messagebox.showerror("Error", f"Error abriendo track record: {e}")
