@@ -28,13 +28,44 @@ def calcular_probabilidades(cuotas: Dict[str, str]) -> Dict[str, float]:
         total = prob_local + prob_empate + prob_visitante
         
         if total > 0:
-            return {
+            probabilidades = {
                 "local": prob_local / total,
                 "empate": prob_empate / total,
                 "visitante": prob_visitante / total
             }
         else:
-            return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
+            probabilidades = {"local": 0.33, "empate": 0.33, "visitante": 0.34}
+        
+        if cuotas.get('btts_si') and cuotas.get('btts_si') != 'N/A':
+            try:
+                btts_si = float(cuotas['btts_si'])
+                btts_no = float(cuotas.get('btts_no', '2.0'))
+                prob_btts_si = 1 / btts_si if btts_si > 0 else 0
+                prob_btts_no = 1 / btts_no if btts_no > 0 else 0
+                total_btts = prob_btts_si + prob_btts_no
+                
+                if total_btts > 0:
+                    probabilidades["btts_si"] = prob_btts_si / total_btts
+                    probabilidades["btts_no"] = prob_btts_no / total_btts
+            except (ValueError, TypeError):
+                pass
+        
+        if cuotas.get('over_25') and cuotas.get('over_25') != 'N/A':
+            try:
+                over_25 = float(cuotas['over_25'])
+                under_25 = float(cuotas.get('under_25', '2.0'))
+                prob_over = 1 / over_25 if over_25 > 0 else 0
+                prob_under = 1 / under_25 if under_25 > 0 else 0
+                total_ou = prob_over + prob_under
+                
+                if total_ou > 0:
+                    probabilidades["over_25"] = prob_over / total_ou
+                    probabilidades["under_25"] = prob_under / total_ou
+            except (ValueError, TypeError):
+                pass
+        
+        return probabilidades
+        
     except (ValueError, TypeError):
         return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
 
