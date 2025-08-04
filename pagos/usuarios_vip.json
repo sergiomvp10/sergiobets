@@ -1,1 +1,9 @@
-{}
+{
+  "987654321": {
+    "username": "test_user_devin",
+    "membership_type": "weekly",
+    "activated_at": "2025-08-04T07:29:25.768717",
+    "expires_at": "2025-08-11T07:29:25.768717",
+    "active": true
+  }
+}
