@@ -37,16 +37,30 @@ class NgrokManager:
         try:
             self.webhook_process = subprocess.Popen([
                 sys.executable, 'pagos/start_webhook_server.py'
-            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             
-            time.sleep(3)
+            time.sleep(5)
             
             if self.webhook_process.poll() is None:
-                print("✅ Servidor webhook iniciado correctamente")
-                return True
-            else:
+                try:
+                    response = requests.get("http://localhost:5000/health", timeout=5)
+                    if response.status_code == 200:
+                        print("✅ Servidor webhook iniciado correctamente")
+                        return True
+                except:
+                    pass
+            
+            try:
+                stdout, stderr = self.webhook_process.communicate(timeout=5)
                 print("❌ Error iniciando servidor webhook")
-                return False
+                if stdout:
+                    print(f"Output: {stdout}")
+                if stderr:
+                    print(f"Error: {stderr}")
+            except subprocess.TimeoutExpired:
+                print("❌ Timeout esperando respuesta del servidor webhook")
+                self.webhook_process.kill()
+            return False
         except Exception as e:
             print(f"❌ Error iniciando servidor: {e}")
             return False
@@ -161,6 +175,19 @@ class NgrokManager:
             url = self.get_ngrok_url()
             if url:
                 self.save_ngrok_url()
+                
+                try:
+                    response = requests.get("http://localhost:5000/health", timeout=3)
+                    if response.status_code == 200:
+                        print("✅ Servidor webhook ya está corriendo")
+                        print(f"✅ Sistema listo con URL: {url}")
+                        return True
+                except:
+                    print("⚠️ Servidor webhook no está corriendo, iniciándolo...")
+                    if not self.start_webhook_server():
+                        print("❌ No se pudo iniciar el servidor webhook")
+                        return False
+                
                 print(f"✅ Sistema listo con URL: {url}")
                 return True
         
@@ -208,8 +235,12 @@ def main():
     
     try:
         if manager.launch():
+            print("\n⚠️  Mantén esta terminal abierta para que el túnel funcione")
+            print("🛑 Presiona Ctrl+C para detener")
             while True:
                 time.sleep(1)
+        else:
+            print("❌ Error iniciando el sistema")
     except KeyboardInterrupt:
         print("\n🛑 Deteniendo sistema...")
         manager.stop_services()
