@@ -71,7 +71,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("📢 Novedades", callback_data="novedades")
         ],
         [
-            InlineKeyboardButton("💳 Comprar Membresía", callback_data="membresia"),
+            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
             InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
         ]
     ]
@@ -266,7 +266,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
             InlineKeyboardButton("📢 Novedades", callback_data="novedades")
         ],
         [
-            InlineKeyboardButton("💳 Comprar Membresía", callback_data="membresia"),
+            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
             InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
         ]
     ]
