@@ -12,82 +12,170 @@ import threading
 import subprocess
 import requests
 import json
+import logging
+import traceback
 from pathlib import Path
+
+def setup_logging():
+    """Setup comprehensive logging for debugging"""
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sergiobets_debug.log')
+    
+    logger = logging.getLogger('SergioBets')
+    logger.setLevel(logging.DEBUG)
+    
+    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+logger = setup_logging()
+logger.info("=== SergioBets Starting ===")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Platform: {sys.platform}")
+logger.info(f"Working directory: {os.getcwd()}")
+logger.info(f"Script path: {os.path.abspath(__file__)}")
+
+try:
+    logger.info("Importing required modules...")
+    logger.debug("✅ All imports successful")
+except Exception as e:
+    logger.error(f"❌ Error during imports: {e}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    input("Press Enter to exit...")
+    sys.exit(1)
 
 class SergioBetsUnified:
     def __init__(self):
-        self.webhook_thread = None
-        self.ngrok_process = None
-        self.bot_process = None
-        self.ngrok_url = None
-        self.running = True
+        logger.info("Initializing SergioBetsUnified...")
+        try:
+            self.webhook_thread = None
+            self.ngrok_process = None
+            self.bot_process = None
+            self.ngrok_url = None
+            self.running = True
+            logger.info("✅ SergioBetsUnified initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Error initializing SergioBetsUnified: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
         
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
     
     def signal_handler(self, signum, frame):
         """Manejar señales de interrupción"""
-        print("\n🛑 Deteniendo SergioBets...")
-        self.running = False
-        self.stop_all_services()
-        sys.exit(0)
+        if not hasattr(self, '_stopping'):
+            self._stopping = True
+            logger.info("🛑 Signal received, stopping SergioBets...")
+            print("\n🛑 Deteniendo SergioBets...")
+            self.running = False
+            self.stop_all_services()
+            sys.exit(0)
     
     def check_dependencies(self):
         """Verificar dependencias necesarias"""
+        logger.info("🔍 Checking dependencies...")
         print("🔍 Verificando dependencias...")
         
-        required_files = [
-            "pagos/webhook_server.py",
-            "telegram_bot_listener.py",
-            ".env"
-        ]
-        
-        for file_path in required_files:
-            if not os.path.exists(file_path):
-                print(f"❌ Archivo requerido no encontrado: {file_path}")
-                return False
-        
         try:
-            result = subprocess.run(["ngrok", "version"], capture_output=True, text=True)
-            if result.returncode != 0:
-                print("❌ ngrok no está instalado o no está en PATH")
+            required_files = [
+                "pagos/webhook_server.py",
+                "telegram_bot_listener.py",
+                ".env"
+            ]
+            
+            for file_path in required_files:
+                logger.debug(f"Checking file: {file_path}")
+                if not os.path.exists(file_path):
+                    logger.error(f"❌ Required file not found: {file_path}")
+                    print(f"❌ Archivo requerido no encontrado: {file_path}")
+                    return False
+                else:
+                    logger.debug(f"✅ File found: {file_path}")
+            
+            try:
+                logger.debug("Checking ngrok...")
+                result = subprocess.run(["ngrok", "version"], capture_output=True, text=True, timeout=10)
+                if result.returncode != 0:
+                    logger.error(f"❌ ngrok not working: return code {result.returncode}")
+                    print("❌ ngrok no está instalado o no está en PATH")
+                    return False
+                logger.info(f"✅ ngrok found: {result.stdout.strip()}")
+                print(f"✅ ngrok encontrado: {result.stdout.strip()}")
+            except FileNotFoundError:
+                logger.error("❌ ngrok not found")
+                print("❌ ngrok no está instalado")
                 return False
-            print(f"✅ ngrok encontrado: {result.stdout.strip()}")
-        except FileNotFoundError:
-            print("❌ ngrok no está instalado")
+            except subprocess.TimeoutExpired:
+                logger.error("❌ ngrok timeout")
+                print("❌ ngrok timeout")
+                return False
+            
+            logger.info("✅ All dependencies verified")
+            print("✅ Todas las dependencias verificadas")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error checking dependencies: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            print(f"❌ Error verificando dependencias: {e}")
             return False
-        
-        print("✅ Todas las dependencias verificadas")
-        return True
     
     def start_webhook_server(self):
         """Iniciar servidor webhook"""
+        logger.info("🚀 Starting webhook server...")
         print("🚀 Iniciando servidor webhook...")
         try:
             # Import and run webhook server directly instead of subprocess
+            logger.debug("Importing webhook server...")
             from pagos.webhook_server import app
+            logger.debug("✅ Webhook server imported successfully")
             
             def run_flask():
-                app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+                try:
+                    logger.info("Starting Flask app...")
+                    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+                except Exception as e:
+                    logger.error(f"❌ Error in Flask app: {e}")
+                    logger.error(f"Traceback: {traceback.format_exc()}")
             
+            logger.debug("Creating webhook thread...")
             self.webhook_thread = threading.Thread(target=run_flask, daemon=True)
             self.webhook_thread.start()
+            logger.debug("✅ Webhook thread started")
             
+            logger.debug("Waiting 3 seconds for server to start...")
             time.sleep(3)
             
             try:
+                logger.debug("Testing health endpoint...")
                 response = requests.get("http://localhost:5000/health", timeout=5)
                 if response.status_code == 200:
+                    logger.info("✅ Webhook server started successfully")
                     print("✅ Servidor webhook iniciado correctamente")
                     return True
                 else:
+                    logger.error(f"❌ Health check failed: {response.status_code}")
                     print(f"❌ Health check falló: {response.status_code}")
                     return False
             except Exception as e:
+                logger.error(f"❌ Error checking webhook server: {e}")
                 print(f"❌ Error verificando servidor webhook: {e}")
                 return False
                 
         except Exception as e:
+            logger.error(f"❌ Error starting webhook server: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             print(f"❌ Error iniciando webhook server: {e}")
             return False
     
@@ -246,9 +334,47 @@ class SergioBetsUnified:
 
 def main():
     """Función principal"""
-    app = SergioBetsUnified()
-    success = app.run()
-    sys.exit(0 if success else 1)
+    try:
+        logger.info("=== Starting main function ===")
+        print("🎯 SergioBets - Sistema Unificado de Pagos")
+        print("=" * 60)
+        
+        logger.debug("Creating SergioBetsUnified instance...")
+        app = SergioBetsUnified()
+        
+        logger.debug("Setting up signal handlers...")
+        signal.signal(signal.SIGINT, app.signal_handler)
+        signal.signal(signal.SIGTERM, app.signal_handler)
+        
+        logger.info("Running SergioBets application...")
+        success = app.run()
+        
+        logger.info(f"Application finished with success: {success}")
+        return 0 if success else 1
+        
+    except Exception as e:
+        logger.error(f"❌ Critical error in main: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        print(f"❌ Error crítico: {e}")
+        print("Ver sergiobets_debug.log para más detalles")
+        input("Presiona Enter para salir...")
+        return 1
 
 if __name__ == "__main__":
-    main()
+    try:
+        logger.info("=== SergioBets Application Starting ===")
+        exit_code = main()
+        logger.info(f"=== SergioBets Application Finished (exit code: {exit_code}) ===")
+        
+        if exit_code != 0:
+            input("Presiona Enter para salir...")
+        
+        sys.exit(exit_code)
+        
+    except Exception as e:
+        logger.error(f"❌ Fatal error: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        print(f"❌ Error fatal: {e}")
+        print("Ver sergiobets_debug.log para más detalles")
+        input("Presiona Enter para salir...")
+        sys.exit(1)
