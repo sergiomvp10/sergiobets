@@ -104,7 +104,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "ayuda":
         await mostrar_ayuda(update, context)
     elif query.data == "pay_usdt":
-        await procesar_pago(update, context, "usdterc20")
+        await procesar_pago(update, context, "usdttrc20")
     elif query.data == "pay_ltc":
         await procesar_pago(update, context, "ltc")
     elif query.data == "pago_nequi":
@@ -195,11 +195,10 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Análisis detallado de mercados
 
 💰 PRECIO:
-• 7 días de acceso VIP: $12.00 USD
-🇨🇴 O paga 50.000 pesos COP por NEQUI
+• 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
-• USDT (Tether)
+• USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
 
@@ -218,11 +217,10 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Análisis detallado de mercados
 
 💰 PRECIO:
-• 7 días de acceso VIP: $12.00 USD
-🇨🇴 O paga 50.000 pesos COP por NEQUI
+• 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
-• USDT (Tether)
+• USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
 
@@ -230,7 +228,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [
-            InlineKeyboardButton("💰 Pagar con USDT", callback_data="pay_usdt"),
+            InlineKeyboardButton("💰 Pagar con USDT (TRC20)", callback_data="pay_usdt"),
             InlineKeyboardButton("🪙 Pagar con Litecoin", callback_data="pay_ltc")
         ],
         [InlineKeyboardButton("📲 Pagar con NEQUI", callback_data="pago_nequi")],
