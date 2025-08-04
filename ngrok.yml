@@ -1,0 +1,7 @@
+version: "3"
+agent:
+  authtoken: 30oNthnDV9dPuUUep11CEifBDMy_6p7AgEgmyaMHiYedDYDd8
+tunnels:
+  sergiobets:
+    proto: http
+    addr: 5000

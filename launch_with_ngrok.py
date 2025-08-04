@@ -65,7 +65,12 @@ class NgrokManager:
                 print("✅ Túnel ngrok iniciado correctamente")
                 return True
             else:
+                stdout, stderr = self.ngrok_process.communicate()
                 print("❌ Error iniciando túnel ngrok")
+                if stderr:
+                    print(f"🔍 Error details: {stderr.decode()}")
+                if stdout:
+                    print(f"🔍 Output: {stdout.decode()}")
                 return False
         except Exception as e:
             print(f"❌ Error iniciando ngrok: {e}")

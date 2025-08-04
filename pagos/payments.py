@@ -274,14 +274,25 @@ class PaymentManager:
             logger.error(f"Error verificando usuario VIP: {e}")
             return False
     
-    def get_vip_users(self) -> Dict:
-        """Obtener lista de usuarios VIP"""
+    def get_vip_users(self) -> List[Dict]:
+        """Obtener lista de usuarios VIP activos"""
         try:
-            with open(self.vip_users_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+            if os.path.exists(self.vip_users_file):
+                with open(self.vip_users_file, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        data = json.loads(content)
+                        if isinstance(data, dict):
+                            return [{"user_id": k, **v} for k, v in data.items()]
+                        elif isinstance(data, list):
+                            return data
+                        else:
+                            return []
+                    return []
+            return []
         except Exception as e:
             logger.error(f"Error obteniendo usuarios VIP: {e}")
-            return {}
+            return []
     
     def get_payment_history(self) -> List[Dict]:
         """Obtener historial de pagos"""

@@ -75,7 +75,10 @@ def await_send_admin_notification(payment_result):
 📆 Fecha: {fecha}
 🔐 Acceso VIP activado correctamente"""
         
-        enviar_telegram(mensaje, TELEGRAM_TOKEN, ADMIN_TELEGRAM_ID)
+        if TELEGRAM_TOKEN and ADMIN_TELEGRAM_ID:
+            enviar_telegram(TELEGRAM_TOKEN, ADMIN_TELEGRAM_ID, mensaje)
+        else:
+            logger.warning("Telegram token o admin ID no configurados")
         
     except Exception as e:
         logger.error(f"Error enviando notificación al admin: {e}")
@@ -87,7 +90,10 @@ def await_send_user_confirmation(payment_result):
         
         mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
         
-        enviar_telegram(mensaje, TELEGRAM_TOKEN, user_id)
+        if TELEGRAM_TOKEN and user_id:
+            enviar_telegram(TELEGRAM_TOKEN, user_id, mensaje)
+        else:
+            logger.warning("Telegram token o user ID no disponibles")
         
     except Exception as e:
         logger.error(f"Error enviando confirmación al usuario: {e}")
