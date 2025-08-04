@@ -407,15 +407,20 @@ async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, curr
         
         if result.get("success"):
             currency_name = "USDT" if currency.startswith("usdt") else "Litecoin"
+            if currency.lower() in ["usdt", "usdttrc20"]:
+                instruction_text = "1. Envía exactamente 12 USDT en la red TRC20"
+            else:
+                instruction_text = f"1. Envía exactamente {result['pay_amount']} {result['pay_currency'].upper()}"
+            
             mensaje = f"""💳 PAGO GENERADO - {currency_name}
 
 🔐 Detalles del pago:
-• Monto: {result['pay_amount']} {result['pay_currency'].upper()}
+• Monto: {result['pay_amount']} {result['pay_currency']}
 • Dirección: `{result['pay_address']}`
 • ID de pago: {result['payment_id']}
 
 📋 INSTRUCCIONES:
-1. Envía exactamente {result['pay_amount']} {result['pay_currency'].upper()}
+{instruction_text}
 2. A la dirección mostrada arriba
 3. El pago se confirmará automáticamente
 4. Recibirás tu acceso VIP inmediatamente

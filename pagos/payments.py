@@ -169,12 +169,19 @@ class PaymentManager:
         if "error" not in payment_data:
             self._save_pending_payment(user_id, username, payment_data, membership_type)
             
+            display_amount = payment_data.get("pay_amount")
+            display_currency = payment_data.get("pay_currency")
+            
+            if currency.lower() in ["usdt", "usdttrc20"]:
+                display_amount = "12"
+                display_currency = "USDT RED TRC20"
+            
             return {
                 "success": True,
                 "payment_id": payment_data.get("payment_id"),
                 "pay_address": payment_data.get("pay_address"),
-                "pay_amount": payment_data.get("pay_amount"),
-                "pay_currency": payment_data.get("pay_currency"),
+                "pay_amount": display_amount,
+                "pay_currency": display_currency,
                 "order_id": order_id,
                 "price_amount": price_usd
             }
