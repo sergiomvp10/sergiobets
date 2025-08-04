@@ -103,6 +103,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mostrar_membresia(update, context)
     elif query.data == "ayuda":
         await mostrar_ayuda(update, context)
+    elif query.data == "pay_usdt":
+        await procesar_pago(update, context, "usdterc20")
+    elif query.data == "pay_ltc":
+        await procesar_pago(update, context, "ltc")
+    elif query.data.startswith("verify_"):
+        await verificar_pago(update, context)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
@@ -178,35 +184,32 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("❌ Error cargando novedades. Intenta de nuevo.")
 
 async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar información de membresía"""
+    """Mostrar información de membresía con opciones de pago"""
     query = update.callback_query
-    mensaje = """💳 MEMBRESÍA PREMIUM SERGIOBETS
+    
+    mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
 
-🌟 BENEFICIOS PREMIUM:
+🌟 ACCESO VIP (7 DÍAS):
 • Predicciones exclusivas de alta confianza
 • Acceso a estadísticas avanzadas
 • Alertas en tiempo real
 • Soporte prioritario
 • Análisis detallado de mercados
 
-💰 PRECIOS:
-• Mensual: $29.99 USD
-• Trimestral: $79.99 USD (33% descuento)
-• Anual: $299.99 USD (58% descuento)
+💰 PRECIO:
+• 7 días de acceso VIP: $12.00 USD
 
-🔐 MÉTODOS DE PAGO:
-• Bitcoin (BTC)
-• Ethereum (ETH)
+🔐 MÉTODOS DE PAGO DISPONIBLES:
 • USDT (Tether)
-• Tarjeta de crédito
+• Litecoin (LTC)
 
-📞 Para adquirir tu membresía, contacta:
-@sergiomvp10
-
-🚀 ¡Únete a los ganadores!"""
+🚀 ¡Selecciona tu método de pago preferido!"""
     
     keyboard = [
-        [InlineKeyboardButton("📞 Contactar", url="https://t.me/sergiomvp10")],
+        [
+            InlineKeyboardButton("💰 Pagar con USDT", callback_data="pay_usdt"),
+            InlineKeyboardButton("🪙 Pagar con Litecoin", callback_data="pay_ltc")
+        ],
         [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -322,6 +325,98 @@ def obtener_usuarios_registrados():
 def contar_usuarios_registrados():
     """Contar total de usuarios registrados"""
     return len(obtener_usuarios_registrados())
+
+async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, currency: str):
+    """Procesar solicitud de pago"""
+    query = update.callback_query
+    user_id = str(query.from_user.id)
+    username = query.from_user.username or "sin_username"
+    
+    try:
+        from pagos.payments import PaymentManager
+        payment_manager = PaymentManager()
+        
+        result = payment_manager.create_membership_payment(
+            user_id=user_id,
+            username=username,
+            currency=currency,
+            membership_type="weekly"
+        )
+        
+        if result.get("success"):
+            currency_name = "USDT" if currency.startswith("usdt") else "Litecoin"
+            mensaje = f"""💳 PAGO GENERADO - {currency_name}
+
+🔐 Detalles del pago:
+• Monto: {result['pay_amount']} {result['pay_currency'].upper()}
+• Dirección: `{result['pay_address']}`
+• ID de pago: {result['payment_id']}
+
+📋 INSTRUCCIONES:
+1. Envía exactamente {result['pay_amount']} {result['pay_currency'].upper()}
+2. A la dirección mostrada arriba
+3. El pago se confirmará automáticamente
+4. Recibirás tu acceso VIP inmediatamente
+
+⏰ Este pago expira en 30 minutos.
+🔄 Puedes verificar el estado con el botón de abajo"""
+            
+            keyboard = [
+                [InlineKeyboardButton("🔍 Verificar Pago", callback_data=f"verify_{result['payment_id']}")],
+                [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
+        else:
+            await query.edit_message_text(
+                f"❌ Error creando el pago: {result.get('error')}\n\n🔙 Intenta nuevamente.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="membresia")]])
+            )
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Error del sistema: {str(e)}\n\n🔙 Intenta más tarde.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="membresia")]])
+        )
+
+async def verificar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Verificar estado de un pago"""
+    query = update.callback_query
+    payment_id = query.data.replace("verify_", "")
+    
+    try:
+        from pagos.payments import PaymentManager
+        payment_manager = PaymentManager()
+        
+        status = payment_manager.nowpayments.get_payment_status(payment_id)
+        
+        if "error" not in status:
+            payment_status = status.get("payment_status", "unknown")
+            
+            if payment_status in ["confirmed", "finished"]:
+                mensaje = "✅ ¡Pago confirmado! Tu acceso VIP ha sido activado."
+            elif payment_status == "waiting":
+                mensaje = "⏳ Pago pendiente. Esperando confirmación de la red..."
+            elif payment_status == "confirming":
+                mensaje = "🔄 Pago en proceso de confirmación..."
+            else:
+                mensaje = f"📊 Estado del pago: {payment_status}"
+        else:
+            mensaje = f"❌ Error verificando pago: {status.get('error')}"
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 Verificar de nuevo", callback_data=f"verify_{payment_id}")],
+            [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(mensaje, reply_markup=reply_markup)
+        
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Error del sistema: {str(e)}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
+        )
 
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""
