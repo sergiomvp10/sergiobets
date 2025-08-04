@@ -107,6 +107,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await procesar_pago(update, context, "usdterc20")
     elif query.data == "pay_ltc":
         await procesar_pago(update, context, "ltc")
+    elif query.data == "pago_nequi":
+        await procesar_pago_nequi(update, context)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
@@ -194,10 +196,12 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 💰 PRECIO:
 • 7 días de acceso VIP: $12.00 USD
+🇨🇴 O paga 50.000 pesos COP por NEQUI
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
 • USDT (Tether)
 • Litecoin (LTC)
+• NEQUI (Colombia)
 
 🚀 ¡Selecciona tu método de pago preferido!
 
@@ -215,10 +219,12 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 💰 PRECIO:
 • 7 días de acceso VIP: $12.00 USD
+🇨🇴 O paga 50.000 pesos COP por NEQUI
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
 • USDT (Tether)
 • Litecoin (LTC)
+• NEQUI (Colombia)
 
 🚀 ¡Selecciona tu método de pago preferido!"""
     
@@ -227,6 +233,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("💰 Pagar con USDT", callback_data="pay_usdt"),
             InlineKeyboardButton("🪙 Pagar con Litecoin", callback_data="pay_ltc")
         ],
+        [InlineKeyboardButton("📲 Pagar con NEQUI", callback_data="pago_nequi")],
         [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -304,7 +311,7 @@ def iniciar_bot_listener():
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc)$"))
+        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
@@ -474,6 +481,30 @@ async def verificar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ Error del sistema: {str(e)}",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
         )
+
+async def procesar_pago_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar solicitud de pago NEQUI"""
+    query = update.callback_query
+    
+    mensaje = """📲 PAGO CON NEQUI
+
+Para completar tu pago por NEQUI:
+
+💰 Valor: *50.000 COP*
+📱 Número: *3137526084*
+📸 Envíanos el comprobante de pago por este chat.
+
+_Verificaremos y activaremos tu acceso manualmente._
+
+⏰ Una vez realices el pago, envía una captura del comprobante y te activaremos el acceso VIP en máximo 24 horas."""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""

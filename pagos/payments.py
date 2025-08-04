@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 class NOWPaymentsAPI:
     """Cliente para la API de NOWPayments"""
     
+    MEMBERSHIP_PRICE_USD = 12.00
+    
     def __init__(self):
         self.api_key = os.getenv('NOWPAYMENTS_API_KEY')
         self.base_url = "https://api.nowpayments.io/v1"
@@ -95,6 +97,31 @@ class NOWPaymentsAPI:
         except Exception as e:
             logger.error(f"Error obteniendo estado del pago: {e}")
             return {"error": str(e)}
+    
+    def get_exchange_rate(self, currency: str) -> Optional[float]:
+        """Obtener tasa de cambio de USD a la moneda especificada"""
+        try:
+            url = f"{self.base_url}/exchange-amount"
+            params = {
+                "currency_from": "usd",
+                "currency_to": currency.lower(),
+                "amount": 1
+            }
+            response = requests.get(url, headers=self.headers, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                return float(data.get('estimated_amount', 0))
+            return None
+        except Exception as e:
+            logger.error(f"Error obteniendo tasa de cambio: {e}")
+            return None
+    
+    def get_crypto_price(self, currency: str) -> Optional[float]:
+        """Calcular precio en criptomoneda basado en el precio fijo en USD"""
+        rate = self.get_exchange_rate(currency)
+        if rate:
+            return round(self.MEMBERSHIP_PRICE_USD / rate, 6)
+        return None
 
 class PaymentManager:
     """Gestor de pagos para SergioBets"""
@@ -127,7 +154,7 @@ class PaymentManager:
                                 currency: str, membership_type: str = "weekly") -> Dict:
         """Crear pago para membresía"""
         
-        price_usd = 12.00
+        price_usd = self.nowpayments.MEMBERSHIP_PRICE_USD
         order_id = f"sergiobets_{user_id}_{int(datetime.now().timestamp())}"
         description = f"SergioBets 7-Day VIP Access - User {username}"
         
