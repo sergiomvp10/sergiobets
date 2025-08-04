@@ -296,8 +296,10 @@ def enviar_predicciones_seleccionadas():
                 from ia_bets import guardar_prediccion_historica
                 guardar_prediccion_historica(pred, fecha)
             
-            with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
-                json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
+            from json_storage import guardar_json_batch
+            json_operations = [
+                ("picks_seleccionados.json", {"fecha": fecha, "predicciones": predicciones_seleccionadas})
+            ]
             
             with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
                 f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
@@ -328,11 +330,16 @@ def enviar_predicciones_seleccionadas():
             
             mensaje_completo += mensaje_partidos
             
-            with open('partidos_seleccionados.json', 'w', encoding='utf-8') as f:
-                json.dump(partidos_seleccionados, f, indent=2, ensure_ascii=False)
+            if 'json_operations' not in locals():
+                from json_storage import guardar_json_batch
+                json_operations = []
+            json_operations.append(("partidos_seleccionados.json", partidos_seleccionados))
             
             with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
                 f.write(mensaje_partidos)
+        
+        if 'json_operations' in locals() and json_operations:
+            guardar_json_batch(json_operations)
         
         resultado = enviar_telegram_masivo(mensaje_completo, TELEGRAM_TOKEN)
         if resultado["exito"]:
