@@ -59,8 +59,8 @@ class SergioBetsUnified:
         logger.info("Initializing SergioBetsUnified...")
         try:
             self.webhook_thread = None
+            self.bot_thread = None
             self.ngrok_process = None
-            self.bot_process = None
             self.ngrok_url = None
             self.running = True
             logger.info("✅ SergioBetsUnified initialized successfully")
@@ -223,44 +223,74 @@ class SergioBetsUnified:
     
     def start_telegram_bot(self):
         """Iniciar bot de Telegram"""
+        logger.info("🤖 Starting Telegram bot...")
         print("🤖 Iniciando bot de Telegram...")
         try:
-            self.bot_process = subprocess.Popen(
-                [sys.executable, "telegram_bot_listener.py"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
+            # Import and run the bot directly instead of subprocess
+            logger.debug("Importing telegram bot...")
             
-            time.sleep(2)
+            def run_bot():
+                try:
+                    logger.info("Starting Telegram bot in thread...")
+                    # Import and call the bot listener function directly
+                    import sys
+                    import asyncio
+                    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+                    
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    # Import the iniciar_bot_en_hilo function which is designed for threading
+                    from telegram_bot_listener import iniciar_bot_en_hilo
+                    logger.info("Successfully imported iniciar_bot_en_hilo")
+                    
+                    logger.info("Calling iniciar_bot_en_hilo()...")
+                    iniciar_bot_en_hilo()
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error in Telegram bot thread: {e}")
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            logger.debug("Creating bot thread...")
+            self.bot_thread = threading.Thread(target=run_bot, daemon=True)
+            self.bot_thread.start()
+            logger.debug("✅ Bot thread started")
+            
+            logger.debug("Waiting 3 seconds for bot to initialize...")
+            time.sleep(3)
+            
+            logger.info("✅ Telegram bot started successfully")
             print("✅ Bot de Telegram iniciado")
             return True
             
         except Exception as e:
+            logger.error(f"❌ Error starting Telegram bot: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             print(f"❌ Error iniciando bot de Telegram: {e}")
             return False
     
     def stop_all_services(self):
         """Detener todos los servicios"""
+        logger.info("🛑 Stopping all services...")
         print("🛑 Deteniendo servicios...")
         
-        if self.bot_process:
-            try:
-                self.bot_process.terminate()
-                self.bot_process.wait(timeout=5)
-                print("✅ Bot de Telegram detenido")
-            except:
-                self.bot_process.kill()
+        if hasattr(self, 'bot_thread') and self.bot_thread:
+            logger.debug("Stopping Telegram bot thread...")
+            print("✅ Bot de Telegram detenido")
         
         if self.ngrok_process:
             try:
+                logger.debug("Terminating ngrok process...")
                 self.ngrok_process.terminate()
                 self.ngrok_process.wait(timeout=5)
+                logger.debug("✅ Ngrok process terminated")
                 print("✅ Túnel ngrok detenido")
-            except:
+            except Exception as e:
+                logger.debug(f"Force killing ngrok process: {e}")
                 self.ngrok_process.kill()
         
         if hasattr(self, 'webhook_thread') and self.webhook_thread:
+            logger.debug("Webhook thread will stop with main process")
             print("✅ Servidor webhook detenido")
     
     def monitor_services(self):
@@ -317,19 +347,27 @@ class SergioBetsUnified:
         print("1. Configura esta URL en NOWPayments dashboard")
         print("2. El bot de Telegram ya está activo")
         print("3. ¡El sistema está listo para recibir pagos!")
-        print("\n🛑 Presiona Ctrl+C para detener")
+        print("\n🤖 El bot de Telegram está ejecutándose en segundo plano")
+        print("🌐 El servidor webhook está activo en puerto 5000")
+        print("🔗 El túnel ngrok está conectado")
+        print("\n🛑 Presiona Ctrl+C para detener o cierra esta ventana")
         
+        logger.info("Starting monitoring services...")
         monitor_thread = threading.Thread(target=self.monitor_services, daemon=True)
         monitor_thread.start()
         
+        logger.info("Application running, waiting for interruption...")
         try:
             while self.running:
                 time.sleep(1)
         except KeyboardInterrupt:
+            logger.info("KeyboardInterrupt received")
             pass
         
+        logger.info("Stopping all services...")
         self.stop_all_services()
         print("✅ SergioBets detenido correctamente")
+        logger.info("✅ SergioBets stopped successfully")
         return True
 
 def main():
