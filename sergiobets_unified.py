@@ -326,10 +326,11 @@ class SergioBetsUnified:
             print("❌ No se pudo iniciar servidor webhook")
             return False
         
-        if not self.start_ngrok_tunnel():
-            print("❌ No se pudo iniciar túnel ngrok")
-            self.stop_all_services()
-            return False
+        ngrok_success = self.start_ngrok_tunnel()
+        if not ngrok_success:
+            print("⚠️ No se pudo iniciar túnel ngrok - continuando sin ngrok")
+            logger.warning("Ngrok tunnel failed to start - continuing without ngrok")
+            self.ngrok_url = "http://localhost:5000"  # Fallback to localhost
         
         if not self.start_telegram_bot():
             print("❌ No se pudo iniciar bot de Telegram")
@@ -338,18 +339,32 @@ class SergioBetsUnified:
         
         print("\n" + "=" * 60)
         print("🎉 ¡SergioBets iniciado correctamente!")
-        print(f"🌐 URL pública: {self.ngrok_url}")
-        print(f"📡 Webhook: {self.ngrok_url}/webhook/nowpayments")
-        print(f"🔧 API: {self.ngrok_url}/api/create_payment")
+        if ngrok_success and self.ngrok_url and "ngrok" in self.ngrok_url:
+            print(f"🌐 URL pública: {self.ngrok_url}")
+            print(f"📡 Webhook: {self.ngrok_url}/webhook/nowpayments")
+            print(f"🔧 API: {self.ngrok_url}/api/create_payment")
+        else:
+            print("🌐 URL local: http://localhost:5000")
+            print("📡 Webhook: http://localhost:5000/webhook/nowpayments")
+            print("🔧 API: http://localhost:5000/api/create_payment")
+            print("⚠️ Ngrok no disponible - usando localhost")
         print("=" * 60)
         
         print("\n📋 Próximos pasos:")
-        print("1. Configura esta URL en NOWPayments dashboard")
-        print("2. El bot de Telegram ya está activo")
-        print("3. ¡El sistema está listo para recibir pagos!")
+        if ngrok_success and self.ngrok_url and "ngrok" in self.ngrok_url:
+            print("1. Configura esta URL en NOWPayments dashboard")
+            print("2. El bot de Telegram ya está activo")
+            print("3. ¡El sistema está listo para recibir pagos!")
+        else:
+            print("1. Configura ngrok para obtener URL pública")
+            print("2. El bot de Telegram ya está activo")
+            print("3. Usa localhost para pruebas locales")
         print("\n🤖 El bot de Telegram está ejecutándose en segundo plano")
         print("🌐 El servidor webhook está activo en puerto 5000")
-        print("🔗 El túnel ngrok está conectado")
+        if ngrok_success and self.ngrok_url and "ngrok" in self.ngrok_url:
+            print("🔗 El túnel ngrok está conectado")
+        else:
+            print("⚠️ El túnel ngrok no está disponible")
         print("\n🛑 Presiona Ctrl+C para detener o cierra esta ventana")
         
         logger.info("Starting monitoring services...")
