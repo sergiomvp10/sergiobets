@@ -10,6 +10,7 @@ import json
 import os
 import pygame
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
+from telegram_bot_listener import iniciar_bot_en_hilo
 from tkcalendar import DateEntry
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
 from league_utils import detectar_liga_por_imagen
@@ -903,5 +904,13 @@ output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9)
 output.pack(pady=10, padx=10, expand=True, fill='both')
 
 ligas_disponibles = set()
+
+try:
+    print("🤖 Iniciando bot de Telegram integrado...")
+    hilo_bot = iniciar_bot_en_hilo()
+    print("✅ Bot de Telegram iniciado correctamente en segundo plano")
+except Exception as e:
+    print(f"⚠️ Error iniciando bot de Telegram: {e}")
+    print("📱 La aplicación continuará funcionando sin el bot")
 
 root.mainloop()
