@@ -1,0 +1,18 @@
+{
+    "fecha": "2025-08-08",
+    "predicciones": [
+        {
+            "partido": "Atlético Nacional vs Alianza Petrolera",
+            "liga": "Liga Colombiana",
+            "hora": "13:30",
+            "prediccion": "Más de 1.5 goles",
+            "cuota": 1.35,
+            "stake_recomendado": 10,
+            "confianza": 87.1,
+            "valor_esperado": 0.176,
+            "razon": "Modelo predictivo estima 3.6 goles. Rendimiento ofensivo equipos favorece línea. VE: +17.6%",
+            "opcion_numero": 1,
+            "total_opciones": 2
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "hora": "14:10",
+    "liga": "Liga Colombiana",
+    "local": "Junior",
+    "visitante": "Boyacá Chicó",
+    "cuotas": {
+      "casa": "FootyStats",
+      "local": "1.3",
+      "empate": "4.33",
+      "visitante": "8.3"
+    }
+  }
+]
