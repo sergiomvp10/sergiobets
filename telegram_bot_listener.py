@@ -118,12 +118,9 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         
-        total_usuarios = contar_usuarios_registrados()
-        
         if "error" in metricas:
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
-👥 Usuarios registrados: {total_usuarios}
 📈 Sistema: Activo y funcionando
 ⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
 
@@ -131,12 +128,10 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         else:
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
-👥 USUARIOS:
-• Registrados: {total_usuarios}
-
 🎯 PREDICCIONES:
 • Total: {metricas['total_predicciones']}
 • Resueltas: {metricas['predicciones_resueltas']}
+• Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
 
