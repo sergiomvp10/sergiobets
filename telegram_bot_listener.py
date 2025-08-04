@@ -96,16 +96,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     if query.data == "estadisticas":
-        await mostrar_estadisticas(query)
+        await mostrar_estadisticas(update, context)
     elif query.data == "novedades":
-        await mostrar_novedades(query)
+        await mostrar_novedades(update, context)
     elif query.data == "membresia":
-        await mostrar_membresia(query)
+        await mostrar_membresia(update, context)
     elif query.data == "ayuda":
-        await mostrar_ayuda(query)
+        await mostrar_ayuda(update, context)
 
-async def mostrar_estadisticas(query):
+async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
+    query = update.callback_query
     try:
         from track_record import TrackRecordManager
         
@@ -151,8 +152,9 @@ async def mostrar_estadisticas(query):
         logger.error(f"Error mostrando estadísticas: {e}")
         await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
 
-async def mostrar_novedades(query):
+async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar novedades desde archivo"""
+    query = update.callback_query
     try:
         if os.path.exists('novedades.txt'):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
@@ -175,8 +177,9 @@ async def mostrar_novedades(query):
         logger.error(f"Error mostrando novedades: {e}")
         await query.edit_message_text("❌ Error cargando novedades. Intenta de nuevo.")
 
-async def mostrar_membresia(query):
+async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de membresía"""
+    query = update.callback_query
     mensaje = """💳 MEMBRESÍA PREMIUM SERGIOBETS
 
 🌟 BENEFICIOS PREMIUM:
@@ -210,8 +213,9 @@ async def mostrar_membresia(query):
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
-async def mostrar_ayuda(query):
+async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
+    query = update.callback_query
     mensaje = """❓ AYUDA - SERGIOBETS
 
 🤖 COMANDOS DISPONIBLES:
@@ -248,8 +252,9 @@ Las apuestas conllevan riesgo. Nunca apuestes más de lo que puedes permitirte p
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
-async def volver_menu_principal(query):
+async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Volver al menú principal"""
+    query = update.callback_query
     user = query.from_user
     first_name = user.first_name
     
