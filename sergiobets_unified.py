@@ -1131,56 +1131,144 @@ ROI: {metricas['roi']:.2f}%
             messagebox.showerror("Error", f"Error abriendo track record: {e}")
 
     def abrir_usuarios(self):
-        """Abrir ventana de gestión de usuarios"""
+        """Abrir ventana de gestión de usuarios VIP"""
         try:
+            import tkinter as tk
+            from tkinter import messagebox, scrolledtext, simpledialog
+            from access_manager import access_manager
+            
             ventana_usuarios = tk.Toplevel(self.root)
-            ventana_usuarios.title("👥 Gestión de Usuarios - SergioBets")
-            ventana_usuarios.geometry("600x400")
-            ventana_usuarios.configure(bg="#f1f3f4")
+            ventana_usuarios.title("👥 Gestión de Usuarios VIP")
+            ventana_usuarios.geometry("900x700")
+            ventana_usuarios.configure(bg="#2c3e50")
             
-            frame_principal = tk.Frame(ventana_usuarios, bg="#f1f3f4")
-            frame_principal.pack(fill='both', expand=True, padx=20, pady=20)
+            frame_principal = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
             
-            titulo = tk.Label(frame_principal, text="👥 GESTIÓN DE USUARIOS", 
-                             bg="#f1f3f4", fg="#2c3e50", font=('Segoe UI', 16, 'bold'))
-            titulo.pack(pady=(0, 20))
+            tk.Label(frame_principal, text="👥 GESTIÓN DE USUARIOS VIP", 
+                    bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold')).pack(pady=(0, 10))
             
-            frame_botones = tk.Frame(frame_principal, bg="#f1f3f4")
-            frame_botones.pack(fill='x', pady=(0, 10))
+            frame_stats = tk.Frame(frame_principal, bg="#34495e", relief='raised', bd=2)
+            frame_stats.pack(fill='x', pady=(0, 10))
+            
+            stats_label = tk.Label(frame_stats, text="📊 Cargando estadísticas...", 
+                                  bg="#34495e", fg="white", font=('Segoe UI', 12))
+            stats_label.pack(pady=10)
+            
+            text_area = scrolledtext.ScrolledText(frame_principal, wrap=tk.WORD, 
+                                                 font=('Consolas', 10), bg="white", fg="black")
+            text_area.pack(fill='both', expand=True, pady=(0, 10))
+            
+            frame_botones = tk.Frame(frame_principal, bg="#2c3e50")
+            frame_botones.pack(fill='x')
+            
+            def actualizar_estadisticas():
+                try:
+                    stats = access_manager.obtener_estadisticas()
+                    stats_text = f"📊 Total: {stats['total_usuarios']} | 👑 Premium: {stats['usuarios_premium']} | 🆓 Gratuitos: {stats['usuarios_gratuitos']} | 📈 Premium: {stats['porcentaje_premium']:.1f}%"
+                    stats_label.config(text=stats_text)
+                except Exception as e:
+                    stats_label.config(text=f"❌ Error cargando estadísticas: {e}")
             
             def refrescar_usuarios():
-                """Refrescar lista de usuarios"""
                 try:
-                    usuarios_text = ""
-                    if os.path.exists("usuarios.txt"):
-                        with open("usuarios.txt", "r", encoding="utf-8") as f:
-                            usuarios = f.readlines()
-                        usuarios_text = f"📊 Total usuarios registrados: {len(usuarios)}\n\n"
-                        for i, usuario in enumerate(usuarios[:20], 1):  # Mostrar solo primeros 20
-                            usuarios_text += f"{i}. {usuario.strip()}\n"
-                        if len(usuarios) > 20:
-                            usuarios_text += f"\n... y {len(usuarios) - 20} usuarios más"
+                    usuarios = access_manager.listar_usuarios()
+                    
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    
+                    if usuarios:
+                        text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
+                        text_area.insert(tk.END, "="*90 + "\n")
+                        
+                        for usuario in usuarios:
+                            user_id = usuario.get('user_id', 'N/A')
+                            username = usuario.get('username', 'N/A')[:19]
+                            first_name = usuario.get('first_name', 'N/A')[:19]
+                            premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
+                            
+                            expira = "N/A"
+                            if usuario.get('fecha_expiracion'):
+                                try:
+                                    from datetime import datetime
+                                    fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
+                                    expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                except:
+                                    expira = "Error fecha"
+                            
+                            linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
+                            text_area.insert(tk.END, linea)
                     else:
-                        usuarios_text = "📝 No hay usuarios registrados aún.\n\nLos usuarios se registrarán automáticamente cuando interactúen con el bot de Telegram."
+                        text_area.insert('1.0', "No hay usuarios registrados.")
                     
-                    text_usuarios.delete('1.0', tk.END)
-                    text_usuarios.insert('1.0', usuarios_text)
-                    
+                    text_area.config(state='disabled')
+                    actualizar_estadisticas()
                 except Exception as e:
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
             
-            ttk.Button(frame_botones, text="🔄 Refrescar Lista", 
-                      command=refrescar_usuarios).pack(side='left', padx=(0, 10))
+            def otorgar_acceso():
+                user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
+                if not user_id:
+                    return
+                
+                dias = simpledialog.askinteger("Días de Acceso", "¿Cuántos días deseas otorgar de acceso premium?", 
+                                              minvalue=1, maxvalue=365)
+                if not dias:
+                    return
+                
+                try:
+                    if access_manager.otorgar_acceso(user_id, dias):
+                        messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado por {dias} días")
+                        refrescar_usuarios()
+                    else:
+                        messagebox.showerror("Error", "❌ Usuario no encontrado")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error otorgando acceso: {e}")
             
-            text_usuarios = ScrolledText(frame_principal, wrap=tk.WORD, width=70, height=20, 
-                                       font=('Arial', 10), bg='#ffffff')
-            text_usuarios.pack(fill='both', expand=True, pady=10)
+            def banear_usuario():
+                user_id = simpledialog.askstring("Banear Usuario", "Ingresa el ID del usuario a banear:")
+                if not user_id:
+                    return
+                
+                confirmar = messagebox.askyesno("Confirmar Baneo", 
+                    f"¿Estás seguro de banear al usuario {user_id}?\n\nEsto removerá su acceso premium inmediatamente.")
+                
+                if confirmar:
+                    try:
+                        if access_manager.banear_usuario(user_id):
+                            messagebox.showinfo("Éxito", "✅ Usuario baneado correctamente")
+                            refrescar_usuarios()
+                        else:
+                            messagebox.showerror("Error", "❌ Usuario no encontrado")
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error baneando usuario: {e}")
+            
+            def limpiar_expirados():
+                try:
+                    count = access_manager.limpiar_usuarios_expirados()
+                    messagebox.showinfo("Limpieza Completada", f"🧹 {count} usuarios con acceso expirado limpiados")
+                    refrescar_usuarios()
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error limpiando usuarios: {e}")
+            
+            tk.Button(frame_botones, text="🔄 Refrescar", command=refrescar_usuarios,
+                     bg="#3498db", fg="white", font=('Segoe UI', 10, 'bold'),
+                     padx=15, pady=5).pack(side='left', padx=(0, 5))
+            
+            tk.Button(frame_botones, text="👑 OTORGAR ACCESO", command=otorgar_acceso,
+                     bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'),
+                     padx=15, pady=5).pack(side='left', padx=5)
+            
+            tk.Button(frame_botones, text="🚫 BANEAR", command=banear_usuario,
+                     bg="#e74c3c", fg="white", font=('Segoe UI', 10, 'bold'),
+                     padx=15, pady=5).pack(side='left', padx=5)
+            
+            tk.Button(frame_botones, text="🧹 Limpiar Expirados", command=limpiar_expirados,
+                     bg="#f39c12", fg="white", font=('Segoe UI', 10, 'bold'),
+                     padx=15, pady=5).pack(side='left', padx=5)
             
             refrescar_usuarios()
             
-            ttk.Button(frame_principal, text="✅ Cerrar", 
-                      command=ventana_usuarios.destroy).pack(pady=10)
-                      
         except Exception as e:
             messagebox.showerror("Error", f"Error abriendo gestión de usuarios: {e}")
 

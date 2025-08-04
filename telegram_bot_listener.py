@@ -5,6 +5,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from dotenv import load_dotenv
+from access_manager import access_manager, verificar_acceso
 
 load_dotenv()
 
@@ -18,38 +19,11 @@ USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
     """Cargar usuarios ya registrados desde el archivo"""
-    usuarios_registrados = set()
-    try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        user_id = linea.split(' - ')[0].strip()
-                        usuarios_registrados.add(user_id)
-    except Exception as e:
-        logger.error(f"Error cargando usuarios registrados: {e}")
-    return usuarios_registrados
+    return access_manager.listar_usuarios()
 
 def registrar_usuario(user_id, username, first_name):
-    """Registrar nuevo usuario en el archivo usuarios.txt"""
-    try:
-        usuarios_registrados = cargar_usuarios_registrados()
-        
-        if str(user_id) not in usuarios_registrados:
-            username_str = username if username else "sin_username"
-            first_name_str = first_name if first_name else "sin_nombre"
-            
-            with open(USUARIOS_FILE, 'a', encoding='utf-8') as f:
-                f.write(f"{user_id} - {username_str} - {first_name_str}\n")
-            
-            logger.info(f"Usuario registrado: {user_id} - {username_str} - {first_name_str}")
-            return True
-        else:
-            logger.info(f"Usuario ya registrado: {user_id}")
-            return False
-    except Exception as e:
-        logger.error(f"Error registrando usuario: {e}")
-        return False
+    """Registrar nuevo usuario usando access_manager"""
+    return access_manager.registrar_usuario(str(user_id), username, first_name)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar comando /start con menú interactivo"""
@@ -60,10 +34,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     es_nuevo = registrar_usuario(user_id, username, first_name)
     
-    if es_nuevo:
-        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰"
+    access_manager.limpiar_usuarios_expirados()
+    
+    tiene_acceso = verificar_acceso(str(user_id))
+    if not tiene_acceso:
+        mensaje_acceso = "\n\n⚠️ Tu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
     else:
-        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰"
+        usuario_info = access_manager.obtener_usuario(str(user_id))
+        if usuario_info and usuario_info.get('fecha_expiracion'):
+            from datetime import datetime
+            try:
+                fecha_exp = datetime.fromisoformat(usuario_info['fecha_expiracion'])
+                mensaje_acceso = f"\n\n👑 Acceso Premium Activo hasta: {fecha_exp.strftime('%Y-%m-%d %H:%M')}"
+            except:
+                mensaje_acceso = "\n\n👑 Acceso Premium Activo"
+        else:
+            mensaje_acceso = ""
+    
+    if es_nuevo:
+        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
+    else:
+        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
         [
@@ -327,27 +318,11 @@ def iniciar_bot_listener():
 
 def obtener_usuarios_registrados():
     """Obtener lista de usuarios registrados"""
-    usuarios = []
-    try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        partes = linea.strip().split(' - ')
-                        if len(partes) >= 3:
-                            usuarios.append({
-                                'user_id': partes[0],
-                                'username': partes[1],
-                                'first_name': partes[2]
-                            })
-    except Exception as e:
-        logger.error(f"Error obteniendo usuarios registrados: {e}")
-    
-    return usuarios
+    return access_manager.listar_usuarios()
 
 def contar_usuarios_registrados():
     """Contar total de usuarios registrados"""
-    return len(obtener_usuarios_registrados())
+    return access_manager.contar_usuarios_registrados()
 
 def get_current_ngrok_url():
     """Obtener URL actual de ngrok desde archivo"""
