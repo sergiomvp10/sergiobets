@@ -885,6 +885,9 @@ class SergioBetsUnified:
                 
                 try:
                     historial = cargar_json('historial_predicciones.json') or []
+                    
+                    historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                    
                     datos_filtrados = []
                     
                     filtro = filtro_actual.get()
@@ -1028,11 +1031,27 @@ ROI: {metricas['roi']:.2f}%
                         mensaje = f"✅ Actualización completada\n\n"
                         mensaje += f"📊 Predicciones actualizadas: {resultado['actualizaciones']}\n"
                         mensaje += f"❌ Errores: {resultado['errores']}\n"
-                        mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}"
+                        mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}\n"
+                        mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}"
                         messagebox.showinfo("Actualización Completada", mensaje)
                         cargar_datos_filtrados()
                 finally:
                     btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
+            
+            def actualizar_automatico():
+                """Actualiza resultados automáticamente al abrir track record"""
+                import threading
+                
+                def update_in_background():
+                    try:
+                        resultado = tracker.actualizar_historial_con_resultados()
+                        if resultado.get('actualizaciones', 0) > 0:
+                            ventana_track.after(0, cargar_datos_filtrados)
+                    except Exception as e:
+                        print(f"Error en actualización automática: {e}")
+                
+                thread = threading.Thread(target=update_in_background, daemon=True)
+                thread.start()
             
             def limpiar_historial():
                 """Limpia todo el historial"""
@@ -1105,6 +1124,8 @@ ROI: {metricas['roi']:.2f}%
             btn_limpiar.pack(side='left', padx=(0, 10))
             
             cargar_datos_filtrados()
+            
+            actualizar_automatico()
             
         except Exception as e:
             messagebox.showerror("Error", f"Error abriendo track record: {e}")
