@@ -446,156 +446,287 @@ def abrir_progreso():
 
 
 def abrir_track_record():
-    """Abre ventana de track record de predicciones con UI organizada"""
+    """Abre ventana de track record mejorada con filtros y tabla estructurada"""
     try:
         from track_record import TrackRecordManager
         import os
+        from datetime import datetime, timedelta
         
         api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
         tracker = TrackRecordManager(api_key)
         
         ventana_track = tk.Toplevel(root)
-        ventana_track.title("📊 Track Record - SergioBets IA")
-        ventana_track.geometry("900x700")
+        ventana_track.title("📊 Track Record Mejorado - SergioBets IA")
+        ventana_track.geometry("1400x800")
         ventana_track.configure(bg="#2c3e50")
         
         frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
-        frame_principal.pack(fill='both', expand=True, padx=20, pady=20)
+        frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
         
-        titulo = tk.Label(frame_principal, text="📊 TRACK RECORD DE PREDICCIONES", 
+        frame_izquierdo = tk.Frame(frame_principal, bg="#2c3e50")
+        frame_izquierdo.pack(side='left', fill='both', expand=True, padx=(0, 10))
+        
+        frame_estadisticas = tk.Frame(frame_principal, bg="#ecf0f1", width=300, relief='ridge', bd=2)
+        frame_estadisticas.pack(side='right', fill='y', padx=(10, 0))
+        frame_estadisticas.pack_propagate(False)
+        
+        titulo = tk.Label(frame_izquierdo, text="📊 TRACK RECORD DE PREDICCIONES", 
                          bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
         titulo.pack(pady=(0, 20))
         
-        frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
+        frame_filtros = tk.Frame(frame_izquierdo, bg="#2c3e50")
+        frame_filtros.pack(fill='x', pady=(0, 10))
+        
+        frame_fechas = tk.Frame(frame_izquierdo, bg="#2c3e50")
+        frame_fechas.pack(fill='x', pady=(0, 10))
+        
+        frame_acciones = tk.Frame(frame_izquierdo, bg="#2c3e50")
         frame_acciones.pack(fill='x', pady=(0, 10))
         
-        frame_visualizacion = tk.Frame(frame_principal, bg="#2c3e50")
-        frame_visualizacion.pack(fill='x', pady=(0, 20))
+        filtro_actual = tk.StringVar(value="historico")
+        fecha_inicio = tk.StringVar()
+        fecha_fin = tk.StringVar()
         
-        vista_actual = tk.StringVar(value="general")
+        hoy = datetime.now()
+        hace_mes = hoy - timedelta(days=30)
+        fecha_inicio.set(hace_mes.strftime('%Y-%m-%d'))
+        fecha_fin.set(hoy.strftime('%Y-%m-%d'))
+        
+        columns = ('fecha', 'liga', 'equipos', 'tipo_apuesta', 'cuota', 'resultado', 'estado')
+        tree = ttk.Treeview(frame_izquierdo, columns=columns, show='headings', height=20)
+        
+        tree.heading('fecha', text='Fecha')
+        tree.heading('liga', text='Liga')
+        tree.heading('equipos', text='Equipos')
+        tree.heading('tipo_apuesta', text='Tipo de Apuesta')
+        tree.heading('cuota', text='Cuota')
+        tree.heading('resultado', text='Resultado Final')
+        tree.heading('estado', text='Estado')
+        
+        tree.column('fecha', width=100)
+        tree.column('liga', width=150)
+        tree.column('equipos', width=200)
+        tree.column('tipo_apuesta', width=180)
+        tree.column('cuota', width=80)
+        tree.column('resultado', width=120)
+        tree.column('estado', width=100)
+        
+        scrollbar = ttk.Scrollbar(frame_izquierdo, orient='vertical', command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        tree.pack(side='left', fill='both', expand=True)
+        scrollbar.pack(side='right', fill='y')
+        
+        def cargar_datos_filtrados():
+            for item in tree.get_children():
+                tree.delete(item)
+            
+            try:
+                historial = cargar_json('historial_predicciones.json') or []
+                datos_filtrados = []
+                
+                filtro = filtro_actual.get()
+                
+                for prediccion in historial:
+                    if filtro == "por_fecha":
+                        fecha_pred = prediccion.get('fecha', '')
+                        if fecha_pred < fecha_inicio.get() or fecha_pred > fecha_fin.get():
+                            continue
+                    
+                    resultado_real = prediccion.get('resultado_real')
+                    acierto = prediccion.get('acierto')
+                    
+                    if filtro == "pendientes" and resultado_real is not None:
+                        continue
+                    elif filtro == "acertados" and (resultado_real is None or not acierto):
+                        continue
+                    elif filtro == "fallados" and (resultado_real is None or acierto):
+                        continue
+                    
+                    if resultado_real is None:
+                        estado = "⏳ Pendiente"
+                        resultado_final = "-"
+                    elif acierto:
+                        estado = "✅ Ganada"
+                        resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                    else:
+                        estado = "❌ Perdida"
+                        resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                    
+                    datos_filtrados.append((
+                        prediccion.get('fecha', ''),
+                        prediccion.get('liga', ''),
+                        prediccion.get('partido', ''),
+                        prediccion.get('prediccion', ''),
+                        f"{prediccion.get('cuota', 0):.2f}",
+                        resultado_final,
+                        estado
+                    ))
+                
+                datos_filtrados.sort(key=lambda x: x[0], reverse=True)
+                
+                for i, datos in enumerate(datos_filtrados):
+                    tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+                    tree.insert('', 'end', values=datos, tags=(tag,))
+                
+                tree.tag_configure('evenrow', background='#f8f9fa')
+                tree.tag_configure('oddrow', background='white')
+                
+                actualizar_estadisticas()
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error cargando datos: {e}")
+        
+        def actualizar_estadisticas():
+            for widget in frame_estadisticas.winfo_children():
+                widget.destroy()
+            
+            tk.Label(frame_estadisticas, text="📈 ESTADÍSTICAS", 
+                    bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 14, 'bold')).pack(pady=10)
+            
+            try:
+                metricas = tracker.calcular_metricas_rendimiento()
+                
+                if "error" not in metricas:
+                    stats_frame = tk.Frame(frame_estadisticas, bg="#ecf0f1")
+                    stats_frame.pack(fill='x', padx=10, pady=5)
+                    
+                    tk.Label(stats_frame, text="📊 RESUMEN GENERAL", 
+                            bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 12, 'bold')).pack()
+                    
+                    stats_text = f"""
+Total predicciones: {metricas['total_predicciones']}
+Resueltas: {metricas['predicciones_resueltas']}
+Pendientes: {metricas['predicciones_pendientes']}
+Aciertos: {metricas['aciertos']}
+Tasa de éxito: {metricas.get('tasa_acierto', 0):.1f}%
+
+💰 RENDIMIENTO:
+Total apostado: ${metricas['total_apostado']:.2f}
+Ganancia: ${metricas['total_ganancia']:.2f}
+ROI: {metricas['roi']:.2f}%
+"""
+                    
+                    tk.Label(stats_frame, text=stats_text, 
+                            bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 10),
+                            justify='left').pack(pady=5)
+                
+            except Exception as e:
+                tk.Label(frame_estadisticas, text=f"Error: {e}", 
+                        bg="#ecf0f1", fg="red").pack(pady=10)
+        
+        def filtrar_pendientes():
+            filtro_actual.set("pendientes")
+            cargar_datos_filtrados()
+        
+        def filtrar_acertados():
+            filtro_actual.set("acertados")
+            cargar_datos_filtrados()
+        
+        def filtrar_fallados():
+            filtro_actual.set("fallados")
+            cargar_datos_filtrados()
+        
+        def filtrar_historico():
+            filtro_actual.set("historico")
+            cargar_datos_filtrados()
+        
+        def filtrar_por_fecha():
+            filtro_actual.set("por_fecha")
+            cargar_datos_filtrados()
+        
+        def mostrar_resumen():
+            ventana_resumen = tk.Toplevel(ventana_track)
+            ventana_resumen.title("📊 Resumen Detallado")
+            ventana_resumen.geometry("600x500")
+            ventana_resumen.configure(bg="#f8f9fa")
+            
+            try:
+                reporte = tracker.generar_reporte_detallado()
+                text_widget = ScrolledText(ventana_resumen, wrap=tk.WORD, 
+                                         font=('Consolas', 10), bg="white")
+                text_widget.pack(fill='both', expand=True, padx=10, pady=10)
+                text_widget.insert('1.0', reporte)
+                text_widget.config(state='disabled')
+            except Exception as e:
+                tk.Label(ventana_resumen, text=f"Error generando reporte: {e}").pack()
         
         def actualizar_resultados():
             btn_actualizar.config(state='disabled', text="🔄 Procesando...")
             ventana_track.update()
             
             try:
-                import time
-                start_time = time.time()
                 resultado = tracker.actualizar_historial_con_resultados()
-                end_time = time.time()
-                
                 if "error" in resultado:
                     messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
                 else:
-                    mensaje = f"✅ Actualización completada en {end_time - start_time:.1f}s\n\n"
+                    mensaje = f"✅ Actualización completada\n\n"
                     mensaje += f"📊 Predicciones actualizadas: {resultado['actualizaciones']}\n"
-                    mensaje += f"🎯 Matches únicos procesados: {resultado.get('matches_procesados', 0)}\n"
                     mensaje += f"❌ Errores: {resultado['errores']}\n"
-                    mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}\n"
-                    mensaje += f"🔧 Correcciones históricas: {resultado.get('correcciones_historicas', 0)}\n"
                     mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}"
                     messagebox.showinfo("Actualización Completada", mensaje)
-                    mostrar_vista_actual()
+                    cargar_datos_filtrados()
             finally:
                 btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
         
         def limpiar_historial():
             respuesta = messagebox.askyesno("Confirmar", 
-                "¿Estás seguro de que quieres limpiar todo el historial de predicciones?\n\n" +
+                "¿Estás seguro de que quieres limpiar todo el historial?\n\n" +
                 "Esta acción no se puede deshacer.")
             
             if respuesta:
                 try:
-                    if os.path.exists('historial_predicciones.json'):
-                        with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
-                            f.write('[]')
-                        messagebox.showinfo("Éxito", "Historial limpiado correctamente")
-                        mostrar_vista_actual()
-                    else:
-                        messagebox.showinfo("Info", "No hay historial para limpiar")
+                    with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                        f.write('[]')
+                    messagebox.showinfo("Éxito", "Historial limpiado correctamente")
+                    cargar_datos_filtrados()
                 except Exception as e:
                     messagebox.showerror("Error", f"Error limpiando historial: {e}")
         
-        def mostrar_metricas_generales():
-            vista_actual.set("general")
-            mostrar_vista_actual()
+        btn_pendientes = tk.Button(frame_filtros, text="📌 PENDIENTES", 
+                                  command=filtrar_pendientes, bg="#f39c12", fg="white",
+                                  font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+        btn_pendientes.pack(side='left', padx=(0, 5))
         
-        def mostrar_metricas_financieras():
-            vista_actual.set("financieras")
-            mostrar_vista_actual()
+        btn_acertados = tk.Button(frame_filtros, text="✅ ACERTADOS", 
+                                 command=filtrar_acertados, bg="#27ae60", fg="white",
+                                 font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+        btn_acertados.pack(side='left', padx=5)
         
-        def mostrar_rendimiento_tipos():
-            vista_actual.set("tipos")
-            mostrar_vista_actual()
+        btn_fallados = tk.Button(frame_filtros, text="❌ FALLADOS", 
+                                command=filtrar_fallados, bg="#e74c3c", fg="white",
+                                font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+        btn_fallados.pack(side='left', padx=5)
         
-        def mostrar_vista_actual():
-            metricas = tracker.calcular_metricas_rendimiento()
-            
-            for widget in frame_resultados.winfo_children():
-                widget.destroy()
-            
-            if "error" in metricas:
-                error_label = tk.Label(frame_resultados, text=f"❌ {metricas['error']}", 
-                                     bg="#ecf0f1", fg="red", font=('Segoe UI', 12))
-                error_label.pack(pady=10)
-                return
-            
-            if "mensaje" in metricas:
-                mensaje_label = tk.Label(frame_resultados, text=f"ℹ️ {metricas['mensaje']}", 
-                                       bg="#ecf0f1", fg="blue", font=('Segoe UI', 12))
-                mensaje_label.pack(pady=10)
-                return
-            
-            vista = vista_actual.get()
-            
-            if vista == "general":
-                contenido = f"""
-📈 MÉTRICAS GENERALES
-
-• Total predicciones: {metricas['total_predicciones']}
-• Predicciones resueltas: {metricas['predicciones_resueltas']}
-• Aciertos: {metricas['aciertos']}
-• Fallos: {metricas['predicciones_resueltas'] - metricas['aciertos']}
-• Tasa de acierto: {metricas['tasa_acierto']:.1f}%
-
-📊 ESTADO DEL SISTEMA:
-• Predicciones pendientes: {metricas['total_predicciones'] - metricas['predicciones_resueltas']}
-• Eficiencia de procesamiento: {(metricas['predicciones_resueltas'] / metricas['total_predicciones'] * 100):.1f}%
-"""
-            
-            elif vista == "financieras":
-                contenido = f"""
-💰 MÉTRICAS FINANCIERAS
-
-• Total apostado: ${metricas['total_apostado']:.2f}
-• Ganancia total: ${metricas['total_ganancia']:.2f}
-• Ganancia neta: ${metricas['total_ganancia'] - metricas['total_apostado']:.2f}
-• ROI: {metricas['roi']:.2f}%
-• Valor esperado promedio: {metricas['valor_esperado_promedio']:.3f}
-
-📈 ANÁLISIS FINANCIERO:
-• Stake promedio: ${metricas['total_apostado'] / max(metricas['predicciones_resueltas'], 1):.2f}
-• Ganancia por predicción: ${metricas['total_ganancia'] / max(metricas['predicciones_resueltas'], 1):.2f}
-"""
-            
-            elif vista == "tipos":
-                contenido = "🎯 RENDIMIENTO POR TIPO DE APUESTA\n\n"
-                
-                if metricas.get('tipos_apuesta'):
-                    for tipo, datos in metricas['tipos_apuesta'].items():
-                        roi_tipo = ((datos['ganancia'] - datos['total'] * (datos['ganancia'] / max(datos['total'], 1))) / max(datos['total'], 1)) * 100
-                        contenido += f"• {tipo}:\n"
-                        contenido += f"  - Predicciones: {datos['total']}\n"
-                        contenido += f"  - Aciertos: {datos['aciertos']} ({datos['win_rate']:.1f}%)\n"
-                        contenido += f"  - Ganancia: ${datos['ganancia']:.2f}\n"
-                        contenido += f"  - ROI: {roi_tipo:.1f}%\n\n"
-                else:
-                    contenido += "No hay datos de tipos de apuesta disponibles."
-            
-            metricas_label = tk.Label(frame_resultados, text=contenido, 
-                                    bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 11),
-                                    justify='left', anchor='nw', padx=20, pady=20)
-            metricas_label.pack(fill='both', expand=True, padx=10, pady=10)
+        btn_historico = tk.Button(frame_filtros, text="📅 HISTÓRICO", 
+                                 command=filtrar_historico, bg="#3498db", fg="white",
+                                 font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+        btn_historico.pack(side='left', padx=5)
+        
+        btn_resumen = tk.Button(frame_filtros, text="📊 RESUMEN", 
+                               command=mostrar_resumen, bg="#9b59b6", fg="white",
+                               font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+        btn_resumen.pack(side='left', padx=5)
+        
+        tk.Label(frame_fechas, text="🗓️ Filtro por fechas:", 
+                bg="#2c3e50", fg="white", font=('Segoe UI', 10, 'bold')).pack(side='left')
+        
+        tk.Label(frame_fechas, text="Desde:", bg="#2c3e50", fg="white").pack(side='left', padx=(10, 5))
+        entry_fecha_inicio = DateEntry(frame_fechas, width=12, background="darkblue", 
+                                      foreground="white", borderwidth=2, 
+                                      date_pattern='yyyy-MM-dd', textvariable=fecha_inicio)
+        entry_fecha_inicio.pack(side='left', padx=5)
+        
+        tk.Label(frame_fechas, text="Hasta:", bg="#2c3e50", fg="white").pack(side='left', padx=(10, 5))
+        entry_fecha_fin = DateEntry(frame_fechas, width=12, background="darkblue", 
+                                   foreground="white", borderwidth=2, 
+                                   date_pattern='yyyy-MM-dd', textvariable=fecha_fin)
+        entry_fecha_fin.pack(side='left', padx=5)
+        
+        btn_filtrar_fecha = tk.Button(frame_fechas, text="🗓️ FILTRAR", 
+                                     command=filtrar_por_fecha, bg="#34495e", fg="white",
+                                     font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+        btn_filtrar_fecha.pack(side='left', padx=(10, 0))
         
         btn_actualizar = tk.Button(frame_acciones, text="🔄 Actualizar Resultados", 
                                   command=actualizar_resultados, bg="#3498db", fg="white",
@@ -607,25 +738,7 @@ def abrir_track_record():
                                font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
         btn_limpiar.pack(side='left', padx=(0, 10))
         
-        btn_general = tk.Button(frame_visualizacion, text="📈 Métricas Generales", 
-                               command=mostrar_metricas_generales, bg="#27ae60", fg="white",
-                               font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
-        btn_general.pack(side='left', padx=(0, 10))
-        
-        btn_financieras = tk.Button(frame_visualizacion, text="💰 Métricas Financieras", 
-                                   command=mostrar_metricas_financieras, bg="#f39c12", fg="white",
-                                   font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
-        btn_financieras.pack(side='left', padx=(0, 10))
-        
-        btn_tipos = tk.Button(frame_visualizacion, text="🎯 Rendimiento por Tipo", 
-                             command=mostrar_rendimiento_tipos, bg="#9b59b6", fg="white",
-                             font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
-        btn_tipos.pack(side='left')
-        
-        frame_resultados = tk.Frame(frame_principal, bg="#ecf0f1", relief='ridge', bd=2)
-        frame_resultados.pack(fill='both', expand=True)
-        
-        mostrar_vista_actual()
+        cargar_datos_filtrados()
         
     except Exception as e:
         messagebox.showerror("Error", f"Error abriendo track record: {e}")
