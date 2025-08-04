@@ -107,8 +107,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await procesar_pago(update, context, "usdterc20")
     elif query.data == "pay_ltc":
         await procesar_pago(update, context, "ltc")
-    elif query.data.startswith("verify_"):
-        await verificar_pago(update, context)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
@@ -187,7 +185,31 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de membresía con opciones de pago"""
     query = update.callback_query
     
-    mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
+    ngrok_url = get_current_ngrok_url()
+    
+    if ngrok_url:
+        mensaje = f"""💳 MEMBRESÍA VIP SERGIOBETS
+
+🌟 ACCESO VIP (7 DÍAS):
+• Predicciones exclusivas de alta confianza
+• Acceso a estadísticas avanzadas
+• Alertas en tiempo real
+• Soporte prioritario
+• Análisis detallado de mercados
+
+💰 PRECIO:
+• 7 días de acceso VIP: $12.00 USD
+
+🔐 MÉTODOS DE PAGO DISPONIBLES:
+• USDT (Tether)
+• Litecoin (LTC)
+
+🚀 ¡Selecciona tu método de pago preferido!
+
+💳 También puedes pagar directamente aquí:
+👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
+    else:
+        mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
 
 🌟 ACCESO VIP (7 DÍAS):
 • Predicciones exclusivas de alta confianza
@@ -214,7 +236,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
@@ -287,7 +309,8 @@ def iniciar_bot_listener():
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda)$"))
+        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc)$"))
+        application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
@@ -325,6 +348,45 @@ def obtener_usuarios_registrados():
 def contar_usuarios_registrados():
     """Contar total de usuarios registrados"""
     return len(obtener_usuarios_registrados())
+
+def get_current_ngrok_url():
+    """Obtener URL actual de ngrok desde archivo"""
+    import os
+    try:
+        if os.path.exists("ngrok_url.txt"):
+            with open("ngrok_url.txt", 'r') as f:
+                url = f.read().strip()
+                return url if url else None
+    except:
+        pass
+    return None
+
+def check_and_restart_ngrok():
+    """Verificar si ngrok está corriendo y reiniciarlo si es necesario"""
+    import requests
+    import subprocess
+    import time
+    
+    try:
+        response = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            tunnels = data.get('tunnels', [])
+            
+            for tunnel in tunnels:
+                if tunnel.get('proto') == 'https':
+                    url = tunnel.get('public_url')
+                    if url:
+                        with open("ngrok_url.txt", 'w') as f:
+                            f.write(url)
+                        return url
+        
+        print("⚠️ ngrok no está corriendo. Ejecuta: python launch_with_ngrok.py")
+        return None
+        
+    except Exception as e:
+        print(f"⚠️ Error verificando ngrok: {e}")
+        return None
 
 async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, currency: str):
     """Procesar solicitud de pago"""

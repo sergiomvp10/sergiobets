@@ -28,7 +28,11 @@ class NOWPaymentsAPI:
             response = requests.get(f"{self.base_url}/currencies", headers=self.headers)
             if response.status_code == 200:
                 data = response.json()
-                return data.get('currencies', [])
+                currencies = data.get('currencies', [])
+                if isinstance(currencies, list):
+                    return currencies
+                else:
+                    return []
             return []
         except Exception as e:
             logger.error(f"Error obteniendo monedas: {e}")

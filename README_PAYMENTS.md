@@ -43,25 +43,71 @@ pip install -r requirements.txt
 
 ### Ejecutar el Sistema
 
-#### 1. Iniciar Servidor de Webhooks
+#### Método Recomendado: Launcher Automático con ngrok
+```bash
+# Instalar ngrok primero desde https://ngrok.com/download
+# Luego ejecutar el launcher automático:
+python launch_with_ngrok.py
+```
+
+Este script automáticamente:
+- Inicia el servidor webhook en puerto 5000
+- Lanza túnel ngrok para exposición pública
+- Obtiene y guarda la URL pública automáticamente en `ngrok_url.txt`
+- Actualiza la URL en el bot de Telegram dinámicamente
+- Mantiene todo corriendo hasta que presiones Ctrl+C
+- Proporciona enlaces directos para pagos web
+
+#### Características del Launcher:
+- ✅ Detección automática de ngrok instalado
+- ✅ Manejo de túneles existentes
+- ✅ Extracción de URL desde API de ngrok (http://127.0.0.1:4040/api/tunnels)
+- ✅ Persistencia de URL en archivo `ngrok_url.txt`
+- ✅ Integración automática con bot de Telegram
+- ✅ Endpoints listos: `/webhook/nowpayments` y `/api/create_payment`
+
+#### Método Manual (para desarrollo)
+
+##### 1. Iniciar Servidor de Webhooks
 ```bash
 cd pagos
 python start_webhook_server.py
 ```
 
-#### 2. Exponer Puerto Públicamente (para producción)
+##### 2. Exponer Puerto Públicamente
 ```bash
-# Usando ngrok (ejemplo)
+# En otra terminal:
 ngrok http 5000
 ```
 
-#### 3. Configurar Webhook en NOWPayments
-- URL: `https://tu-dominio.com/webhook/nowpayments`
+##### 3. Configurar Webhook en NOWPayments
+- URL: `https://tu-ngrok-url.ngrok.io/webhook/nowpayments`
 - Método: POST
+- Eventos: payment.finished, payment.confirmed
 
-#### 4. Probar el Sistema
+##### 4. Probar el Sistema
 ```bash
-python pagos/test_payments.py
+python test_ngrok_integration.py
+```
+
+### ⚠️ Importante para Producción
+- **NO uses localhost** en producción
+- **Siempre usa ngrok o un dominio público** para webhooks
+- El launcher automático maneja esto por ti
+- La URL de ngrok se actualiza automáticamente en el bot de Telegram
+- Los usuarios pueden pagar tanto desde el bot como desde la interfaz web
+
+### Integración con Telegram Bot
+El bot de Telegram ahora incluye:
+- Botón "Membresía" con opciones de pago USDT/Litecoin
+- Enlaces dinámicos a la interfaz web de pagos
+- Verificación automática de estado de pagos
+- Notificaciones de confirmación automáticas
+
+Cuando ngrok está corriendo, el bot muestra:
+```
+💳 También puedes pagar directamente aquí:
+👉 [Pagar ahora](https://tu-ngrok-url.ngrok.io/api/create_payment)
 ```
 
 ### API Endpoints
@@ -124,12 +170,24 @@ GET /api/payment_history
 - Verificar que `NOWPAYMENTS_API_KEY` esté correcta en `.env`
 - Confirmar que la API key tenga permisos necesarios
 
+#### Error: "ngrok not found"
+- Instalar ngrok desde https://ngrok.com/download
+- Agregar ngrok al PATH del sistema
+- Configurar authtoken: `ngrok authtoken YOUR_TOKEN`
+
 #### Webhook no recibe confirmaciones
 - Verificar que el servidor esté ejecutándose en puerto 5000
-- Confirmar que el puerto esté expuesto públicamente
+- Confirmar que el puerto esté expuesto públicamente con ngrok
 - Revisar configuración de webhook en NOWPayments dashboard
+- Verificar que la URL de webhook sea accesible desde internet
 
 #### Pagos no se confirman automáticamente
 - Verificar logs del servidor de webhooks
 - Confirmar que el `payment_id` coincida entre sistemas
 - Revisar estado del pago en NOWPayments dashboard
+- Verificar que ngrok esté corriendo y la URL sea válida
+
+#### Bot de Telegram no muestra enlace de pago
+- Verificar que `ngrok_url.txt` contenga una URL válida
+- Reiniciar el launcher: `python launch_with_ngrok.py`
+- Verificar que el bot tenga acceso al archivo de URL

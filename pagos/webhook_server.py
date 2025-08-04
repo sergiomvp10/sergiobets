@@ -3,7 +3,14 @@ import json
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from payments import PaymentManager
+try:
+    from .payments import PaymentManager
+except ImportError:
+    from payments import PaymentManager
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from telegram_utils import enviar_telegram
 from dotenv import load_dotenv
 
@@ -85,16 +92,116 @@ def await_send_user_confirmation(payment_result):
     except Exception as e:
         logger.error(f"Error enviando confirmación al usuario: {e}")
 
-@app.route('/api/create_payment', methods=['POST'])
+@app.route('/api/create_payment', methods=['POST', 'GET'])
 def create_payment_api():
-    """API endpoint para crear pagos (para testing)"""
+    """API endpoint para crear pagos"""
     try:
+        if request.method == 'GET':
+            return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>SergioBets - Crear Pago</title>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+                    .form-group { margin-bottom: 15px; }
+                    label { display: block; margin-bottom: 5px; font-weight: bold; }
+                    input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+                    button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+                    button:hover { background: #0056b3; }
+                    .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
+                    .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+                    .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+                </style>
+            </head>
+            <body>
+                <h1>🎯 SergioBets - Crear Pago VIP</h1>
+                <p>Crea un pago para membresía VIP de 7 días por $12 USD</p>
+                
+                <form id="paymentForm">
+                    <div class="form-group">
+                        <label for="user_id">ID de Usuario Telegram:</label>
+                        <input type="text" id="user_id" name="user_id" required placeholder="123456789">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username">Nombre de Usuario:</label>
+                        <input type="text" id="username" name="username" placeholder="@usuario">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="currency">Criptomoneda:</label>
+                        <select id="currency" name="currency" required>
+                            <option value="usdterc20">USDT (ERC-20)</option>
+                            <option value="ltc">Litecoin (LTC)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit">💳 Crear Pago</button>
+                </form>
+                
+                <div id="result"></div>
+                
+                <script>
+                document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(e.target);
+                    const data = Object.fromEntries(formData);
+                    data.membership_type = 'weekly';
+                    
+                    const resultDiv = document.getElementById('result');
+                    resultDiv.innerHTML = '<p>⏳ Creando pago...</p>';
+                    
+                    try {
+                        const response = await fetch('/api/create_payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            resultDiv.innerHTML = `
+                                <div class="result success">
+                                    <h3>✅ Pago creado exitosamente</h3>
+                                    <p><strong>ID de Pago:</strong> ${result.payment_id}</p>
+                                    <p><strong>Dirección:</strong> <code>${result.pay_address}</code></p>
+                                    <p><strong>Monto:</strong> ${result.pay_amount} ${result.pay_currency.toUpperCase()}</p>
+                                    <p><strong>Estado:</strong> ${result.payment_status}</p>
+                                    <p>💡 Envía exactamente <strong>${result.pay_amount} ${result.pay_currency.toUpperCase()}</strong> a la dirección mostrada.</p>
+                                </div>
+                            `;
+                        } else {
+                            resultDiv.innerHTML = `
+                                <div class="result error">
+                                    <h3>❌ Error creando pago</h3>
+                                    <p>${result.error}</p>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        resultDiv.innerHTML = `
+                            <div class="result error">
+                                <h3>❌ Error de conexión</h3>
+                                <p>${error.message}</p>
+                            </div>
+                        `;
+                    }
+                });
+                </script>
+            </body>
+            </html>
+            """
+        
         data = request.get_json()
         
         user_id = data.get('user_id')
-        username = data.get('username', 'test_user')
-        currency = data.get('currency', 'usdt')
-        membership_type = data.get('membership_type', 'monthly')
+        username = data.get('username', 'web_user')
+        currency = data.get('currency', 'usdterc20')
+        membership_type = data.get('membership_type', 'weekly')
         
         if not user_id:
             return jsonify({"error": "user_id is required"}), 400
