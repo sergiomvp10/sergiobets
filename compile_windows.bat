@@ -42,6 +42,17 @@ pyinstaller --onefile --console --name SergioBets-Console ^
     --hidden-import=subprocess ^
     --hidden-import=logging ^
     --hidden-import=traceback ^
+    --hidden-import=tkinter ^
+    --hidden-import=tkinter.ttk ^
+    --hidden-import=tkinter.messagebox ^
+    --hidden-import=tkinter.scrolledtext ^
+    --hidden-import=tkcalendar ^
+    --hidden-import=pygame ^
+    --hidden-import=footystats_api ^
+    --hidden-import=json_storage ^
+    --hidden-import=telegram_utils ^
+    --hidden-import=ia_bets ^
+    --hidden-import=league_utils ^
     --add-data ".env;." ^
     --add-data "pagos;pagos" ^
     sergiobets_unified.py
@@ -73,6 +84,17 @@ pyinstaller --onefile --windowed --name SergioBets ^
     --hidden-import=subprocess ^
     --hidden-import=logging ^
     --hidden-import=traceback ^
+    --hidden-import=tkinter ^
+    --hidden-import=tkinter.ttk ^
+    --hidden-import=tkinter.messagebox ^
+    --hidden-import=tkinter.scrolledtext ^
+    --hidden-import=tkcalendar ^
+    --hidden-import=pygame ^
+    --hidden-import=footystats_api ^
+    --hidden-import=json_storage ^
+    --hidden-import=telegram_utils ^
+    --hidden-import=ia_bets ^
+    --hidden-import=league_utils ^
     --add-data ".env;." ^
     --add-data "pagos;pagos" ^
     sergiobets_unified.py

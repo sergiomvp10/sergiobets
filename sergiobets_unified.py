@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SergioBets - Sistema Unificado de Pagos NOWPayments
-Aplicación única que maneja webhook server, ngrok tunnel y bot de Telegram
+SergioBets - Sistema Completo con GUI y Pagos NOWPayments
+Aplicación única que maneja GUI, webhook server, ngrok tunnel y bot de Telegram
 """
 
 import os
@@ -15,6 +15,17 @@ import json
 import logging
 import traceback
 from pathlib import Path
+import tkinter as tk
+from tkinter import ttk, messagebox
+from tkinter.scrolledtext import ScrolledText
+from tkcalendar import DateEntry
+import pygame
+from datetime import date, timedelta
+from footystats_api import obtener_partidos_del_dia
+from json_storage import guardar_json, cargar_json
+from telegram_utils import enviar_telegram, enviar_telegram_masivo
+from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
+from league_utils import detectar_liga_por_imagen
 
 def setup_logging():
     """Setup comprehensive logging for debugging"""
@@ -313,9 +324,586 @@ class SergioBetsUnified:
                     with open("ngrok_url.txt", "w") as f:
                         f.write(current_url)
     
+    def setup_gui(self):
+        """Setup the Tkinter GUI interface"""
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        from tkinter.scrolledtext import ScrolledText
+        from tkcalendar import DateEntry
+        
+        self.root = tk.Tk()
+        self.root.title("🧐 SergioBets v.2 – Sistema Completo con Pagos")
+        self.root.geometry("800x600")
+        self.root.minsize(800, 600)
+        try:
+            self.root.state('zoomed')
+        except:
+            pass
+        self.root.configure(bg="#f1f3f4")
+        
+        style = ttk.Style()
+        style.configure('TLabel', font=('Segoe UI', 10))
+        style.configure('TButton', font=('Segoe UI', 10, 'bold'))
+        style.configure('TCombobox', font=('Segoe UI', 10))
+        
+        self.entry_fecha = None
+        self.combo_ligas = None
+        self.frame_predicciones = None
+        self.frame_partidos = None
+        self.output = None
+        self.ligas_disponibles = set()
+        self.checkboxes_predicciones = []
+        self.checkboxes_partidos = []
+        self.predicciones_actuales = []
+        self.partidos_actuales = []
+        self.mensaje_telegram = ""
+        self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
+        
+        frame_top = tk.Frame(self.root, bg="#f1f3f4")
+        frame_top.pack(pady=15)
+        
+        ttk.Label(frame_top, text="📅 Fecha:").pack(side=tk.LEFT)
+        self.entry_fecha = DateEntry(frame_top, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-MM-dd', showothermonthdays=False, showweeknumbers=False)
+        self.entry_fecha.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(frame_top, text="🏆 Liga:").pack(side=tk.LEFT, padx=10)
+        self.combo_ligas = ttk.Combobox(frame_top, state='readonly', width=30)
+        self.combo_ligas.pack(side=tk.LEFT)
+        self.combo_ligas.set('Todas')
+        self.combo_ligas.bind('<<ComboboxSelected>>', self.on_liga_changed)
+        
+        ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
+        ttk.Button(frame_top, text="📊 Progreso", command=self.abrir_progreso).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="📢 Enviar a Telegram", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
+        
+        self.frame_predicciones = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_predicciones.pack(pady=5, padx=10, fill='x')
+        
+        self.frame_partidos = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_partidos.pack(pady=5, padx=10, fill='x')
+        
+        self.output = ScrolledText(self.root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
+        self.output.pack(pady=10, padx=10, expand=True, fill='both')
+        
+        print("✅ GUI setup completed")
+    
+    def cargar_partidos_reales(self, fecha):
+        """Cargar partidos reales de la API"""
+        try:
+            datos_api = obtener_partidos_del_dia(fecha)
+            partidos = []
+
+            if not datos_api:
+                print(f"⚠️ No se obtuvieron datos de la API para {fecha}. Usando datos simulados.")
+                return simular_datos_prueba()
+
+            for partido in datos_api:
+                liga_detectada = detectar_liga_por_imagen(
+                    partido.get("home_image", ""), 
+                    partido.get("away_image", "")
+                )
+                from league_utils import convertir_timestamp_unix
+                hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
+                
+                partidos.append({
+                    "hora": hora_partido,
+                    "liga": liga_detectada,
+                    "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
+                    "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
+                    "cuotas": {
+                        "casa": "FootyStats",
+                        "local": str(partido.get("odds_ft_1", "2.00")),
+                        "empate": str(partido.get("odds_ft_x", "3.00")),
+                        "visitante": str(partido.get("odds_ft_2", "4.00"))
+                    }
+                })
+
+            return partidos
+        except Exception as e:
+            print(f"❌ Error cargando partidos reales: {e}")
+            print("🔄 Usando datos simulados como respaldo.")
+            return simular_datos_prueba()
+
+    def buscar_en_hilo(self):
+        """Buscar en hilo separado"""
+        threading.Thread(target=self.buscar).start()
+
+    def regenerar_en_hilo(self):
+        """Regenerar predicciones en hilo separado"""
+        threading.Thread(target=lambda: self.buscar(opcion_numero=2)).start()
+
+    def buscar(self, opcion_numero=1):
+        """Buscar partidos y predicciones"""
+        try:
+            fecha = self.entry_fecha.get()
+            self.output.delete('1.0', tk.END)
+
+            self.ligas_disponibles.clear()
+            
+            if opcion_numero == 1:
+                limpiar_cache_predicciones()
+
+            partidos = self.cargar_partidos_reales(fecha)
+            
+            for partido in partidos:
+                liga = partido["liga"]
+                self.ligas_disponibles.add(liga)
+
+            self.actualizar_ligas()
+
+            liga_filtrada = self.combo_ligas.get()
+            if liga_filtrada not in ['Todas'] + sorted(list(self.ligas_disponibles)):
+                self.combo_ligas.set('Todas')
+                liga_filtrada = 'Todas'
+
+            if liga_filtrada == 'Todas':
+                partidos_filtrados = partidos
+            else:
+                partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
+            
+            predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
+            
+            titulo_extra = ""
+            if opcion_numero == 2:
+                titulo_extra = " - ALTERNATIVAS (2das OPCIONES)"
+            
+            self.mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada, titulo_extra)
+            self.mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha)
+
+            self.mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
+            if liga_filtrada == 'Todas':
+                self.mensaje_telegram += f"\n\n⚽ TODOS LOS PARTIDOS ({fecha})\n\n"
+            else:
+                self.mensaje_telegram += f"\n\n⚽ PARTIDOS - {liga_filtrada} ({fecha})\n\n"
+
+            for liga in sorted(set(p["liga"] for p in partidos_filtrados)):
+                if liga_filtrada != 'Todas' and liga_filtrada != liga:
+                    continue
+                self.mensaje_telegram += f"🔷 {liga}\n"
+                
+                liga_partidos = [p for p in partidos_filtrados if p["liga"] == liga]
+                for partido in liga_partidos:
+                    self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+                    self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+
+            self.guardar_datos_json(fecha)
+            
+        except Exception as e:
+            error_msg = f"❌ Error al buscar partidos: {e}"
+            self.output.insert(tk.END, error_msg)
+            print(error_msg)
+            messagebox.showerror("Error", f"Error al cargar partidos: {e}")
+
+    def actualizar_ligas(self):
+        """Actualizar lista de ligas disponibles"""
+        ligas = sorted(self.ligas_disponibles)
+        self.combo_ligas['values'] = ['Todas'] + ligas
+        if self.combo_ligas.get() not in self.combo_ligas['values']:
+            self.combo_ligas.set('Todas')
+
+    def on_liga_changed(self, event=None):
+        """Callback cuando se cambia la selección de liga"""
+        if self.ligas_disponibles:
+            self.buscar()
+
+    def guardar_datos_json(self, fecha):
+        """Guardar datos en JSON"""
+        guardar_json("partidos.json", self.cargar_partidos_reales(fecha))
+        guardar_json("progreso.json", self.progreso_data)
+    
+    def limpiar_frame_predicciones(self):
+        """Limpiar el frame de predicciones y checkboxes"""
+        for widget in self.frame_predicciones.winfo_children():
+            widget.destroy()
+        self.checkboxes_predicciones.clear()
+        self.predicciones_actuales.clear()
+
+    def limpiar_frame_partidos(self):
+        """Limpiar el frame de partidos y checkboxes"""
+        for widget in self.frame_partidos.winfo_children():
+            widget.destroy()
+        self.checkboxes_partidos.clear()
+        self.partidos_actuales.clear()
+
+    def mostrar_predicciones_con_checkboxes(self, predicciones, liga_filtrada, titulo_extra=""):
+        """Mostrar predicciones con checkboxes para selección"""
+        self.limpiar_frame_predicciones()
+        
+        if not predicciones:
+            return
+        
+        titulo_frame = tk.Frame(self.frame_predicciones, bg="#34495e")
+        titulo_frame.pack(fill='x', pady=2)
+        
+        titulo_text = "🤖 PREDICCIONES IA - SELECCIONA PICKS PARA ENVIAR"
+        if liga_filtrada != 'Todas':
+            titulo_text += f" - {liga_filtrada}"
+        titulo_text += titulo_extra
+        
+        titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
+                               font=('Segoe UI', 10, 'bold'), pady=5)
+        titulo_label.pack()
+        
+        for i, pred in enumerate(predicciones):
+            self.predicciones_actuales.append(pred)
+            
+            pred_frame = tk.Frame(self.frame_predicciones, bg="#ecf0f1", relief='ridge', bd=1)
+            pred_frame.pack(fill='x', pady=2, padx=5)
+            
+            var_checkbox = tk.BooleanVar()
+            self.checkboxes_predicciones.append(var_checkbox)
+            
+            checkbox_frame = tk.Frame(pred_frame, bg="#ecf0f1")
+            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            
+            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
+            checkbox.pack(side=tk.LEFT)
+            
+            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+            pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
+                                 font=('Segoe UI', 9), anchor='w')
+            pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
+            
+            justif_label = tk.Label(pred_frame, text=f"📝 {pred['razon']}", bg="#ecf0f1", 
+                                   font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
+            justif_label.pack(fill='x', padx=25, pady=(0,3))
+
+    def mostrar_partidos_con_checkboxes(self, partidos_filtrados, liga_filtrada, fecha):
+        """Mostrar partidos con checkboxes para selección"""
+        self.limpiar_frame_partidos()
+        
+        if not partidos_filtrados:
+            return
+        
+        titulo_frame = tk.Frame(self.frame_partidos, bg="#34495e")
+        titulo_frame.pack(fill='x', pady=2)
+        
+        titulo_text = f"🗓️ PARTIDOS PROGRAMADOS PARA LA JORNADA DEL: {fecha}"
+        if liga_filtrada != 'Todas':
+            titulo_text += f" - {liga_filtrada}"
+        
+        titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
+                               font=('Segoe UI', 10, 'bold'), pady=5)
+        titulo_label.pack()
+        
+        for i, partido in enumerate(partidos_filtrados):
+            self.partidos_actuales.append(partido)
+            
+            partido_frame = tk.Frame(self.frame_partidos, bg="#B2F0E8", relief='ridge', bd=1)
+            partido_frame.pack(fill='x', pady=2, padx=5)
+            
+            var_checkbox = tk.BooleanVar()
+            self.checkboxes_partidos.append(var_checkbox)
+            
+            checkbox_frame = tk.Frame(partido_frame, bg="#B2F0E8")
+            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            
+            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
+            checkbox.pack(side=tk.LEFT)
+            
+            partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
+            partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
+                                   font=('Segoe UI', 9), anchor='w')
+            partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
+            
+            casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}", bg="#B2F0E8", 
+                                 font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
+            casa_label.pack(fill='x', padx=25, pady=(0,3))
+
+    def reproducir_sonido_exito(self):
+        """Reproducir sonido MP3 cuando se envía exitosamente a Telegram"""
+        try:
+            pygame.mixer.init()
+            
+            archivos_sonido = ['sonido_exito.mp3', 'success.mp3', 'notification.mp3', 'alert.mp3']
+            
+            for archivo in archivos_sonido:
+                if os.path.exists(archivo):
+                    pygame.mixer.music.load(archivo)
+                    pygame.mixer.music.play()
+                    return
+            
+            print("No se encontró archivo de sonido MP3. Archivos buscados:", archivos_sonido)
+            
+        except Exception as e:
+            print(f"Error reproduciendo sonido: {e}")
+
+    def enviar_predicciones_seleccionadas(self):
+        """Enviar predicciones y/o partidos seleccionados a Telegram"""
+        predicciones_seleccionadas = []
+        partidos_seleccionados = []
+        
+        for i, var_checkbox in enumerate(self.checkboxes_predicciones):
+            if var_checkbox.get():
+                predicciones_seleccionadas.append(self.predicciones_actuales[i])
+        
+        for i, var_checkbox in enumerate(self.checkboxes_partidos):
+            if var_checkbox.get():
+                partidos_seleccionados.append(self.partidos_actuales[i])
+        
+        if not predicciones_seleccionadas and not partidos_seleccionados:
+            messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico o partido para enviar.")
+            return
+        
+        fecha = self.entry_fecha.get()
+        mensaje_completo = ""
+        
+        try:
+            if predicciones_seleccionadas:
+                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+                mensaje_completo += mensaje_predicciones
+                
+                for pred in predicciones_seleccionadas:
+                    guardar_prediccion_historica(pred, fecha)
+                
+                with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
+                    json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
+                
+                with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
+                    f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
+                    for pred in predicciones_seleccionadas:
+                        f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
+                    f.write("\n")
+            
+            if partidos_seleccionados:
+                if mensaje_completo:
+                    mensaje_completo += "\n\n"
+                
+                mensaje_partidos = f"⚽ PARTIDOS SELECCIONADOS ({fecha})\n\n"
+                
+                partidos_por_liga = {}
+                for partido in partidos_seleccionados:
+                    liga = partido["liga"]
+                    if liga not in partidos_por_liga:
+                        partidos_por_liga[liga] = []
+                    
+                    info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+                    info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+                    partidos_por_liga[liga].append(info)
+                
+                for liga in sorted(partidos_por_liga.keys()):
+                    mensaje_partidos += f"🔷 {liga}\n"
+                    for info in partidos_por_liga[liga]:
+                        mensaje_partidos += info
+                
+                mensaje_completo += mensaje_partidos
+                
+                with open('partidos_seleccionados.json', 'w', encoding='utf-8') as f:
+                    json.dump(partidos_seleccionados, f, indent=2, ensure_ascii=False)
+                
+                with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
+                    f.write(mensaje_partidos)
+            
+            resultado = enviar_telegram_masivo(mensaje_completo)
+            if resultado["exito"]:
+                self.reproducir_sonido_exito()
+                
+                total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
+                mensaje_resultado = f"✅ Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                
+                messagebox.showinfo("Enviado", mensaje_resultado)
+                
+                for var_checkbox in self.checkboxes_predicciones:
+                    var_checkbox.set(False)
+                for var_checkbox in self.checkboxes_partidos:
+                    var_checkbox.set(False)
+            else:
+                error_msg = "No se pudieron enviar los elementos a Telegram."
+                if resultado.get('detalles_errores'):
+                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                messagebox.showerror("Error", error_msg)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
+
+    def enviar_alerta(self):
+        """Enviar alerta general a Telegram"""
+        if hasattr(self, 'mensaje_telegram') and self.mensaje_telegram:
+            try:
+                resultado = enviar_telegram_masivo(self.mensaje_telegram)
+                if resultado["exito"]:
+                    mensaje_resultado = f"✅ El mensaje se ha enviado a Telegram correctamente.\n\n"
+                    mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                    mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                    mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                    if resultado.get('usuarios_bloqueados', 0) > 0:
+                        mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                    if resultado.get('errores', 0) > 0:
+                        mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                    messagebox.showinfo("Enviado", mensaje_resultado)
+                else:
+                    error_msg = "No se pudo enviar el mensaje a Telegram. Revisa la conexión."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error enviando a Telegram: {e}")
+        else:
+            messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
+
+    def abrir_progreso(self):
+        """Abrir ventana de progreso del usuario"""
+        def guardar_datos():
+            try:
+                deposito = float(entry_deposito.get())
+                meta = float(entry_meta.get())
+                saldo = float(entry_saldo.get())
+
+                self.progreso_data["deposito"] = deposito
+                self.progreso_data["meta"] = meta
+                self.progreso_data["saldo_actual"] = saldo
+
+                actualizar_barra()
+                self.guardar_datos_json(self.entry_fecha.get())
+            except ValueError:
+                messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
+
+        def actualizar_barra():
+            progreso = (self.progreso_data["saldo_actual"] - self.progreso_data["deposito"]) / (self.progreso_data["meta"] - self.progreso_data["deposito"]) * 100
+            progreso = max(0, min(progreso, 100))
+            barra['value'] = progreso
+            label_resultado.config(text=f"📈 Progreso: {progreso:.2f}%")
+
+        ventana = tk.Toplevel(self.root)
+        ventana.title("📊 Progreso del Usuario")
+        ventana.geometry("400x300")
+        ventana.configure(bg="#f1f3f4")
+
+        ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
+        entry_deposito = ttk.Entry(ventana)
+        entry_deposito.insert(0, str(self.progreso_data["deposito"]))
+        entry_deposito.pack()
+
+        ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
+        entry_meta = ttk.Entry(ventana)
+        entry_meta.insert(0, str(self.progreso_data["meta"]))
+        entry_meta.pack()
+
+        ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
+        entry_saldo = ttk.Entry(ventana)
+        entry_saldo.insert(0, str(self.progreso_data["saldo_actual"]))
+        entry_saldo.pack()
+
+        ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)
+
+        barra = ttk.Progressbar(ventana, length=300, mode='determinate')
+        barra.pack(pady=10)
+
+        label_resultado = ttk.Label(ventana, text="")
+        label_resultado.pack()
+
+        actualizar_barra()
+
+    def abrir_track_record(self):
+        """Abrir ventana de track record simplificada"""
+        try:
+            ventana_track = tk.Toplevel(self.root)
+            ventana_track.title("📊 Track Record - SergioBets IA")
+            ventana_track.geometry("700x500")
+            ventana_track.configure(bg="#2c3e50")
+            
+            frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
+            frame_principal.pack(fill='both', expand=True, padx=20, pady=20)
+            
+            titulo = tk.Label(frame_principal, text="📊 TRACK RECORD DE PREDICCIONES", 
+                             bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
+            titulo.pack(pady=(0, 20))
+            
+            info_text = """
+📈 TRACK RECORD SIMPLIFICADO
+
+• Esta es una versión simplificada del track record
+• Para funcionalidad completa, usa el módulo track_record.py
+• Aquí puedes ver estadísticas básicas de tus predicciones
+
+🎯 FUNCIONES DISPONIBLES:
+• Ver historial de predicciones guardadas
+• Estadísticas básicas de aciertos/fallos
+• Análisis de rentabilidad simple
+
+💡 NOTA: Para análisis avanzado con API de resultados,
+   instala el módulo track_record completo.
+            """
+            
+            info_label = tk.Label(frame_principal, text=info_text, 
+                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 11),
+                                justify='left', anchor='nw', padx=20, pady=20)
+            info_label.pack(fill='both', expand=True, padx=10, pady=10)
+            
+            ttk.Button(frame_principal, text="✅ Cerrar", 
+                      command=ventana_track.destroy).pack(pady=10)
+                      
+        except Exception as e:
+            messagebox.showerror("Error", f"Error abriendo track record: {e}")
+
+    def abrir_usuarios(self):
+        """Abrir ventana de gestión de usuarios"""
+        try:
+            ventana_usuarios = tk.Toplevel(self.root)
+            ventana_usuarios.title("👥 Gestión de Usuarios - SergioBets")
+            ventana_usuarios.geometry("600x400")
+            ventana_usuarios.configure(bg="#f1f3f4")
+            
+            frame_principal = tk.Frame(ventana_usuarios, bg="#f1f3f4")
+            frame_principal.pack(fill='both', expand=True, padx=20, pady=20)
+            
+            titulo = tk.Label(frame_principal, text="👥 GESTIÓN DE USUARIOS", 
+                             bg="#f1f3f4", fg="#2c3e50", font=('Segoe UI', 16, 'bold'))
+            titulo.pack(pady=(0, 20))
+            
+            frame_botones = tk.Frame(frame_principal, bg="#f1f3f4")
+            frame_botones.pack(fill='x', pady=(0, 10))
+            
+            def refrescar_usuarios():
+                """Refrescar lista de usuarios"""
+                try:
+                    usuarios_text = ""
+                    if os.path.exists("usuarios.txt"):
+                        with open("usuarios.txt", "r", encoding="utf-8") as f:
+                            usuarios = f.readlines()
+                        usuarios_text = f"📊 Total usuarios registrados: {len(usuarios)}\n\n"
+                        for i, usuario in enumerate(usuarios[:20], 1):  # Mostrar solo primeros 20
+                            usuarios_text += f"{i}. {usuario.strip()}\n"
+                        if len(usuarios) > 20:
+                            usuarios_text += f"\n... y {len(usuarios) - 20} usuarios más"
+                    else:
+                        usuarios_text = "📝 No hay usuarios registrados aún.\n\nLos usuarios se registrarán automáticamente cuando interactúen con el bot de Telegram."
+                    
+                    text_usuarios.delete('1.0', tk.END)
+                    text_usuarios.insert('1.0', usuarios_text)
+                    
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error cargando usuarios: {e}")
+            
+            ttk.Button(frame_botones, text="🔄 Refrescar Lista", 
+                      command=refrescar_usuarios).pack(side='left', padx=(0, 10))
+            
+            text_usuarios = ScrolledText(frame_principal, wrap=tk.WORD, width=70, height=20, 
+                                       font=('Arial', 10), bg='#ffffff')
+            text_usuarios.pack(fill='both', expand=True, pady=10)
+            
+            refrescar_usuarios()
+            
+            ttk.Button(frame_principal, text="✅ Cerrar", 
+                      command=ventana_usuarios.destroy).pack(pady=10)
+                      
+        except Exception as e:
+            messagebox.showerror("Error", f"Error abriendo gestión de usuarios: {e}")
+
     def run(self):
-        """Ejecutar aplicación principal"""
-        print("🎯 SergioBets - Sistema Unificado de Pagos")
+        """Ejecutar aplicación principal con GUI y servicios backend"""
+        print("🎯 SergioBets - Sistema Completo con GUI y Pagos")
         print("=" * 60)
         
         if not self.check_dependencies():
@@ -365,19 +953,20 @@ class SergioBetsUnified:
             print("🔗 El túnel ngrok está conectado")
         else:
             print("⚠️ El túnel ngrok no está disponible")
-        print("\n🛑 Presiona Ctrl+C para detener o cierra esta ventana")
+        print("\n🎉 Iniciando GUI de SergioBets...")
         
-        logger.info("Starting monitoring services...")
-        monitor_thread = threading.Thread(target=self.monitor_services, daemon=True)
-        monitor_thread.start()
-        
-        logger.info("Application running, waiting for interruption...")
         try:
-            while self.running:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            logger.info("KeyboardInterrupt received")
-            pass
+            self.setup_gui()
+            print("✅ GUI iniciada correctamente")
+            
+            monitor_thread = threading.Thread(target=self.monitor_services, daemon=True)
+            monitor_thread.start()
+            
+            self.root.mainloop()
+            
+        except Exception as e:
+            print(f"❌ Error en GUI: {e}")
+            logger.error(f"GUI error: {e}")
         
         logger.info("Stopping all services...")
         self.stop_all_services()

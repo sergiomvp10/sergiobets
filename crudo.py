@@ -12,7 +12,7 @@ import pygame
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from telegram_bot_listener import iniciar_bot_en_hilo
 from tkcalendar import DateEntry
-from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba
+from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, guardar_prediccion_historica
 from league_utils import detectar_liga_por_imagen
 
 # CONFIG TELEGRAM
@@ -904,6 +904,12 @@ output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9)
 output.pack(pady=10, padx=10, expand=True, fill='both')
 
 ligas_disponibles = set()
+checkboxes_predicciones = []
+checkboxes_partidos = []
+predicciones_actuales = []
+partidos_actuales = []
+mensaje_telegram = ""
+progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 
 try:
     print("🤖 Iniciando bot de Telegram integrado...")
@@ -913,4 +919,6 @@ except Exception as e:
     print(f"⚠️ Error iniciando bot de Telegram: {e}")
     print("📱 La aplicación continuará funcionando sin el bot")
 
+print("🎉 SergioBets GUI iniciado correctamente!")
+print("📋 Usa la interfaz para buscar partidos y enviar predicciones")
 root.mainloop()

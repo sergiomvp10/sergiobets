@@ -59,6 +59,37 @@ def test_telegram_import():
         print(f"Traceback: {traceback.format_exc()}")
         return False
 
+def test_gui_imports():
+    """Test GUI-related imports"""
+    print("\n🔍 Testing GUI imports...")
+    try:
+        import tkinter as tk
+        print("✅ tkinter imported")
+        
+        from tkinter import ttk, messagebox
+        print("✅ tkinter.ttk and messagebox imported")
+        
+        from tkinter.scrolledtext import ScrolledText
+        print("✅ ScrolledText imported")
+        
+        from tkcalendar import DateEntry
+        print("✅ tkcalendar imported")
+        
+        import pygame
+        print("✅ pygame imported")
+        
+        from footystats_api import obtener_partidos_del_dia
+        print("✅ footystats_api imported")
+        
+        from ia_bets import filtrar_apuestas_inteligentes
+        print("✅ ia_bets imported")
+        
+        return True
+    except Exception as e:
+        print(f"❌ GUI import error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return False
+
 def test_file_structure():
     """Test required file structure"""
     print("\n🔍 Testing file structure...")
@@ -88,6 +119,7 @@ def main():
         ("Basic Imports", test_basic_imports),
         ("Flask Import", test_flask_import),
         ("Telegram Import", test_telegram_import),
+        ("GUI Imports", test_gui_imports),
         ("File Structure", test_file_structure)
     ]
     
