@@ -26,6 +26,7 @@ from json_storage import guardar_json, cargar_json
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
 from league_utils import detectar_liga_por_imagen
+from track_record import TrackRecordManager
 
 def setup_logging():
     """Setup comprehensive logging for debugging"""
@@ -806,44 +807,305 @@ class SergioBetsUnified:
         actualizar_barra()
 
     def abrir_track_record(self):
-        """Abrir ventana de track record simplificada"""
+        """Abre ventana de track record mejorada con filtros y tabla estructurada"""
         try:
+            from track_record import TrackRecordManager
+            import os
+            from datetime import datetime, timedelta
+            
+            api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+            tracker = TrackRecordManager(api_key)
+            
             ventana_track = tk.Toplevel(self.root)
-            ventana_track.title("📊 Track Record - SergioBets IA")
-            ventana_track.geometry("700x500")
+            ventana_track.title("📊 Track Record Mejorado - SergioBets IA")
+            ventana_track.geometry("1400x800")
             ventana_track.configure(bg="#2c3e50")
             
             frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
-            frame_principal.pack(fill='both', expand=True, padx=20, pady=20)
+            frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
             
-            titulo = tk.Label(frame_principal, text="📊 TRACK RECORD DE PREDICCIONES", 
+            frame_izquierdo = tk.Frame(frame_principal, bg="#2c3e50")
+            frame_izquierdo.pack(side='left', fill='both', expand=True, padx=(0, 10))
+            
+            frame_estadisticas = tk.Frame(frame_principal, bg="#ecf0f1", width=300, relief='ridge', bd=2)
+            frame_estadisticas.pack(side='right', fill='y', padx=(10, 0))
+            frame_estadisticas.pack_propagate(False)
+            
+            titulo = tk.Label(frame_izquierdo, text="📊 TRACK RECORD DE PREDICCIONES", 
                              bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
             titulo.pack(pady=(0, 20))
             
-            info_text = """
-📈 TRACK RECORD SIMPLIFICADO
-
-• Esta es una versión simplificada del track record
-• Para funcionalidad completa, usa el módulo track_record.py
-• Aquí puedes ver estadísticas básicas de tus predicciones
-
-🎯 FUNCIONES DISPONIBLES:
-• Ver historial de predicciones guardadas
-• Estadísticas básicas de aciertos/fallos
-• Análisis de rentabilidad simple
-
-💡 NOTA: Para análisis avanzado con API de resultados,
-   instala el módulo track_record completo.
-            """
+            frame_filtros = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_filtros.pack(fill='x', pady=(0, 10))
             
-            info_label = tk.Label(frame_principal, text=info_text, 
-                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 11),
-                                justify='left', anchor='nw', padx=20, pady=20)
-            info_label.pack(fill='both', expand=True, padx=10, pady=10)
+            frame_fechas = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_fechas.pack(fill='x', pady=(0, 10))
             
-            ttk.Button(frame_principal, text="✅ Cerrar", 
-                      command=ventana_track.destroy).pack(pady=10)
-                      
+            frame_acciones = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_acciones.pack(fill='x', pady=(0, 10))
+            
+            filtro_actual = tk.StringVar(value="historico")
+            fecha_inicio = tk.StringVar()
+            fecha_fin = tk.StringVar()
+            
+            hoy = datetime.now()
+            hace_mes = hoy - timedelta(days=30)
+            fecha_inicio.set(hace_mes.strftime('%Y-%m-%d'))
+            fecha_fin.set(hoy.strftime('%Y-%m-%d'))
+            
+            columns = ('fecha', 'liga', 'equipos', 'tipo_apuesta', 'cuota', 'resultado', 'estado')
+            tree = ttk.Treeview(frame_izquierdo, columns=columns, show='headings', height=20)
+            
+            tree.heading('fecha', text='Fecha')
+            tree.heading('liga', text='Liga')
+            tree.heading('equipos', text='Equipos')
+            tree.heading('tipo_apuesta', text='Tipo de Apuesta')
+            tree.heading('cuota', text='Cuota')
+            tree.heading('resultado', text='Resultado Final')
+            tree.heading('estado', text='Estado')
+            
+            tree.column('fecha', width=100)
+            tree.column('liga', width=150)
+            tree.column('equipos', width=200)
+            tree.column('tipo_apuesta', width=180)
+            tree.column('cuota', width=80)
+            tree.column('resultado', width=120)
+            tree.column('estado', width=100)
+            
+            scrollbar = ttk.Scrollbar(frame_izquierdo, orient='vertical', command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            
+            tree.pack(side='left', fill='both', expand=True)
+            scrollbar.pack(side='right', fill='y')
+            
+            def cargar_datos_filtrados():
+                """Carga datos según el filtro actual"""
+                for item in tree.get_children():
+                    tree.delete(item)
+                
+                try:
+                    historial = cargar_json('historial_predicciones.json') or []
+                    datos_filtrados = []
+                    
+                    filtro = filtro_actual.get()
+                    
+                    for prediccion in historial:
+                        if filtro == "por_fecha":
+                            fecha_pred = prediccion.get('fecha', '')
+                            if fecha_pred < fecha_inicio.get() or fecha_pred > fecha_fin.get():
+                                continue
+                        
+                        resultado_real = prediccion.get('resultado_real')
+                        acierto = prediccion.get('acierto')
+                        
+                        if filtro == "pendientes" and resultado_real is not None:
+                            continue
+                        elif filtro == "acertados" and (resultado_real is None or not acierto):
+                            continue
+                        elif filtro == "fallados" and (resultado_real is None or acierto):
+                            continue
+                        
+                        if resultado_real is None:
+                            estado = "⏳ Pendiente"
+                            resultado_final = "-"
+                        elif acierto:
+                            estado = "✅ Ganada"
+                            resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                        else:
+                            estado = "❌ Perdida"
+                            resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                        
+                        datos_filtrados.append((
+                            prediccion.get('fecha', ''),
+                            prediccion.get('liga', ''),
+                            prediccion.get('partido', ''),
+                            prediccion.get('prediccion', ''),
+                            f"{prediccion.get('cuota', 0):.2f}",
+                            resultado_final,
+                            estado
+                        ))
+                    
+                    datos_filtrados.sort(key=lambda x: x[0], reverse=True)
+                    
+                    for i, datos in enumerate(datos_filtrados):
+                        tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+                        tree.insert('', 'end', values=datos, tags=(tag,))
+                    
+                    tree.tag_configure('evenrow', background='#f8f9fa')
+                    tree.tag_configure('oddrow', background='white')
+                    
+                    actualizar_estadisticas()
+                    
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error cargando datos: {e}")
+            
+            def actualizar_estadisticas():
+                """Actualiza el panel de estadísticas"""
+                for widget in frame_estadisticas.winfo_children():
+                    widget.destroy()
+                
+                tk.Label(frame_estadisticas, text="📈 ESTADÍSTICAS", 
+                        bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 14, 'bold')).pack(pady=10)
+                
+                try:
+                    metricas = tracker.calcular_metricas_rendimiento()
+                    
+                    if "error" not in metricas:
+                        stats_frame = tk.Frame(frame_estadisticas, bg="#ecf0f1")
+                        stats_frame.pack(fill='x', padx=10, pady=5)
+                        
+                        tk.Label(stats_frame, text="📊 RESUMEN GENERAL", 
+                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 12, 'bold')).pack()
+                        
+                        stats_text = f"""
+Total predicciones: {metricas['total_predicciones']}
+Resueltas: {metricas['predicciones_resueltas']}
+Pendientes: {metricas['predicciones_pendientes']}
+Aciertos: {metricas['aciertos']}
+Tasa de éxito: {metricas.get('tasa_acierto', 0):.1f}%
+
+💰 RENDIMIENTO:
+Total apostado: ${metricas['total_apostado']:.2f}
+Ganancia: ${metricas['total_ganancia']:.2f}
+ROI: {metricas['roi']:.2f}%
+"""
+                        
+                        tk.Label(stats_frame, text=stats_text, 
+                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 10),
+                                justify='left').pack(pady=5)
+                    
+                except Exception as e:
+                    tk.Label(frame_estadisticas, text=f"Error: {e}", 
+                            bg="#ecf0f1", fg="red").pack(pady=10)
+            
+            def filtrar_pendientes():
+                filtro_actual.set("pendientes")
+                cargar_datos_filtrados()
+            
+            def filtrar_acertados():
+                filtro_actual.set("acertados")
+                cargar_datos_filtrados()
+            
+            def filtrar_fallados():
+                filtro_actual.set("fallados")
+                cargar_datos_filtrados()
+            
+            def filtrar_historico():
+                filtro_actual.set("historico")
+                cargar_datos_filtrados()
+            
+            def filtrar_por_fecha():
+                filtro_actual.set("por_fecha")
+                cargar_datos_filtrados()
+            
+            def mostrar_resumen():
+                """Abre ventana con resumen detallado"""
+                ventana_resumen = tk.Toplevel(ventana_track)
+                ventana_resumen.title("📊 Resumen Detallado")
+                ventana_resumen.geometry("600x500")
+                ventana_resumen.configure(bg="#f8f9fa")
+                
+                try:
+                    reporte = tracker.generar_reporte_detallado()
+                    text_widget = ScrolledText(ventana_resumen, wrap=tk.WORD, 
+                                             font=('Consolas', 10), bg="white")
+                    text_widget.pack(fill='both', expand=True, padx=10, pady=10)
+                    text_widget.insert('1.0', reporte)
+                    text_widget.config(state='disabled')
+                except Exception as e:
+                    tk.Label(ventana_resumen, text=f"Error generando reporte: {e}").pack()
+            
+            def actualizar_resultados():
+                """Actualiza resultados desde la API"""
+                btn_actualizar.config(state='disabled', text="🔄 Procesando...")
+                ventana_track.update()
+                
+                try:
+                    resultado = tracker.actualizar_historial_con_resultados()
+                    if "error" in resultado:
+                        messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
+                    else:
+                        mensaje = f"✅ Actualización completada\n\n"
+                        mensaje += f"📊 Predicciones actualizadas: {resultado['actualizaciones']}\n"
+                        mensaje += f"❌ Errores: {resultado['errores']}\n"
+                        mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}"
+                        messagebox.showinfo("Actualización Completada", mensaje)
+                        cargar_datos_filtrados()
+                finally:
+                    btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
+            
+            def limpiar_historial():
+                """Limpia todo el historial"""
+                respuesta = messagebox.askyesno("Confirmar", 
+                    "¿Estás seguro de que quieres limpiar todo el historial?\n\n" +
+                    "Esta acción no se puede deshacer.")
+                
+                if respuesta:
+                    try:
+                        with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                            f.write('[]')
+                        messagebox.showinfo("Éxito", "Historial limpiado correctamente")
+                        cargar_datos_filtrados()
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error limpiando historial: {e}")
+            
+            btn_pendientes = tk.Button(frame_filtros, text="📌 PENDIENTES", 
+                                      command=filtrar_pendientes, bg="#f39c12", fg="white",
+                                      font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+            btn_pendientes.pack(side='left', padx=(0, 5))
+            
+            btn_acertados = tk.Button(frame_filtros, text="✅ ACERTADOS", 
+                                     command=filtrar_acertados, bg="#27ae60", fg="white",
+                                     font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+            btn_acertados.pack(side='left', padx=5)
+            
+            btn_fallados = tk.Button(frame_filtros, text="❌ FALLADOS", 
+                                    command=filtrar_fallados, bg="#e74c3c", fg="white",
+                                    font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+            btn_fallados.pack(side='left', padx=5)
+            
+            btn_historico = tk.Button(frame_filtros, text="📅 HISTÓRICO", 
+                                     command=filtrar_historico, bg="#3498db", fg="white",
+                                     font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+            btn_historico.pack(side='left', padx=5)
+            
+            btn_resumen = tk.Button(frame_filtros, text="📊 RESUMEN", 
+                                   command=mostrar_resumen, bg="#9b59b6", fg="white",
+                                   font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+            btn_resumen.pack(side='left', padx=5)
+            
+            tk.Label(frame_fechas, text="🗓️ Filtro por fechas:", 
+                    bg="#2c3e50", fg="white", font=('Segoe UI', 10, 'bold')).pack(side='left')
+            
+            tk.Label(frame_fechas, text="Desde:", bg="#2c3e50", fg="white").pack(side='left', padx=(10, 5))
+            entry_fecha_inicio = DateEntry(frame_fechas, width=12, background="darkblue", 
+                                          foreground="white", borderwidth=2, 
+                                          date_pattern='yyyy-MM-dd', textvariable=fecha_inicio)
+            entry_fecha_inicio.pack(side='left', padx=5)
+            
+            tk.Label(frame_fechas, text="Hasta:", bg="#2c3e50", fg="white").pack(side='left', padx=(10, 5))
+            entry_fecha_fin = DateEntry(frame_fechas, width=12, background="darkblue", 
+                                       foreground="white", borderwidth=2, 
+                                       date_pattern='yyyy-MM-dd', textvariable=fecha_fin)
+            entry_fecha_fin.pack(side='left', padx=5)
+            
+            btn_filtrar_fecha = tk.Button(frame_fechas, text="🗓️ FILTRAR", 
+                                         command=filtrar_por_fecha, bg="#34495e", fg="white",
+                                         font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
+            btn_filtrar_fecha.pack(side='left', padx=(10, 0))
+            
+            btn_actualizar = tk.Button(frame_acciones, text="🔄 Actualizar Resultados", 
+                                      command=actualizar_resultados, bg="#3498db", fg="white",
+                                      font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+            btn_actualizar.pack(side='left', padx=(0, 10))
+            
+            btn_limpiar = tk.Button(frame_acciones, text="🧹 Limpiar Historial", 
+                                   command=limpiar_historial, bg="#e74c3c", fg="white",
+                                   font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+            btn_limpiar.pack(side='left', padx=(0, 10))
+            
+            cargar_datos_filtrados()
+            
         except Exception as e:
             messagebox.showerror("Error", f"Error abriendo track record: {e}")
 
