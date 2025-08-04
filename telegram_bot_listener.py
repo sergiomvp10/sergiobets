@@ -326,9 +326,11 @@ def contar_usuarios_registrados():
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""
     import threading
+    import asyncio
     
     def ejecutar_bot():
         try:
+            asyncio.set_event_loop(asyncio.new_event_loop())
             iniciar_bot_listener()
         except Exception as e:
             logger.error(f"Error en hilo del bot: {e}")
