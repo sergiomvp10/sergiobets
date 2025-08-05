@@ -327,16 +327,20 @@ class TrackRecordManager:
                 return {"error": "No hay historial disponible"}
             
             con_resultado = [p for p in historial if p.get("resultado_real") is not None]
-            
-            if not con_resultado:
-                return {
-                    "total_predicciones": len(historial),
-                    "predicciones_resueltas": 0,
-                    "mensaje": "No hay predicciones resueltas aún"
-                }
+            sin_resultado = [p for p in historial if p.get("resultado_real") is None]
             
             total_predicciones = len(historial)
             predicciones_resueltas = len(con_resultado)
+            predicciones_pendientes = len(sin_resultado)
+            
+            if not con_resultado:
+                return {
+                    "total_predicciones": total_predicciones,
+                    "predicciones_resueltas": 0,
+                    "predicciones_pendientes": predicciones_pendientes,
+                    "mensaje": "No hay predicciones resueltas aún"
+                }
+            
             aciertos = [p for p in con_resultado if p.get("acierto", False)]
             
             total_apostado = sum(p["stake"] for p in con_resultado)
@@ -362,6 +366,7 @@ class TrackRecordManager:
             return {
                 "total_predicciones": total_predicciones,
                 "predicciones_resueltas": predicciones_resueltas,
+                "predicciones_pendientes": predicciones_pendientes,
                 "aciertos": len(aciertos),
                 "tasa_acierto": len(aciertos) / predicciones_resueltas * 100,
                 "total_apostado": total_apostado,

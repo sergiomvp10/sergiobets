@@ -1,0 +1,23 @@
+{
+  "987654321": {
+    "username": "test_user_devin",
+    "membership_type": "weekly",
+    "activated_at": "2025-08-04T07:32:30.110576",
+    "expires_at": "2025-08-11T07:32:30.110576",
+    "active": true
+  },
+  "test_user_123": {
+    "username": "test_devin",
+    "membership_type": "weekly",
+    "activated_at": "2025-08-04T07:38:21.459137",
+    "expires_at": "2025-08-11T07:38:21.459137",
+    "active": true
+  },
+  "ngrok_test_456": {
+    "username": "ngrok_test_user",
+    "membership_type": "weekly",
+    "activated_at": "2025-08-04T07:51:54.720699",
+    "expires_at": "2025-08-11T07:51:54.720699",
+    "active": true
+  }
+}

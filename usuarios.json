@@ -1,0 +1,74 @@
+[
+  {
+    "user_id": "7659029315",
+    "username": "n3utro6",
+    "first_name": "No",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:51:56.582231"
+  },
+  {
+    "user_id": "6286055084",
+    "username": "Sie7e0",
+    "first_name": "Left",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:51:56.582241"
+  },
+  {
+    "user_id": "6937898258",
+    "username": "sin_username",
+    "first_name": "Juli",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:51:56.582244"
+  },
+  {
+    "user_id": "7173680564",
+    "username": "jhgocho2",
+    "first_name": "Jh",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:51:56.582246"
+  },
+  {
+    "user_id": "8316148869",
+    "username": "sin_username",
+    "first_name": "Juli",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:51:56.582248"
+  },
+  {
+    "user_id": "test123",
+    "username": "testuser",
+    "first_name": "Test User",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:58:45.654211"
+  },
+  {
+    "user_id": "workflow_test_123",
+    "username": "workflowuser",
+    "first_name": "Workflow User",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T23:58:45.655535"
+  },
+  {
+    "user_id": "confirmation_test_123",
+    "username": "testuser",
+    "first_name": "Test User",
+    "premium": true,
+    "fecha_expiracion": "2025-08-12T00:13:33.290918",
+    "fecha_registro": "2025-08-05T00:13:33.290595"
+  },
+  {
+    "user_id": "no_premium_test",
+    "username": "nopremium",
+    "first_name": "No Premium User",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-05T00:13:33.291671"
+  }
+]
