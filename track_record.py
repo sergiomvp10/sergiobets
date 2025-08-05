@@ -76,18 +76,26 @@ class TrackRecordManager:
                         print(f"Found match: {partido.get('home_name')} vs {partido.get('away_name')} on {date_to_try} - Status: {status}")
                         
                         if status in VALID_MATCH_STATUSES:
+                            team_a_corners = partido.get("team_a_corners", -1)
+                            team_b_corners = partido.get("team_b_corners", -1)
+                            total_corner_count = partido.get("totalCornerCount", -1)
+                            
+                            if total_corner_count == -1 and team_a_corners != -1 and team_b_corners != -1:
+                                total_corner_count = team_a_corners + team_b_corners
+                            
                             return {
                                 "match_id": partido.get("id"),
                                 "status": status,
                                 "home_score": partido.get("home_goals", 0),
                                 "away_score": partido.get("away_goals", 0),
                                 "total_goals": partido.get("home_goals", 0) + partido.get("away_goals", 0),
-                                "corners_home": partido.get("team_a_corners", 0),
-                                "corners_away": partido.get("team_b_corners", 0),
-                                "total_corners": partido.get("totalCornerCount", 0),
+                                "corners_home": team_a_corners if team_a_corners != -1 else 0,
+                                "corners_away": team_b_corners if team_b_corners != -1 else 0,
+                                "total_corners": total_corner_count if total_corner_count != -1 else 0,
                                 "cards_home": partido.get("home_cards", 0),
                                 "cards_away": partido.get("away_cards", 0),
                                 "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
+                                "corner_data_available": total_corner_count != -1,
                                 "resultado_1x2": self._determinar_resultado_1x2(
                                     partido.get("home_goals", 0), 
                                     partido.get("away_goals", 0)
@@ -132,13 +140,13 @@ class TrackRecordManager:
                 acierto = resultado["total_goals"] > umbral
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
-                if resultado.get("total_corners", 0) <= 0:
+                if not resultado.get("corner_data_available", True) or resultado.get("total_corners", 0) <= 0:
                     return None, None
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" corners")[0])
                 acierto = resultado["total_corners"] > umbral
                 
             elif "menos de" in tipo_prediccion and "corners" in tipo_prediccion:
-                if resultado.get("total_corners", 0) <= 0:
+                if not resultado.get("corner_data_available", True) or resultado.get("total_corners", 0) <= 0:
                     return None, None
                 umbral = float(tipo_prediccion.split("menos de ")[1].split(" corners")[0])
                 acierto = resultado["total_corners"] < umbral
