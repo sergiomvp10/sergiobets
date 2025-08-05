@@ -82,9 +82,9 @@ class TrackRecordManager:
                                 "home_score": partido.get("home_goals", 0),
                                 "away_score": partido.get("away_goals", 0),
                                 "total_goals": partido.get("home_goals", 0) + partido.get("away_goals", 0),
-                                "corners_home": partido.get("home_corners", 0),
-                                "corners_away": partido.get("away_corners", 0),
-                                "total_corners": partido.get("home_corners", 0) + partido.get("away_corners", 0),
+                                "corners_home": partido.get("team_a_corners", 0),
+                                "corners_away": partido.get("team_b_corners", 0),
+                                "total_corners": partido.get("totalCornerCount", 0),
                                 "cards_home": partido.get("home_cards", 0),
                                 "cards_away": partido.get("away_cards", 0),
                                 "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
@@ -116,7 +116,7 @@ class TrackRecordManager:
         else:
             return "X"
     
-    def validar_prediccion(self, prediccion: Dict[str, Any], resultado: Dict[str, Any]) -> Tuple[bool, float]:
+    def validar_prediccion(self, prediccion: Dict[str, Any], resultado: Dict[str, Any]) -> Tuple[Optional[bool], Optional[float]]:
         """
         Valida si una predicción fue correcta y calcula la ganancia
         """
@@ -132,8 +132,16 @@ class TrackRecordManager:
                 acierto = resultado["total_goals"] > umbral
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
+                if resultado.get("total_corners", 0) <= 0:
+                    return None, None
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" corners")[0])
                 acierto = resultado["total_corners"] > umbral
+                
+            elif "menos de" in tipo_prediccion and "corners" in tipo_prediccion:
+                if resultado.get("total_corners", 0) <= 0:
+                    return None, None
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" corners")[0])
+                acierto = resultado["total_corners"] < umbral
                 
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
@@ -272,7 +280,13 @@ class TrackRecordManager:
                         print(f"  ✅ Resultado encontrado: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
                         for prediccion in match_data["predicciones"]:
                             try:
-                                acierto, ganancia = self.validar_prediccion(prediccion, resultado)
+                                validation_result = self.validar_prediccion(prediccion, resultado)
+                                
+                                if validation_result == (None, None):
+                                    print(f"    ⏳ Predicción '{prediccion['prediccion']}': DATA PENDING (corner data not available)")
+                                    continue
+                                
+                                acierto, ganancia = validation_result
                                 
                                 prediccion["resultado_real"] = resultado
                                 prediccion["ganancia"] = ganancia
