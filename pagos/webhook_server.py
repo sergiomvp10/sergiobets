@@ -88,10 +88,26 @@ def await_send_user_confirmation(payment_result):
     try:
         user_id = payment_result.get('user_id')
         
-        mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
+        try:
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from access_manager import access_manager
+            
+            if access_manager.otorgar_acceso(user_id, 7):
+                logger.info(f"✅ Acceso premium otorgado a usuario {user_id}")
+                
+                mensaje = access_manager.generar_mensaje_confirmacion_premium(user_id)
+                logger.info(f"✅ Mensaje de confirmación generado para usuario {user_id}")
+            else:
+                logger.error(f"❌ Error otorgando acceso premium a usuario {user_id}")
+                mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
+                
+        except Exception as e:
+            logger.error(f"❌ Error activando acceso VIP: {e}")
+            mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
         
         if TELEGRAM_TOKEN and user_id:
             enviar_telegram(TELEGRAM_TOKEN, user_id, mensaje)
+            logger.info(f"✅ Mensaje de confirmación enviado a usuario {user_id}")
         else:
             logger.warning("Telegram token o user ID no disponibles")
         

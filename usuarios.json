@@ -54,5 +54,21 @@
     "premium": false,
     "fecha_expiracion": null,
     "fecha_registro": "2025-08-04T23:58:45.655535"
+  },
+  {
+    "user_id": "confirmation_test_123",
+    "username": "testuser",
+    "first_name": "Test User",
+    "premium": true,
+    "fecha_expiracion": "2025-08-12T00:13:33.290918",
+    "fecha_registro": "2025-08-05T00:13:33.290595"
+  },
+  {
+    "user_id": "no_premium_test",
+    "username": "nopremium",
+    "first_name": "No Premium User",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-05T00:13:33.291671"
   }
 ]

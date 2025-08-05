@@ -117,6 +117,49 @@ class AccessManager:
         print(f"✅ Acceso premium otorgado a {users[user_index]['username']} por {dias} días")
         return True
     
+    def generar_mensaje_confirmacion_premium(self, user_id: str) -> str:
+        """Generate premium confirmation message for user"""
+        user = self.obtener_usuario(user_id)
+        if not user:
+            return "❌ Usuario no encontrado"
+        
+        if not user.get('premium') or not user.get('fecha_expiracion'):
+            return "❌ Usuario no tiene acceso premium activo"
+        
+        try:
+            fecha_expiracion = datetime.fromisoformat(user['fecha_expiracion'])
+            fecha_activacion = datetime.now()
+            dias_restantes = (fecha_expiracion - fecha_activacion).days
+            
+            username = user.get('username', 'Usuario')
+            first_name = user.get('first_name', username)
+            
+            mensaje = f"""🎉 ¡ACCESO PREMIUM ACTIVADO! 🎉
+
+👤 Hola {first_name}!
+
+✅ Tu membresía premium ha sido activada exitosamente
+
+📅 Días adquiridos: {dias_restantes} días
+🗓️ Fecha de activación: {fecha_activacion.strftime('%d/%m/%Y a las %H:%M')}
+⏰ Fecha de vencimiento: {fecha_expiracion.strftime('%d/%m/%Y a las %H:%M')}
+
+🚀 Ahora tienes acceso completo a:
+• Pronósticos premium exclusivos
+• Análisis detallados de partidos
+• Estadísticas avanzadas
+• Soporte prioritario
+
+💎 ¡Gracias por confiar en SergioBets! 
+Estamos comprometidos a brindarte los mejores pronósticos deportivos para maximizar tus ganancias.
+
+¡Que tengas mucho éxito en tus apuestas! 🍀💰"""
+            
+            return mensaje
+            
+        except (ValueError, TypeError):
+            return "❌ Error procesando fecha de expiración"
+    
     def banear_usuario(self, user_id: str) -> bool:
         """Remove premium access immediately"""
         user_index, users = self._find_user_index(user_id)

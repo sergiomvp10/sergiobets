@@ -1218,7 +1218,24 @@ ROI: {metricas['roi']:.2f}%
                 
                 try:
                     if access_manager.otorgar_acceso(user_id, dias):
-                        messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado por {dias} días")
+                        mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(user_id)
+                        
+                        ventana_confirmacion = tk.Toplevel(ventana_usuarios)
+                        ventana_confirmacion.title("✅ Acceso Premium Activado")
+                        ventana_confirmacion.geometry("600x500")
+                        ventana_confirmacion.configure(bg="#27ae60")
+                        
+                        text_confirmacion = scrolledtext.ScrolledText(ventana_confirmacion, wrap=tk.WORD, 
+                                                                     font=('Segoe UI', 11), bg="white", fg="black")
+                        text_confirmacion.pack(fill='both', expand=True, padx=20, pady=20)
+                        text_confirmacion.insert('1.0', mensaje_confirmacion)
+                        text_confirmacion.config(state='disabled')
+                        
+                        tk.Button(ventana_confirmacion, text="✅ Cerrar", 
+                                 command=ventana_confirmacion.destroy,
+                                 bg="#2c3e50", fg="white", font=('Segoe UI', 12, 'bold'),
+                                 padx=20, pady=10).pack(pady=10)
+                        
                         refrescar_usuarios()
                     else:
                         messagebox.showerror("Error", "❌ Usuario no encontrado")
