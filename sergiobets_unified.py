@@ -1345,11 +1345,11 @@ class SergioBetsUnified:
                     print(f"Error en actualizar_estadisticas: {e}")
             
             def refrescar_usuarios():
+                text_area.delete('1.0', tk.END)
+                text_area.config(state='normal')
+                
                 try:
                     usuarios = access_manager.listar_usuarios()
-                    
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
                     
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
                         text_area.insert(tk.END, f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
@@ -1376,31 +1376,29 @@ class SergioBetsUnified:
                     else:
                         text_area.insert(tk.END, "No hay usuarios registrados o datos no disponibles.")
                     
-                    text_area.config(state='disabled')
-                    actualizar_estadisticas()
                 except AttributeError as e:
-                    messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
                     text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
                     text_area.insert(tk.END, f"Error: Módulo access_manager no configurado - {e}")
-                    text_area.config(state='disabled')
+                    messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
                     print(f"AttributeError en refrescar_usuarios: {e}")
                 except TypeError as e:
-                    messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
                     text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
                     text_area.insert(tk.END, f"Error: Datos de usuarios inválidos - {e}")
-                    text_area.config(state='disabled')
+                    messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
                     print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
-                    messagebox.showerror("Error", f"Error cargando usuarios: {e}")
                     text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
                     text_area.insert(tk.END, f"Error cargando usuarios: {e}")
-                    text_area.config(state='disabled')
+                    messagebox.showerror("Error", f"Error cargando usuarios: {e}")
                     print(f"Error en refrescar_usuarios: {e}")
                     import traceback
                     print(f"Traceback: {traceback.format_exc()}")
+                
+                text_area.config(state='disabled')
+                try:
+                    actualizar_estadisticas()
+                except Exception as e:
+                    print(f"Error en actualizar_estadisticas: {e}")
             
             def otorgar_acceso():
                 user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
