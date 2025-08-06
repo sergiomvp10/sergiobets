@@ -1345,10 +1345,21 @@ class SergioBetsUnified:
                     print(f"Error en actualizar_estadisticas: {e}")
             
             def refrescar_usuarios():
-                text_area.delete('1.0', tk.END)
-                text_area.config(state='normal')
+                if hasattr(refrescar_usuarios, 'executing') and refrescar_usuarios.executing:
+                    print('⚠️ refrescar_usuarios ya está ejecutándose, ignorando llamada')
+                    return
+                
+                refrescar_usuarios.executing = True
                 
                 try:
+                    refresh_button.config(state='disabled', text='🔄 Actualizando...')
+                except:
+                    pass
+                
+                try:
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    
                     usuarios = access_manager.listar_usuarios()
                     
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
@@ -1376,14 +1387,6 @@ class SergioBetsUnified:
                     else:
                         text_area.insert(tk.END, "No hay usuarios registrados o datos no disponibles.")
                     
-                except AttributeError as e:
-                    text_area.insert(tk.END, f"\nError: Módulo access_manager no configurado - {e}")
-                    messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
-                    print(f"AttributeError en refrescar_usuarios: {e}")
-                except TypeError as e:
-                    text_area.insert(tk.END, f"\nError: Datos de usuarios inválidos - {e}")
-                    messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
-                    print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
                     text_area.insert(tk.END, f"\nError cargando usuarios: {e}")
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
@@ -1391,11 +1394,20 @@ class SergioBetsUnified:
                     import traceback
                     print(f"Traceback: {traceback.format_exc()}")
                 
-                text_area.config(state='disabled')
-                try:
-                    actualizar_estadisticas()
-                except Exception as e:
-                    print(f"Error en actualizar_estadisticas: {e}")
+                finally:
+                    text_area.config(state='disabled')
+                    
+                    try:
+                        actualizar_estadisticas()
+                    except Exception as e:
+                        print(f"Error en actualizar_estadisticas: {e}")
+                    
+                    try:
+                        refresh_button.config(state='normal', text='🔄 Refrescar')
+                    except:
+                        pass
+                    
+                    refrescar_usuarios.executing = False
             
             def otorgar_acceso():
                 user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
@@ -1454,9 +1466,10 @@ class SergioBetsUnified:
                 except Exception as e:
                     messagebox.showerror("Error", f"Error limpiando usuarios: {e}")
             
-            tk.Button(frame_botones, text="🔄 Refrescar", command=refrescar_usuarios,
+            refresh_button = tk.Button(frame_botones, text="🔄 Refrescar", command=refrescar_usuarios,
                      bg="#3498db", fg="white", font=('Segoe UI', 10, 'bold'),
-                     padx=15, pady=5).pack(side='left', padx=(0, 5))
+                     padx=15, pady=5)
+            refresh_button.pack(side='left', padx=(0, 5))
             
             tk.Button(frame_botones, text="👑 OTORGAR ACCESO", command=otorgar_acceso,
                      bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'),
