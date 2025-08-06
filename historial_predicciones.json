@@ -5316,5 +5316,34 @@
         "ganancia": -10,
         "valor_esperado": 0.1,
         "fecha_actualizacion": "2025-08-06T04:29:36.996548"
+    },
+    {
+        "fecha": "2025-08-02",
+        "partido": "Deportivo Cali vs Llaneros",
+        "liga": "Liga Colombiana",
+        "prediccion": "Más de 8.5 corners",
+        "cuota": 1.4,
+        "stake": 10,
+        "valor_esperado": 0.326,
+        "confianza": 94.7,
+        "timestamp": "2025-08-02T18:00:00.000000",
+        "resultado_real": {
+            "match_id": 7959460,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 9,
+            "corners_away": 1,
+            "total_corners": 10,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": 3.999999999999999,
+        "acierto": true,
+        "fecha_actualizacion": "2025-08-06T05:03:54.415198"
     }
 ]

@@ -1147,7 +1147,7 @@ class SergioBetsUnified:
                 
                 def update_in_thread():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=5, timeout_per_match=10)
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=8, timeout_per_match=12)
                         
                         def update_gui():
                             try:

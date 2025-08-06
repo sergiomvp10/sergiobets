@@ -75,7 +75,9 @@ class TrackRecordManager:
                         (equipo_local_clean.startswith('athletic') and 'athletic' in home_name_clean) or
                         (equipo_local_clean.startswith('atletico') and 'atletico' in home_name_clean) or
                         ('athletic club' in equipo_local_clean and 'athletic' in home_name_clean) or
-                        ('athletic' in equipo_local_clean and 'athletic club' in home_name_clean)
+                        ('athletic' in equipo_local_clean and 'athletic club' in home_name_clean) or
+                        ('deportivo cali' in equipo_local_clean and 'cali' in home_name_clean) or
+                        ('cali' in equipo_local_clean and 'deportivo cali' in home_name_clean)
                     )
                     
                     visitante_match = (
@@ -83,7 +85,8 @@ class TrackRecordManager:
                         equipo_visitante_clean in away_name_clean or 
                         away_name_clean in equipo_visitante_clean or
                         any(word in away_name_clean for word in equipo_visitante_clean.split() if len(word) > 3) or
-                        (equipo_visitante_clean.startswith('atletico') and ('atletico' in away_name_clean or 'atlético' in away_name_clean))
+                        (equipo_visitante_clean.startswith('atletico') and ('atletico' in away_name_clean or 'atlético' in away_name_clean)) or
+                        ('llaneros' in equipo_visitante_clean and 'llaneros' in away_name_clean)
                     )
                     
                     if local_match and visitante_match:
@@ -339,11 +342,17 @@ class TrackRecordManager:
                 
                 if "Cuiabá" in partido and "Volta Redonda" in partido:
                     return 0
-                
-                if fecha in ["2025-08-04", "2025-08-03"]:
-                    return 1
                     
-                return 2
+                if "Deportivo Cali" in partido and "Llaneros" in partido:
+                    return 0
+                
+                if fecha in ["2025-08-04", "2025-08-03", "2025-08-02"]:
+                    return 1
+                
+                if fecha in ["2025-08-01", "2025-07-31", "2025-07-30"]:
+                    return 2
+                    
+                return 3
             
             matches_ordenados = sorted(matches_unicos.items(), key=prioridad_match)
             matches_to_process = matches_ordenados[:max_matches]
