@@ -20,7 +20,7 @@ from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 from tkcalendar import DateEntry
 import pygame
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
@@ -1023,7 +1023,7 @@ class SergioBetsUnified:
                     try:
                         historial = cargar_json('historial_predicciones.json') or []
                         
-                        # historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                        historial = [p for p in historial if p.get('sent_to_telegram', False)]
                         
                         datos_filtrados = []
                         
