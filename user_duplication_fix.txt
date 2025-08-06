@@ -1,0 +1,42 @@
+CORRECCIÓN PARA DUPLICACIÓN DE USUARIOS EN BOTÓN REFRESCAR
+===========================================================
+
+Archivo: sergiobets_unified.py
+Función: refrescar_usuarios() (líneas 1347-1403)
+
+CAMBIOS NECESARIOS:
+==================
+
+1. Línea 1355: Cambiar
+   text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
+   POR:
+   text_area.insert(tk.END, f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
+
+2. Línea 1377: Cambiar
+   text_area.insert('1.0', "No hay usuarios registrados o datos no disponibles.")
+   POR:
+   text_area.insert(tk.END, "No hay usuarios registrados o datos no disponibles.")
+
+3. Línea 1385: Cambiar
+   text_area.insert('1.0', f"Error: Módulo access_manager no configurado - {e}")
+   POR:
+   text_area.insert(tk.END, f"Error: Módulo access_manager no configurado - {e}")
+
+4. Línea 1392: Cambiar
+   text_area.insert('1.0', f"Error: Datos de usuarios inválidos - {e}")
+   POR:
+   text_area.insert(tk.END, f"Error: Datos de usuarios inválidos - {e}")
+
+5. Línea 1399: Cambiar
+   text_area.insert('1.0', f"Error cargando usuarios: {e}")
+   POR:
+   text_area.insert(tk.END, f"Error cargando usuarios: {e}")
+
+EXPLICACIÓN:
+============
+El problema era que se mezclaban inserciones en posición '1.0' (inicio) con tk.END (final),
+causando duplicación. Ahora todas las inserciones usan tk.END para comportamiento consistente.
+
+RESULTADO:
+==========
+El botón "🔄 Refrescar" ahora actualiza la lista sin duplicar usuarios.
