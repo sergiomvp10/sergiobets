@@ -1329,10 +1329,21 @@ class SergioBetsUnified:
                 try:
                     stats = access_manager.obtener_estadisticas()
                     if stats and isinstance(stats, dict):
-                        stats_text = f"📊 Total: {stats.get('total_usuarios', 0)} | 👑 Premium: {stats.get('usuarios_premium', 0)} | 🆓 Gratuitos: {stats.get('usuarios_gratuitos', 0)} | 📈 Premium: {stats.get('porcentaje_premium', 0):.1f}%"
+                        total = stats.get('total_usuarios', 0)
+                        premium = stats.get('usuarios_premium', 0)
+                        gratuitos = stats.get('usuarios_gratuitos', 0)
+                        porcentaje = stats.get('porcentaje_premium', 0)
+                        
+                        stats_text = f"📊 Total: {total} | 👑 Premium: {premium} | 🆓 Gratuitos: {gratuitos} | 📈 Premium: {porcentaje:.1f}%"
                         stats_label.config(text=stats_text)
                     else:
                         stats_label.config(text="📊 Estadísticas no disponibles")
+                except AttributeError as e:
+                    stats_label.config(text="❌ Error: Módulo access_manager no configurado")
+                    print(f"AttributeError en actualizar_estadisticas: {e}")
+                except TypeError as e:
+                    stats_label.config(text="❌ Error: Datos de estadísticas inválidos")
+                    print(f"TypeError en actualizar_estadisticas: {e}")
                 except Exception as e:
                     stats_label.config(text=f"❌ Error cargando estadísticas: {e}")
                     print(f"Error en actualizar_estadisticas: {e}")
@@ -1351,8 +1362,8 @@ class SergioBetsUnified:
                         for usuario in usuarios:
                             if usuario and isinstance(usuario, dict):
                                 user_id = usuario.get('user_id', 'N/A')
-                                username = usuario.get('username', 'N/A')[:19]
-                                first_name = usuario.get('first_name', 'N/A')[:19]
+                                username = usuario.get('username', 'N/A')[:19] if usuario.get('username') else 'N/A'
+                                first_name = usuario.get('first_name', 'N/A')[:19] if usuario.get('first_name') else 'N/A'
                                 premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
                                 
                                 expira = "N/A"
@@ -1371,6 +1382,20 @@ class SergioBetsUnified:
                     
                     text_area.config(state='disabled')
                     actualizar_estadisticas()
+                except AttributeError as e:
+                    messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.config(state='disabled')
+                    print(f"AttributeError en refrescar_usuarios: {e}")
+                except TypeError as e:
+                    messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.config(state='disabled')
+                    print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
                     text_area.delete('1.0', tk.END)
@@ -1395,21 +1420,16 @@ class SergioBetsUnified:
                     if access_manager.otorgar_acceso(user_id, dias):
                         mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(user_id)
                         
-                        ventana_confirmacion = tk.Toplevel(ventana_usuarios)
-                        ventana_confirmacion.title("✅ Acceso Premium Activado")
-                        ventana_confirmacion.geometry("600x500")
-                        ventana_confirmacion.configure(bg="#27ae60")
-                        
-                        text_confirmacion = scrolledtext.ScrolledText(ventana_confirmacion, wrap=tk.WORD, 
-                                                                     font=('Segoe UI', 11), bg="white", fg="black")
-                        text_confirmacion.pack(fill='both', expand=True, padx=20, pady=20)
-                        text_confirmacion.insert('1.0', mensaje_confirmacion)
-                        text_confirmacion.config(state='disabled')
-                        
-                        tk.Button(ventana_confirmacion, text="✅ Cerrar", 
-                                 command=ventana_confirmacion.destroy,
-                                 bg="#2c3e50", fg="white", font=('Segoe UI', 12, 'bold'),
-                                 padx=20, pady=10).pack(pady=10)
+                        try:
+                            from telegram_utils import enviar_telegram_masivo
+                            resultado_envio = enviar_telegram_masivo(mensaje_confirmacion)
+                            
+                            if resultado_envio.get('exito', False):
+                                messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado y mensaje enviado al usuario {user_id}")
+                            else:
+                                messagebox.showwarning("Parcial", f"✅ Acceso otorgado pero error enviando mensaje: {resultado_envio.get('error', 'Unknown')}")
+                        except Exception as telegram_error:
+                            messagebox.showwarning("Parcial", f"✅ Acceso otorgado pero error enviando mensaje: {telegram_error}")
                         
                         refrescar_usuarios()
                     else:
