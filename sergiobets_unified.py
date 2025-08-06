@@ -393,36 +393,19 @@ class SergioBetsUnified:
         print("✅ GUI setup completed")
     
     def cargar_partidos_reales(self, fecha):
-        """Cargar partidos reales de la API"""
+        """Cargar partidos reales de la API - solo para la fecha exacta solicitada"""
         try:
-            print(f"🔍 Intentando cargar partidos reales para {fecha}...")
+            print(f"🔍 Cargando partidos reales para {fecha}...")
             datos_api = obtener_partidos_del_dia(fecha)
             partidos = []
 
             if not datos_api or len(datos_api) == 0:
-                print(f"⚠️ No se obtuvieron datos de la API para {fecha}.")
+                print(f"ℹ️ No hay partidos disponibles para {fecha}")
                 print(f"   Tipo de respuesta: {type(datos_api)}")
                 print(f"   Contenido: {datos_api}")
-                
-                from datetime import datetime, timedelta
-                try:
-                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
-                    fecha_ayer = (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d')
-                    print(f"🔄 Intentando con fecha anterior: {fecha_ayer}")
-                    datos_api_ayer = obtener_partidos_del_dia(fecha_ayer)
-                    
-                    if datos_api_ayer and len(datos_api_ayer) > 0:
-                        print(f"✅ Encontrados {len(datos_api_ayer)} partidos para {fecha_ayer}")
-                        datos_api = datos_api_ayer
-                    else:
-                        print("🔄 Usando datos simulados como respaldo.")
-                        return simular_datos_prueba()
-                except Exception as date_error:
-                    print(f"Error con fecha alternativa: {date_error}")
-                    print("🔄 Usando datos simulados como respaldo.")
-                    return simular_datos_prueba()
+                return []  # Retornar lista vacía cuando no hay partidos reales
 
-            print(f"✅ API devolvió {len(datos_api)} partidos")
+            print(f"✅ API devolvió {len(datos_api)} partidos para {fecha}")
             
             for partido in datos_api:
                 try:
@@ -449,19 +432,15 @@ class SergioBetsUnified:
                     print(f"⚠️ Error procesando partido individual: {partido_error}")
                     continue
 
-            if len(partidos) > 0:
-                print(f"✅ Procesados {len(partidos)} partidos reales exitosamente")
-                return partidos
-            else:
-                print("⚠️ No se pudieron procesar partidos reales. Usando datos simulados.")
-                return simular_datos_prueba()
+            print(f"✅ Procesados {len(partidos)} partidos reales para {fecha}")
+            return partidos
                 
         except Exception as e:
             print(f"❌ Error cargando partidos reales: {e}")
             import traceback
             print(f"Traceback completo: {traceback.format_exc()}")
-            print("🔄 Usando datos simulados como respaldo.")
-            return simular_datos_prueba()
+            print("ℹ️ Retornando lista vacía debido al error")
+            return []  # Retornar lista vacía en caso de error
 
     def buscar_en_hilo(self):
         """Buscar en hilo separado"""
@@ -484,6 +463,16 @@ class SergioBetsUnified:
 
             partidos = self.cargar_partidos_reales(fecha)
             
+            self.limpiar_frame_predicciones()
+            self.limpiar_frame_partidos()
+
+            if not partidos or len(partidos) == 0:
+                self.output.insert(tk.END, f"ℹ️ No hay partidos disponibles para {fecha}\n")
+                self.output.insert(tk.END, f"📅 Intenta con otra fecha que tenga partidos programados\n")
+                self.actualizar_ligas()  # Actualizar con lista vacía
+                self.mensaje_telegram = f"No hay partidos disponibles para {fecha}"
+                return
+
             for partido in partidos:
                 liga = partido["liga"]
                 self.ligas_disponibles.add(liga)
@@ -524,6 +513,10 @@ class SergioBetsUnified:
                 for partido in liga_partidos:
                     self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                     self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+
+            self.output.insert(tk.END, f"✅ Búsqueda completada para {fecha}\n")
+            self.output.insert(tk.END, f"📊 {len(partidos_filtrados)} partidos encontrados\n")
+            self.output.insert(tk.END, f"🎯 {len(predicciones_ia)} predicciones generadas\n")
 
             self.guardar_datos_json(fecha)
             
