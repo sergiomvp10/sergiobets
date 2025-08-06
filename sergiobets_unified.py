@@ -395,37 +395,71 @@ class SergioBetsUnified:
     def cargar_partidos_reales(self, fecha):
         """Cargar partidos reales de la API"""
         try:
+            print(f"🔍 Intentando cargar partidos reales para {fecha}...")
             datos_api = obtener_partidos_del_dia(fecha)
             partidos = []
 
-            if not datos_api:
-                print(f"⚠️ No se obtuvieron datos de la API para {fecha}. Usando datos simulados.")
-                return simular_datos_prueba()
-
-            for partido in datos_api:
-                liga_detectada = detectar_liga_por_imagen(
-                    partido.get("home_image", ""), 
-                    partido.get("away_image", "")
-                )
-                from league_utils import convertir_timestamp_unix
-                hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
+            if not datos_api or len(datos_api) == 0:
+                print(f"⚠️ No se obtuvieron datos de la API para {fecha}.")
+                print(f"   Tipo de respuesta: {type(datos_api)}")
+                print(f"   Contenido: {datos_api}")
                 
-                partidos.append({
-                    "hora": hora_partido,
-                    "liga": liga_detectada,
-                    "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
-                    "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
-                    "cuotas": {
-                        "casa": "FootyStats",
-                        "local": str(partido.get("odds_ft_1", "2.00")),
-                        "empate": str(partido.get("odds_ft_x", "3.00")),
-                        "visitante": str(partido.get("odds_ft_2", "4.00"))
-                    }
-                })
+                from datetime import datetime, timedelta
+                try:
+                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
+                    fecha_ayer = (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d')
+                    print(f"🔄 Intentando con fecha anterior: {fecha_ayer}")
+                    datos_api_ayer = obtener_partidos_del_dia(fecha_ayer)
+                    
+                    if datos_api_ayer and len(datos_api_ayer) > 0:
+                        print(f"✅ Encontrados {len(datos_api_ayer)} partidos para {fecha_ayer}")
+                        datos_api = datos_api_ayer
+                    else:
+                        print("🔄 Usando datos simulados como respaldo.")
+                        return simular_datos_prueba()
+                except Exception as date_error:
+                    print(f"Error con fecha alternativa: {date_error}")
+                    print("🔄 Usando datos simulados como respaldo.")
+                    return simular_datos_prueba()
 
-            return partidos
+            print(f"✅ API devolvió {len(datos_api)} partidos")
+            
+            for partido in datos_api:
+                try:
+                    liga_detectada = detectar_liga_por_imagen(
+                        partido.get("home_image", ""), 
+                        partido.get("away_image", "")
+                    )
+                    from league_utils import convertir_timestamp_unix
+                    hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
+                    
+                    partidos.append({
+                        "hora": hora_partido,
+                        "liga": liga_detectada,
+                        "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
+                        "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
+                        "cuotas": {
+                            "casa": "FootyStats",
+                            "local": str(partido.get("odds_ft_1", "2.00")),
+                            "empate": str(partido.get("odds_ft_x", "3.00")),
+                            "visitante": str(partido.get("odds_ft_2", "4.00"))
+                        }
+                    })
+                except Exception as partido_error:
+                    print(f"⚠️ Error procesando partido individual: {partido_error}")
+                    continue
+
+            if len(partidos) > 0:
+                print(f"✅ Procesados {len(partidos)} partidos reales exitosamente")
+                return partidos
+            else:
+                print("⚠️ No se pudieron procesar partidos reales. Usando datos simulados.")
+                return simular_datos_prueba()
+                
         except Exception as e:
             print(f"❌ Error cargando partidos reales: {e}")
+            import traceback
+            print(f"Traceback completo: {traceback.format_exc()}")
             print("🔄 Usando datos simulados como respaldo.")
             return simular_datos_prueba()
 
@@ -1248,7 +1282,12 @@ class SergioBetsUnified:
         try:
             import tkinter as tk
             from tkinter import messagebox, scrolledtext, simpledialog
-            from access_manager import access_manager
+            
+            try:
+                from access_manager import access_manager
+            except ImportError:
+                messagebox.showerror("Error", "Módulo access_manager no encontrado.\nEsta funcionalidad no está disponible.")
+                return
             
             ventana_usuarios = tk.Toplevel(self.root)
             ventana_usuarios.title("👥 Gestión de Usuarios VIP")
@@ -1285,6 +1324,7 @@ class SergioBetsUnified:
                         stats_label.config(text="📊 Estadísticas no disponibles")
                 except Exception as e:
                     stats_label.config(text=f"❌ Error cargando estadísticas: {e}")
+                    print(f"Error en actualizar_estadisticas: {e}")
             
             def refrescar_usuarios():
                 try:
@@ -1293,7 +1333,7 @@ class SergioBetsUnified:
                     text_area.delete('1.0', tk.END)
                     text_area.config(state='normal')
                     
-                    if usuarios and isinstance(usuarios, list):
+                    if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
                         text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
                         text_area.insert(tk.END, "="*90 + "\n")
                         
@@ -1326,6 +1366,9 @@ class SergioBetsUnified:
                     text_area.config(state='normal')
                     text_area.insert('1.0', f"Error cargando usuarios: {e}")
                     text_area.config(state='disabled')
+                    print(f"Error en refrescar_usuarios: {e}")
+                    import traceback
+                    print(f"Traceback: {traceback.format_exc()}")
             
             def otorgar_acceso():
                 user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
@@ -1409,6 +1452,8 @@ class SergioBetsUnified:
             
         except Exception as e:
             messagebox.showerror("Error", f"Error abriendo gestión de usuarios: {e}")
+            import traceback
+            print(f"Error detallado en abrir_usuarios: {traceback.format_exc()}")
 
     def run(self):
         """Ejecutar aplicación principal con GUI y servicios backend"""
