@@ -58,6 +58,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [
+            InlineKeyboardButton("🆓 Predicciones Gratuitas", callback_data="predicciones_gratuitas"),
+            InlineKeyboardButton("💎 Predicciones Premium", callback_data="predicciones_premium")
+        ],
+        [
             InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas"),
             InlineKeyboardButton("📢 Novedades", callback_data="novedades")
         ],
@@ -94,6 +98,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mostrar_membresia(update, context)
     elif query.data == "ayuda":
         await mostrar_ayuda(update, context)
+    elif query.data == "predicciones_premium":
+        await enviar_predicciones_premium_bot(update, context)
+    elif query.data == "predicciones_gratuitas":
+        await enviar_predicciones_gratuitas_bot(update, context)
+    elif query.data == "menu_principal":
+        await start_command(update, context)
     elif query.data == "pay_usdt":
         await procesar_pago(update, context, "usdttrc20")
     elif query.data == "pay_ltc":
@@ -277,6 +287,10 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
     
     keyboard = [
+        [
+            InlineKeyboardButton("🆓 Predicciones Gratuitas", callback_data="predicciones_gratuitas"),
+            InlineKeyboardButton("💎 Predicciones Premium", callback_data="predicciones_premium")
+        ],
         [
             InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas"),
             InlineKeyboardButton("📢 Novedades", callback_data="novedades")
@@ -480,6 +494,84 @@ _Verificaremos y activaremos tu acceso manualmente._
         [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
         [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
     ]
+async def enviar_predicciones_premium_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Enviar predicciones premium solo a usuarios con suscripción activa"""
+    query = update.callback_query
+    user_id = query.from_user.id
+    
+    from access_manager import verificar_acceso
+    
+    if not verificar_acceso(str(user_id)):
+        await query.edit_message_text(
+            "❌ Acceso denegado\n\nEsta función es exclusiva para usuarios premium.\n\n💳 Adquiere tu membresía para acceder a predicciones exclusivas.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Obtener Premium", callback_data="membresia")]])
+        )
+        return
+    
+    try:
+        from footystats_api import obtener_partidos_del_dia
+        from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia
+        from datetime import datetime
+        
+        fecha = datetime.now().strftime('%Y-%m-%d')
+        partidos = obtener_partidos_del_dia(fecha)
+        predicciones = filtrar_apuestas_inteligentes(partidos)
+        
+        if predicciones:
+            mensaje = generar_mensaje_ia(predicciones[:3], fecha)
+            mensaje += f"\n\n💎 Predicciones PREMIUM exclusivas\n📅 {fecha}"
+            
+            keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(mensaje, reply_markup=reply_markup)
+        else:
+            await query.edit_message_text(
+                f"📊 No hay predicciones premium disponibles para hoy ({fecha})\n\nIntenta más tarde o contacta soporte.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
+            )
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Error obteniendo predicciones premium: {e}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
+        )
+
+async def enviar_predicciones_gratuitas_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Enviar predicciones gratuitas a todos los usuarios"""
+    query = update.callback_query
+    
+    try:
+        from footystats_api import obtener_partidos_del_dia
+        from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia
+        from datetime import datetime
+        
+        fecha = datetime.now().strftime('%Y-%m-%d')
+        partidos = obtener_partidos_del_dia(fecha)
+        predicciones = filtrar_apuestas_inteligentes(partidos)
+        
+        if predicciones:
+            mensaje = generar_mensaje_ia(predicciones[:1], fecha)
+            mensaje += f"\n\n🆓 Predicción GRATUITA del día\n📅 {fecha}\n\n💎 ¿Quieres más predicciones? Obtén acceso premium"
+            
+            keyboard = [
+                [InlineKeyboardButton("💳 Obtener Premium", callback_data="membresia")],
+                [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(mensaje, reply_markup=reply_markup)
+        else:
+            await query.edit_message_text(
+                f"📊 No hay predicciones disponibles para hoy ({fecha})\n\nIntenta más tarde.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
+            )
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Error obteniendo predicciones: {e}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
+        )
+
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')

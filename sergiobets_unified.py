@@ -23,7 +23,7 @@ import pygame
 from datetime import date, timedelta, datetime
 from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
-from telegram_utils import enviar_telegram, enviar_telegram_masivo
+from telegram_utils import enviar_telegram, enviar_telegram_masivo, enviar_telegram_gratuito, enviar_telegram_premium
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
 from league_utils import detectar_liga_por_imagen
 from track_record import TrackRecordManager
@@ -377,7 +377,8 @@ class SergioBetsUnified:
         ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
         ttk.Button(frame_top, text="📊 Progreso", command=self.abrir_progreso).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📢 Enviar a Telegram", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="📤 Enviar Gratuitas", command=self.enviar_predicciones_gratuitas).pack(side=tk.LEFT, padx=2)
+        ttk.Button(frame_top, text="💎 Enviar Premium", command=self.enviar_predicciones_premium).pack(side=tk.LEFT, padx=2)
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
         
@@ -752,6 +753,118 @@ class SergioBetsUnified:
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
+
+    def enviar_predicciones_gratuitas(self):
+        """Enviar predicciones y/o partidos seleccionados a todos los usuarios (gratuitos y premium)"""
+        return self._enviar_predicciones_base(enviar_telegram_gratuito, "GRATUITAS", "todos los usuarios")
+
+    def enviar_predicciones_premium(self):
+        """Enviar predicciones y/o partidos seleccionados solo a usuarios premium"""
+        return self._enviar_predicciones_base(enviar_telegram_premium, "PREMIUM", "usuarios premium")
+
+    def _enviar_predicciones_base(self, enviar_funcion, tipo_envio, descripcion_usuarios):
+        """Función base para enviar predicciones con diferentes funciones de envío"""
+        import json
+        from datetime import datetime
+        
+        predicciones_seleccionadas = []
+        partidos_seleccionados = []
+        
+        for i, var_checkbox in enumerate(self.checkboxes_predicciones):
+            if var_checkbox.get():
+                predicciones_seleccionadas.append(self.predicciones_actuales[i])
+        
+        for i, var_checkbox in enumerate(self.checkboxes_partidos):
+            if var_checkbox.get():
+                partidos_seleccionados.append(self.partidos_actuales[i])
+        
+        if not predicciones_seleccionadas and not partidos_seleccionados:
+            messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico o partido para enviar.")
+            return
+        
+        fecha = self.entry_fecha.get()
+        mensaje_completo = ""
+        
+        try:
+            if predicciones_seleccionadas:
+                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+                mensaje_completo += mensaje_predicciones
+                
+                for pred in predicciones_seleccionadas:
+                    pred['sent_to_telegram'] = True
+                    pred['fecha_envio_telegram'] = datetime.now().isoformat()
+                    pred['tipo_envio'] = tipo_envio
+                    guardar_prediccion_historica(pred, fecha)
+                
+                filename_prefix = "gratuitas" if tipo_envio == "GRATUITAS" else "premium"
+                with open(f"picks_seleccionados_{filename_prefix}.json", "w", encoding="utf-8") as f:
+                    json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas, "tipo": tipo_envio}, f, ensure_ascii=False, indent=4)
+                
+                with open(f"picks_seleccionados_{filename_prefix}.txt", "a", encoding="utf-8") as f:
+                    f.write(f"\n=== PICKS {tipo_envio} {fecha} ===\n")
+                    for pred in predicciones_seleccionadas:
+                        f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
+                    f.write("\n")
+            
+            if partidos_seleccionados:
+                if mensaje_completo:
+                    mensaje_completo += "\n\n"
+                
+                mensaje_partidos = f"⚽ PARTIDOS SELECCIONADOS {tipo_envio} ({fecha})\n\n"
+                
+                partidos_por_liga = {}
+                for partido in partidos_seleccionados:
+                    liga = partido["liga"]
+                    if liga not in partidos_por_liga:
+                        partidos_por_liga[liga] = []
+                    
+                    info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
+                    info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+                    partidos_por_liga[liga].append(info)
+                
+                for liga in sorted(partidos_por_liga.keys()):
+                    mensaje_partidos += f"🔷 {liga}\n"
+                    for info in partidos_por_liga[liga]:
+                        mensaje_partidos += info
+                
+                mensaje_completo += mensaje_partidos
+                
+                filename_prefix = "gratuitos" if tipo_envio == "GRATUITAS" else "premium"
+                with open(f'partidos_seleccionados_{filename_prefix}.json', 'w', encoding='utf-8') as f:
+                    json.dump({"partidos": partidos_seleccionados, "tipo": tipo_envio}, f, indent=2, ensure_ascii=False)
+                
+                with open(f'partidos_seleccionados_{filename_prefix}.txt', 'w', encoding='utf-8') as f:
+                    f.write(mensaje_partidos)
+            
+            resultado = enviar_funcion(mensaje_completo)
+            if resultado["exito"]:
+                self.reproducir_sonido_exito()
+                
+                total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
+                mensaje_resultado = f"✅ Se han enviado {total_items} elemento(s) seleccionado(s) a {descripcion_usuarios}.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío {tipo_envio}:\n"
+                mensaje_resultado += f"• Usuarios contactados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                
+                messagebox.showinfo(f"Enviado {tipo_envio}", mensaje_resultado)
+                
+                for var_checkbox in self.checkboxes_predicciones:
+                    var_checkbox.set(False)
+                for var_checkbox in self.checkboxes_partidos:
+                    var_checkbox.set(False)
+            else:
+                error_msg = f"No se pudieron enviar los elementos a {descripcion_usuarios}."
+                if resultado.get('detalles_errores'):
+                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                messagebox.showerror("Error", error_msg)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando elementos seleccionados a {descripcion_usuarios}: {e}")
+
 
     def enviar_alerta(self):
         """Enviar alerta general a Telegram"""
