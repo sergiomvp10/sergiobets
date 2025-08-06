@@ -20,7 +20,7 @@ from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 from tkcalendar import DateEntry
 import pygame
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
@@ -393,41 +393,54 @@ class SergioBetsUnified:
         print("✅ GUI setup completed")
     
     def cargar_partidos_reales(self, fecha):
-        """Cargar partidos reales de la API"""
+        """Cargar partidos reales de la API - solo para la fecha exacta solicitada"""
         try:
+            print(f"🔍 Cargando partidos reales para {fecha}...")
             datos_api = obtener_partidos_del_dia(fecha)
             partidos = []
 
-            if not datos_api:
-                print(f"⚠️ No se obtuvieron datos de la API para {fecha}. Usando datos simulados.")
-                return simular_datos_prueba()
+            if not datos_api or len(datos_api) == 0:
+                print(f"ℹ️ No hay partidos disponibles para {fecha}")
+                print(f"   Tipo de respuesta: {type(datos_api)}")
+                print(f"   Contenido: {datos_api}")
+                return []  # Retornar lista vacía cuando no hay partidos reales
 
+            print(f"✅ API devolvió {len(datos_api)} partidos para {fecha}")
+            
             for partido in datos_api:
-                liga_detectada = detectar_liga_por_imagen(
-                    partido.get("home_image", ""), 
-                    partido.get("away_image", "")
-                )
-                from league_utils import convertir_timestamp_unix
-                hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
-                
-                partidos.append({
-                    "hora": hora_partido,
-                    "liga": liga_detectada,
-                    "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
-                    "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
-                    "cuotas": {
-                        "casa": "FootyStats",
-                        "local": str(partido.get("odds_ft_1", "2.00")),
-                        "empate": str(partido.get("odds_ft_x", "3.00")),
-                        "visitante": str(partido.get("odds_ft_2", "4.00"))
-                    }
-                })
+                try:
+                    liga_detectada = detectar_liga_por_imagen(
+                        partido.get("home_image", ""), 
+                        partido.get("away_image", "")
+                    )
+                    from league_utils import convertir_timestamp_unix
+                    hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
+                    
+                    partidos.append({
+                        "hora": hora_partido,
+                        "liga": liga_detectada,
+                        "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
+                        "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
+                        "cuotas": {
+                            "casa": "FootyStats",
+                            "local": str(partido.get("odds_ft_1", "2.00")),
+                            "empate": str(partido.get("odds_ft_x", "3.00")),
+                            "visitante": str(partido.get("odds_ft_2", "4.00"))
+                        }
+                    })
+                except Exception as partido_error:
+                    print(f"⚠️ Error procesando partido individual: {partido_error}")
+                    continue
 
+            print(f"✅ Procesados {len(partidos)} partidos reales para {fecha}")
             return partidos
+                
         except Exception as e:
             print(f"❌ Error cargando partidos reales: {e}")
-            print("🔄 Usando datos simulados como respaldo.")
-            return simular_datos_prueba()
+            import traceback
+            print(f"Traceback completo: {traceback.format_exc()}")
+            print("ℹ️ Retornando lista vacía debido al error")
+            return []  # Retornar lista vacía en caso de error
 
     def buscar_en_hilo(self):
         """Buscar en hilo separado"""
@@ -450,6 +463,16 @@ class SergioBetsUnified:
 
             partidos = self.cargar_partidos_reales(fecha)
             
+            self.limpiar_frame_predicciones()
+            self.limpiar_frame_partidos()
+
+            if not partidos or len(partidos) == 0:
+                self.output.insert(tk.END, f"ℹ️ No hay partidos disponibles para {fecha}\n")
+                self.output.insert(tk.END, f"📅 Intenta con otra fecha que tenga partidos programados\n")
+                self.actualizar_ligas()  # Actualizar con lista vacía
+                self.mensaje_telegram = f"No hay partidos disponibles para {fecha}"
+                return
+
             for partido in partidos:
                 liga = partido["liga"]
                 self.ligas_disponibles.add(liga)
@@ -490,6 +513,10 @@ class SergioBetsUnified:
                 for partido in liga_partidos:
                     self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                     self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+
+            self.output.insert(tk.END, f"✅ Búsqueda completada para {fecha}\n")
+            self.output.insert(tk.END, f"📊 {len(partidos_filtrados)} partidos encontrados\n")
+            self.output.insert(tk.END, f"🎯 {len(predicciones_ia)} predicciones generadas\n")
 
             self.guardar_datos_json(fecha)
             
@@ -659,6 +686,8 @@ class SergioBetsUnified:
                 mensaje_completo += mensaje_predicciones
                 
                 for pred in predicciones_seleccionadas:
+                    pred['sent_to_telegram'] = True
+                    pred['fecha_envio_telegram'] = datetime.now().isoformat()
                     guardar_prediccion_historica(pred, fecha)
                 
                 with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
@@ -824,24 +853,17 @@ class SergioBetsUnified:
             frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
             frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
             
-            frame_izquierdo = tk.Frame(frame_principal, bg="#2c3e50")
-            frame_izquierdo.pack(side='left', fill='both', expand=True, padx=(0, 10))
-            
-            frame_estadisticas = tk.Frame(frame_principal, bg="#ecf0f1", width=300, relief='ridge', bd=2)
-            frame_estadisticas.pack(side='right', fill='y', padx=(10, 0))
-            frame_estadisticas.pack_propagate(False)
-            
-            titulo = tk.Label(frame_izquierdo, text="📊 TRACK RECORD DE PREDICCIONES", 
+            titulo = tk.Label(frame_principal, text="📊 TRACK RECORD DE PREDICCIONES", 
                              bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
             titulo.pack(pady=(0, 20))
             
-            frame_filtros = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_filtros = tk.Frame(frame_principal, bg="#2c3e50")
             frame_filtros.pack(fill='x', pady=(0, 10))
             
-            frame_fechas = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_fechas = tk.Frame(frame_principal, bg="#2c3e50")
             frame_fechas.pack(fill='x', pady=(0, 10))
             
-            frame_acciones = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
             frame_acciones.pack(fill='x', pady=(0, 10))
             
             filtro_actual = tk.StringVar(value="historico")
@@ -854,7 +876,7 @@ class SergioBetsUnified:
             fecha_fin.set(hoy.strftime('%Y-%m-%d'))
             
             columns = ('fecha', 'liga', 'equipos', 'tipo_apuesta', 'cuota', 'resultado', 'estado')
-            tree = ttk.Treeview(frame_izquierdo, columns=columns, show='headings', height=20)
+            tree = ttk.Treeview(frame_principal, columns=columns, show='headings', height=20)
             
             tree.heading('fecha', text='Fecha')
             tree.heading('liga', text='Liga')
@@ -872,126 +894,227 @@ class SergioBetsUnified:
             tree.column('resultado', width=120)
             tree.column('estado', width=100)
             
-            scrollbar = ttk.Scrollbar(frame_izquierdo, orient='vertical', command=tree.yview)
+            scrollbar = ttk.Scrollbar(frame_principal, orient='vertical', command=tree.yview)
             tree.configure(yscrollcommand=scrollbar.set)
             
             tree.pack(side='left', fill='both', expand=True)
             scrollbar.pack(side='right', fill='y')
             
-            def cargar_datos_filtrados():
-                """Carga datos según el filtro actual"""
-                for item in tree.get_children():
-                    tree.delete(item)
-                
+            def mostrar_bets_por_categoria(categoria):
+                """Mostrar apuestas por categoría con interfaz scrollable mejorada"""
                 try:
                     historial = cargar_json('historial_predicciones.json') or []
+                except:
+                    historial = []
+                
+                for widget in frame_principal.winfo_children():
+                    if widget not in [frame_filtros, frame_fechas, frame_acciones]:
+                        widget.destroy()
+                
+                historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                
+                if categoria == "pendientes":
+                    bets_filtrados = [p for p in historial if p.get("resultado_real") is None or p.get("acierto") is None]
+                    titulo = "⏳ APUESTAS PENDIENTES"
+                    color_titulo = "#f39c12"
+                elif categoria == "acertados":
+                    bets_filtrados = [p for p in historial if p.get("acierto") == True]
+                    titulo = "✅ APUESTAS ACERTADAS"
+                    color_titulo = "#27ae60"
+                elif categoria == "fallados":
+                    bets_filtrados = [p for p in historial if p.get("acierto") == False]
+                    titulo = "❌ APUESTAS FALLADAS"
+                    color_titulo = "#e74c3c"
+                else:
+                    return
+                
+                canvas = tk.Canvas(frame_principal, bg="#2c3e50", highlightthickness=0)
+                scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
+                scrollable_frame = tk.Frame(canvas, bg="#2c3e50")
+                
+                scrollable_frame.bind(
+                    "<Configure>",
+                    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+                )
+                
+                canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+                canvas.configure(yscrollcommand=scrollbar.set)
+                
+                titulo_label = tk.Label(scrollable_frame, text=f"{titulo} ({len(bets_filtrados)} apuestas)", 
+                                       bg="#2c3e50", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
+                titulo_label.pack(pady=(10, 20))
+                
+                def eliminar_prediccion_individual(bet_to_delete):
+                    """Eliminar una predicción individual del historial"""
+                    respuesta = messagebox.askyesno("Confirmar eliminación", 
+                        f"¿Estás seguro de que quieres eliminar esta predicción?\n\n" +
+                        f"Partido: {bet_to_delete.get('partido', 'N/A')}\n" +
+                        f"Predicción: {bet_to_delete.get('prediccion', 'N/A')}")
                     
-                    historial = [p for p in historial if p.get('sent_to_telegram', False)]
-                    
-                    datos_filtrados = []
-                    
-                    filtro = filtro_actual.get()
-                    
-                    for prediccion in historial:
-                        if filtro == "por_fecha":
-                            fecha_pred = prediccion.get('fecha', '')
-                            if fecha_pred < fecha_inicio.get() or fecha_pred > fecha_fin.get():
-                                continue
+                    if respuesta:
+                        try:
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            historial_filtrado = []
+                            bet_removed = False
+                            for p in historial_actual:
+                                if (p.get('partido') == bet_to_delete.get('partido') and
+                                    p.get('prediccion') == bet_to_delete.get('prediccion') and
+                                    p.get('fecha') == bet_to_delete.get('fecha') and
+                                    p.get('cuota') == bet_to_delete.get('cuota') and
+                                    not bet_removed):
+                                    bet_removed = True
+                                    continue
+                                historial_filtrado.append(p)
+                            
+                            with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                json.dump(historial_filtrado, f, indent=2, ensure_ascii=False)
+                            
+                            messagebox.showinfo("Éxito", "Predicción eliminada correctamente")
+                            mostrar_bets_por_categoria(categoria)  # Refresh the display
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error eliminando predicción: {e}")
+                
+                if not bets_filtrados:
+                    if categoria == "pendientes":
+                        no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas pendientes enviadas a Telegram", 
+                                                bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
+                    elif categoria == "acertados":
+                        no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas acertadas enviadas a Telegram", 
+                                                bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
+                    else:
+                        no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas falladas enviadas a Telegram", 
+                                                bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
+                    no_bets_label.pack(pady=20)
+                else:
+                    for i, bet in enumerate(bets_filtrados):
+                        bet_frame = tk.Frame(scrollable_frame, bg="white", relief='ridge', bd=1)
+                        bet_frame.pack(fill='x', pady=5, padx=10)
                         
-                        resultado_real = prediccion.get('resultado_real')
-                        acierto = prediccion.get('acierto')
+                        header_frame = tk.Frame(bet_frame, bg="white")
+                        header_frame.pack(fill='x', padx=10, pady=(5, 0))
                         
-                        if filtro == "pendientes" and resultado_real is not None:
-                            continue
-                        elif filtro == "acertados" and (resultado_real is None or not acierto):
-                            continue
-                        elif filtro == "fallados" and (resultado_real is None or acierto):
-                            continue
+                        partido_text = f"⚽ {bet.get('partido', 'N/A')}"
+                        partido_label = tk.Label(header_frame, text=partido_text, bg="white", 
+                                               font=('Segoe UI', 11, 'bold'), anchor='w')
+                        partido_label.pack(side='left', fill='x', expand=True)
                         
-                        if resultado_real is None:
-                            estado = "⏳ Pendiente"
-                            resultado_final = "-"
-                        elif acierto:
-                            estado = "✅ Ganada"
-                            resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
-                        else:
-                            estado = "❌ Perdida"
-                            resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                        delete_btn = tk.Button(header_frame, text="🗑️", 
+                                             command=lambda b=bet: eliminar_prediccion_individual(b),
+                                             bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                             padx=5, pady=2)
+                        delete_btn.pack(side='right', padx=(5, 0))
                         
-                        datos_filtrados.append((
-                            prediccion.get('fecha', ''),
-                            prediccion.get('liga', ''),
-                            prediccion.get('partido', ''),
-                            prediccion.get('prediccion', ''),
-                            f"{prediccion.get('cuota', 0):.2f}",
-                            resultado_final,
-                            estado
-                        ))
-                    
-                    datos_filtrados.sort(key=lambda x: x[0], reverse=True)
-                    
-                    for i, datos in enumerate(datos_filtrados):
-                        tag = 'evenrow' if i % 2 == 0 else 'oddrow'
-                        tree.insert('', 'end', values=datos, tags=(tag,))
-                    
-                    tree.tag_configure('evenrow', background='#f8f9fa')
-                    tree.tag_configure('oddrow', background='white')
-                    
-                    actualizar_estadisticas()
-                    
-                except Exception as e:
-                    messagebox.showerror("Error", f"Error cargando datos: {e}")
+                        prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
+                        prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 
+                                                  font=('Segoe UI', 10), anchor='w')
+                        prediccion_label.pack(fill='x', padx=10)
+                        
+                        fecha_text = f"📅 {bet.get('fecha', 'N/A')}"
+                        if bet.get('fecha_actualizacion'):
+                            fecha_text += f" | 🔄 Actualizado: {bet.get('fecha_actualizacion', '')[:10]}"
+                        fecha_label = tk.Label(bet_frame, text=fecha_text, bg="white", 
+                                             font=('Segoe UI', 9), fg="#7f8c8d", anchor='w')
+                        fecha_label.pack(fill='x', padx=10)
+                        
+                        if bet.get("resultado_real"):
+                            resultado = bet["resultado_real"]
+                            if categoria == "acertados":
+                                ganancia_text = f"💰 Ganancia: ${bet.get('ganancia', 0):.2f}"
+                                ganancia_label = tk.Label(bet_frame, text=ganancia_text, bg="white", 
+                                                        font=('Segoe UI', 10, 'bold'), fg="#27ae60", anchor='w')
+                                ganancia_label.pack(fill='x', padx=10, pady=(0, 5))
+                            elif categoria == "fallados":
+                                perdida_text = f"💸 Pérdida: ${bet.get('ganancia', 0):.2f}"
+                                perdida_label = tk.Label(bet_frame, text=perdida_text, bg="white", 
+                                                       font=('Segoe UI', 10, 'bold'), fg="#e74c3c", anchor='w')
+                                perdida_label.pack(fill='x', padx=10, pady=(0, 5))
+                            
+                            if 'corner' in bet.get('prediccion', '').lower():
+                                corners_text = f"🚩 Corners: {resultado.get('total_corners', 'N/A')} total"
+                            else:
+                                corners_text = f"⚽ Resultado: {resultado.get('home_score', 0)}-{resultado.get('away_score', 0)}"
+                            
+                            resultado_label = tk.Label(bet_frame, text=corners_text, bg="white", 
+                                                     font=('Segoe UI', 9), fg="#34495e", anchor='w')
+                            resultado_label.pack(fill='x', padx=10, pady=(0, 5))
+                
+                canvas.pack(side="left", fill="both", expand=True)
+                scrollbar.pack(side="right", fill="y")
             
-            def actualizar_estadisticas():
-                """Actualiza el panel de estadísticas"""
-                for widget in frame_estadisticas.winfo_children():
-                    widget.destroy()
-                
-                tk.Label(frame_estadisticas, text="📈 ESTADÍSTICAS", 
-                        bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 14, 'bold')).pack(pady=10)
-                
-                try:
-                    metricas = tracker.calcular_metricas_rendimiento()
+            def cargar_datos_filtrados():
+                """Carga datos según el filtro actual - mantener para compatibilidad"""
+                filtro = filtro_actual.get()
+                if filtro in ["pendientes", "acertados", "fallados"]:
+                    mostrar_bets_por_categoria(filtro)
+                else:
+                    for item in tree.get_children():
+                        tree.delete(item)
                     
-                    if "error" not in metricas:
-                        stats_frame = tk.Frame(frame_estadisticas, bg="#ecf0f1")
-                        stats_frame.pack(fill='x', padx=10, pady=5)
+                    try:
+                        historial = cargar_json('historial_predicciones.json') or []
                         
-                        tk.Label(stats_frame, text="📊 RESUMEN GENERAL", 
-                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 12, 'bold')).pack()
+                        historial = [p for p in historial if p.get('sent_to_telegram', False)]
                         
-                        stats_text = f"""
-Total predicciones: {metricas['total_predicciones']}
-Resueltas: {metricas['predicciones_resueltas']}
-Pendientes: {metricas['predicciones_pendientes']}
-Aciertos: {metricas['aciertos']}
-Tasa de éxito: {metricas.get('tasa_acierto', 0):.1f}%
-
-💰 RENDIMIENTO:
-Total apostado: ${metricas['total_apostado']:.2f}
-Ganancia: ${metricas['total_ganancia']:.2f}
-ROI: {metricas['roi']:.2f}%
-"""
+                        if not historial:
+                            tk.Label(frame_principal, text="No hay predicciones enviadas a Telegram", 
+                                   font=('Segoe UI', 12), fg="#7f8c8d", bg="#2c3e50").pack(pady=20)
                         
-                        tk.Label(stats_frame, text=stats_text, 
-                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 10),
-                                justify='left').pack(pady=5)
-                    
-                except Exception as e:
-                    tk.Label(frame_estadisticas, text=f"Error: {e}", 
-                            bg="#ecf0f1", fg="red").pack(pady=10)
+                        datos_filtrados = []
+                        
+                        for prediccion in historial:
+                            if filtro == "por_fecha":
+                                fecha_pred = prediccion.get('fecha', '')
+                                if fecha_pred < fecha_inicio.get() or fecha_pred > fecha_fin.get():
+                                    continue
+                            
+                            resultado_real = prediccion.get('resultado_real')
+                            acierto = prediccion.get('acierto')
+                            
+                            if resultado_real is None:
+                                estado = "⏳ Pendiente"
+                                resultado_final = "-"
+                            elif acierto:
+                                estado = "✅ Ganada"
+                                resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                            else:
+                                estado = "❌ Perdida"
+                                resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                            
+                            datos_filtrados.append((
+                                prediccion.get('fecha', ''),
+                                prediccion.get('liga', ''),
+                                prediccion.get('partido', ''),
+                                prediccion.get('prediccion', ''),
+                                f"{prediccion.get('cuota', 0):.2f}",
+                                resultado_final,
+                                estado
+                            ))
+                        
+                        datos_filtrados.sort(key=lambda x: x[0], reverse=True)
+                        
+                        for i, datos in enumerate(datos_filtrados):
+                            tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+                            tree.insert('', 'end', values=datos, tags=(tag,))
+                        
+                        tree.tag_configure('evenrow', background='#f8f9fa')
+                        tree.tag_configure('oddrow', background='white')
+                        
+                        
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error cargando datos: {e}")
+            
             
             def filtrar_pendientes():
                 filtro_actual.set("pendientes")
-                cargar_datos_filtrados()
+                mostrar_bets_por_categoria("pendientes")
             
             def filtrar_acertados():
                 filtro_actual.set("acertados")
-                cargar_datos_filtrados()
+                mostrar_bets_por_categoria("acertados")
             
             def filtrar_fallados():
                 filtro_actual.set("fallados")
-                cargar_datos_filtrados()
+                mostrar_bets_por_categoria("fallados")
             
             def filtrar_historico():
                 filtro_actual.set("historico")
@@ -1019,24 +1142,57 @@ ROI: {metricas['roi']:.2f}%
                     tk.Label(ventana_resumen, text=f"Error generando reporte: {e}").pack()
             
             def actualizar_resultados():
-                """Actualiza resultados desde la API"""
-                btn_actualizar.config(state='disabled', text="🔄 Procesando...")
-                ventana_track.update()
+                """Actualizar resultados desde la API de forma rápida y silenciosa"""
+                import threading
                 
-                try:
-                    resultado = tracker.actualizar_historial_con_resultados()
-                    if "error" in resultado:
-                        messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
-                    else:
-                        mensaje = f"✅ Actualización completada\n\n"
-                        mensaje += f"📊 Predicciones actualizadas: {resultado['actualizaciones']}\n"
-                        mensaje += f"❌ Errores: {resultado['errores']}\n"
-                        mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}\n"
-                        mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}"
-                        messagebox.showinfo("Actualización Completada", mensaje)
-                        cargar_datos_filtrados()
-                finally:
-                    btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
+                def update_in_thread():
+                    try:
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=8, timeout_per_match=12)
+                        
+                        def update_gui():
+                            try:
+                                filtro = filtro_actual.get()
+                                if filtro in ["pendientes", "acertados", "fallados"]:
+                                    mostrar_bets_por_categoria(filtro)
+                                else:
+                                    cargar_datos_filtrados()
+                                
+                                actualizaciones = resultado.get('actualizaciones', 0)
+                                timeouts = resultado.get('timeouts', 0)
+                                restantes = resultado.get('matches_restantes', 0)
+                                
+                                if actualizaciones > 0:
+                                    text = f"✅ {actualizaciones} actualizadas"
+                                    if restantes > 0:
+                                        text += f" ({restantes} pendientes)"
+                                    btn_actualizar.config(text=text)
+                                elif timeouts > 0:
+                                    btn_actualizar.config(text=f"⏰ {timeouts} timeouts")
+                                elif restantes > 0:
+                                    btn_actualizar.config(text=f"⏳ {restantes} pendientes")
+                                else:
+                                    btn_actualizar.config(text="✅ Sin cambios")
+                                
+                                ventana_track.after(3000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                                
+                            except Exception as e:
+                                btn_actualizar.config(text="❌ Error GUI")
+                                ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                            finally:
+                                btn_actualizar.config(state='normal')
+                        
+                        ventana_track.after(0, update_gui)
+                        
+                    except Exception as e:
+                        def show_error():
+                            btn_actualizar.config(text="❌ Error API", state='normal')
+                            ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                        
+                        ventana_track.after(0, show_error)
+                
+                btn_actualizar.config(state='disabled', text="🔄 Actualizando...")
+                thread = threading.Thread(target=update_in_thread, daemon=True)
+                thread.start()
             
             def actualizar_automatico():
                 """Actualiza resultados automáticamente al abrir track record"""
@@ -1044,11 +1200,11 @@ ROI: {metricas['roi']:.2f}%
                 
                 def update_in_background():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados()
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=3, timeout_per_match=8)
                         if resultado.get('actualizaciones', 0) > 0:
                             ventana_track.after(0, cargar_datos_filtrados)
                     except Exception as e:
-                        print(f"Error en actualización automática: {e}")
+                        pass
                 
                 thread = threading.Thread(target=update_in_background, daemon=True)
                 thread.start()
@@ -1088,10 +1244,6 @@ ROI: {metricas['roi']:.2f}%
                                      font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
             btn_historico.pack(side='left', padx=5)
             
-            btn_resumen = tk.Button(frame_filtros, text="📊 RESUMEN", 
-                                   command=mostrar_resumen, bg="#9b59b6", fg="white",
-                                   font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_resumen.pack(side='left', padx=5)
             
             tk.Label(frame_fechas, text="🗓️ Filtro por fechas:", 
                     bg="#2c3e50", fg="white", font=('Segoe UI', 10, 'bold')).pack(side='left')
@@ -1135,7 +1287,18 @@ ROI: {metricas['roi']:.2f}%
         try:
             import tkinter as tk
             from tkinter import messagebox, scrolledtext, simpledialog
-            from access_manager import access_manager
+            
+            try:
+                from access_manager import access_manager
+                if not access_manager or not hasattr(access_manager, 'listar_usuarios'):
+                    messagebox.showerror("Error", "Sistema de usuarios no está configurado correctamente.")
+                    return
+            except ImportError:
+                messagebox.showerror("Error", "Módulo access_manager no encontrado.\nEsta funcionalidad no está disponible.")
+                return
+            except Exception as e:
+                messagebox.showerror("Error", f"Error cargando sistema de usuarios: {e}")
+                return
             
             ventana_usuarios = tk.Toplevel(self.root)
             ventana_usuarios.title("👥 Gestión de Usuarios VIP")
@@ -1165,10 +1328,25 @@ ROI: {metricas['roi']:.2f}%
             def actualizar_estadisticas():
                 try:
                     stats = access_manager.obtener_estadisticas()
-                    stats_text = f"📊 Total: {stats['total_usuarios']} | 👑 Premium: {stats['usuarios_premium']} | 🆓 Gratuitos: {stats['usuarios_gratuitos']} | 📈 Premium: {stats['porcentaje_premium']:.1f}%"
-                    stats_label.config(text=stats_text)
+                    if stats and isinstance(stats, dict):
+                        total = stats.get('total_usuarios', 0)
+                        premium = stats.get('usuarios_premium', 0)
+                        gratuitos = stats.get('usuarios_gratuitos', 0)
+                        porcentaje = stats.get('porcentaje_premium', 0)
+                        
+                        stats_text = f"📊 Total: {total} | 👑 Premium: {premium} | 🆓 Gratuitos: {gratuitos} | 📈 Premium: {porcentaje:.1f}%"
+                        stats_label.config(text=stats_text)
+                    else:
+                        stats_label.config(text="📊 Estadísticas no disponibles")
+                except AttributeError as e:
+                    stats_label.config(text="❌ Error: Módulo access_manager no configurado")
+                    print(f"AttributeError en actualizar_estadisticas: {e}")
+                except TypeError as e:
+                    stats_label.config(text="❌ Error: Datos de estadísticas inválidos")
+                    print(f"TypeError en actualizar_estadisticas: {e}")
                 except Exception as e:
                     stats_label.config(text=f"❌ Error cargando estadísticas: {e}")
+                    print(f"Error en actualizar_estadisticas: {e}")
             
             def refrescar_usuarios():
                 try:
@@ -1177,34 +1355,56 @@ ROI: {metricas['roi']:.2f}%
                     text_area.delete('1.0', tk.END)
                     text_area.config(state='normal')
                     
-                    if usuarios:
+                    if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
                         text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
                         text_area.insert(tk.END, "="*90 + "\n")
                         
                         for usuario in usuarios:
-                            user_id = usuario.get('user_id', 'N/A')
-                            username = usuario.get('username', 'N/A')[:19]
-                            first_name = usuario.get('first_name', 'N/A')[:19]
-                            premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
-                            
-                            expira = "N/A"
-                            if usuario.get('fecha_expiracion'):
-                                try:
-                                    from datetime import datetime
-                                    fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                    expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
-                                except:
-                                    expira = "Error fecha"
-                            
-                            linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
-                            text_area.insert(tk.END, linea)
+                            if usuario and isinstance(usuario, dict):
+                                user_id = usuario.get('user_id', 'N/A')
+                                username = usuario.get('username', 'N/A')[:19] if usuario.get('username') else 'N/A'
+                                first_name = usuario.get('first_name', 'N/A')[:19] if usuario.get('first_name') else 'N/A'
+                                premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
+                                
+                                expira = "N/A"
+                                if usuario.get('fecha_expiracion'):
+                                    try:
+                                        from datetime import datetime
+                                        fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
+                                        expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                    except:
+                                        expira = "Error fecha"
+                                
+                                linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
+                                text_area.insert(tk.END, linea)
                     else:
-                        text_area.insert('1.0', "No hay usuarios registrados.")
+                        text_area.insert('1.0', "No hay usuarios registrados o datos no disponibles.")
                     
                     text_area.config(state='disabled')
                     actualizar_estadisticas()
+                except AttributeError as e:
+                    messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.config(state='disabled')
+                    print(f"AttributeError en refrescar_usuarios: {e}")
+                except TypeError as e:
+                    messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.config(state='disabled')
+                    print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error cargando usuarios: {e}")
+                    text_area.config(state='disabled')
+                    print(f"Error en refrescar_usuarios: {e}")
+                    import traceback
+                    print(f"Traceback: {traceback.format_exc()}")
             
             def otorgar_acceso():
                 user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
@@ -1220,21 +1420,16 @@ ROI: {metricas['roi']:.2f}%
                     if access_manager.otorgar_acceso(user_id, dias):
                         mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(user_id)
                         
-                        ventana_confirmacion = tk.Toplevel(ventana_usuarios)
-                        ventana_confirmacion.title("✅ Acceso Premium Activado")
-                        ventana_confirmacion.geometry("600x500")
-                        ventana_confirmacion.configure(bg="#27ae60")
-                        
-                        text_confirmacion = scrolledtext.ScrolledText(ventana_confirmacion, wrap=tk.WORD, 
-                                                                     font=('Segoe UI', 11), bg="white", fg="black")
-                        text_confirmacion.pack(fill='both', expand=True, padx=20, pady=20)
-                        text_confirmacion.insert('1.0', mensaje_confirmacion)
-                        text_confirmacion.config(state='disabled')
-                        
-                        tk.Button(ventana_confirmacion, text="✅ Cerrar", 
-                                 command=ventana_confirmacion.destroy,
-                                 bg="#2c3e50", fg="white", font=('Segoe UI', 12, 'bold'),
-                                 padx=20, pady=10).pack(pady=10)
+                        try:
+                            from telegram_utils import enviar_telegram
+                            exito_envio = enviar_telegram(chat_id=user_id, mensaje=mensaje_confirmacion)
+                            
+                            if exito_envio:
+                                messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado y mensaje de confirmación enviado al usuario {user_id}")
+                            else:
+                                messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje de confirmación al usuario {user_id}")
+                        except Exception as telegram_error:
+                            messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje: {telegram_error}")
                         
                         refrescar_usuarios()
                     else:
@@ -1288,6 +1483,8 @@ ROI: {metricas['roi']:.2f}%
             
         except Exception as e:
             messagebox.showerror("Error", f"Error abriendo gestión de usuarios: {e}")
+            import traceback
+            print(f"Error detallado en abrir_usuarios: {traceback.format_exc()}")
 
     def run(self):
         """Ejecutar aplicación principal con GUI y servicios backend"""
