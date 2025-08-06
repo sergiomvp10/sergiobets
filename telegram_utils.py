@@ -9,23 +9,38 @@ TELEGRAM_CHAT_ID = '7659029315'
 USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
-    """Cargar lista de usuarios registrados desde usuarios.txt"""
-    usuarios = []
+    """Cargar lista de usuarios registrados desde usuarios.json"""
     try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        partes = linea.strip().split(' - ')
-                        if len(partes) >= 3:
-                            usuarios.append({
-                                'user_id': partes[0],
-                                'username': partes[1],
-                                'first_name': partes[2]
-                            })
+        from access_manager import access_manager
+        usuarios_json = access_manager.listar_usuarios_premium()
+        
+        usuarios = []
+        for usuario in usuarios_json:
+            usuarios.append({
+                'user_id': usuario['user_id'],
+                'username': usuario.get('username', 'sin_username'),
+                'first_name': usuario.get('first_name', 'Usuario')
+            })
+        
+        return usuarios
     except Exception as e:
         print(f"Error cargando usuarios registrados: {e}")
-    return usuarios
+        usuarios = []
+        try:
+            if os.path.exists(USUARIOS_FILE):
+                with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
+                    for linea in f:
+                        if linea.strip() and ' - ' in linea:
+                            partes = linea.strip().split(' - ')
+                            if len(partes) >= 3:
+                                usuarios.append({
+                                    'user_id': partes[0],
+                                    'username': partes[1],
+                                    'first_name': partes[2]
+                                })
+        except Exception as e2:
+            print(f"Error con fallback legacy: {e2}")
+        return usuarios
 
 def enviar_telegram_masivo(mensaje, token=None):
     """Enviar mensaje a todos los usuarios registrados"""

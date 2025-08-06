@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A')
-USUARIOS_FILE = 'usuarios.txt'
+USUARIOS_FILE = 'usuarios.json'  # Migrated to JSON format
 
 def cargar_usuarios_registrados():
     """Cargar usuarios ya registrados desde el archivo"""
