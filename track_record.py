@@ -328,7 +328,7 @@ class TrackRecordManager:
             partidos_incompletos = 0
             timeouts = 0
             
-            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
+            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None and p.get('sent_to_telegram', False)]
             
             if not predicciones_pendientes:
                 print("✅ No hay predicciones pendientes para actualizar")
@@ -342,7 +342,7 @@ class TrackRecordManager:
                     "matches_restantes": 0
                 }
             
-            print(f"🎯 Enfocándose SOLO en {len(predicciones_pendientes)} predicciones PENDIENTES")
+            print(f"🎯 Enfocándose SOLO en {len(predicciones_pendientes)} predicciones ENVIADAS A TELEGRAM")
             
             matches_unicos = {}
             for prediccion in predicciones_pendientes:
