@@ -187,6 +187,8 @@ class TrackRecordManager:
             predicciones_corregidas = []
             
             for prediccion in historial:
+                if not isinstance(prediccion, dict):
+                    continue
                 resultado_real = prediccion.get("resultado_real")
                 
                 if resultado_real is not None:
@@ -211,8 +213,8 @@ class TrackRecordManager:
             
             if correcciones > 0:
                 from json_storage import clear_json_cache
-            clear_json_cache(self.historial_file)
-            guardar_json(self.historial_file, historial)
+                clear_json_cache(self.historial_file)
+                guardar_json(self.historial_file, historial)
                 print(f"Corregidas {correcciones} predicciones con estados de partido inválidos")
                 
                 for correccion in predicciones_corregidas:
@@ -243,7 +245,7 @@ class TrackRecordManager:
             errores = 0
             partidos_incompletos = 0
             
-            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
+            predicciones_pendientes = [p for p in historial if isinstance(p, dict) and p.get("resultado_real") is None]
             
             if not predicciones_pendientes:
                 return {
