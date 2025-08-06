@@ -73,14 +73,17 @@ class TrackRecordManager:
                         home_name_clean in equipo_local_clean or
                         any(word in home_name_clean for word in equipo_local_clean.split() if len(word) > 3) or
                         (equipo_local_clean.startswith('athletic') and 'athletic' in home_name_clean) or
-                        (equipo_local_clean.startswith('atletico') and 'atletico' in home_name_clean)
+                        (equipo_local_clean.startswith('atletico') and 'atletico' in home_name_clean) or
+                        ('athletic club' in equipo_local_clean and 'athletic' in home_name_clean) or
+                        ('athletic' in equipo_local_clean and 'athletic club' in home_name_clean)
                     )
                     
                     visitante_match = (
+                        equipo_visitante_clean == away_name_clean or
                         equipo_visitante_clean in away_name_clean or 
                         away_name_clean in equipo_visitante_clean or
                         any(word in away_name_clean for word in equipo_visitante_clean.split() if len(word) > 3) or
-                        (equipo_visitante_clean.startswith('atletico') and 'atletico' in away_name_clean)
+                        (equipo_visitante_clean.startswith('atletico') and ('atletico' in away_name_clean or 'atlético' in away_name_clean))
                     )
                     
                     if local_match and visitante_match:
@@ -156,16 +159,20 @@ class TrackRecordManager:
                 acierto = resultado["total_goals"] > umbral
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
-                if not resultado.get("corner_data_available", True) or resultado.get("total_corners", 0) <= 0:
+                total_corners = resultado.get("total_corners", 0)
+                if not resultado.get("corner_data_available", True) or total_corners <= 0:
                     return None, None
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" corners")[0])
-                acierto = resultado["total_corners"] > umbral
+                acierto = total_corners > umbral
+                print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "menos de" in tipo_prediccion and "corners" in tipo_prediccion:
-                if not resultado.get("corner_data_available", True) or resultado.get("total_corners", 0) <= 0:
+                total_corners = resultado.get("total_corners", 0)
+                if not resultado.get("corner_data_available", True) or total_corners <= 0:
                     return None, None
                 umbral = float(tipo_prediccion.split("menos de ")[1].split(" corners")[0])
-                acierto = resultado["total_corners"] < umbral
+                acierto = total_corners < umbral
+                print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
@@ -285,13 +292,18 @@ class TrackRecordManager:
             predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
             
             if not predicciones_pendientes:
+                print("✅ No hay predicciones pendientes para actualizar")
                 return {
                     "actualizaciones": 0,
                     "errores": 0,
                     "partidos_incompletos": 0,
                     "correcciones_historicas": correccion_result.get("correcciones", 0),
-                    "total_procesadas": 0
+                    "total_procesadas": 0,
+                    "matches_procesados": 0,
+                    "matches_restantes": 0
                 }
+            
+            print(f"🎯 Enfocándose SOLO en {len(predicciones_pendientes)} predicciones PENDIENTES")
             
             matches_unicos = {}
             for prediccion in predicciones_pendientes:
@@ -300,16 +312,38 @@ class TrackRecordManager:
                 key = f"{fecha}|{partido}"
                 
                 if key not in matches_unicos:
+                    if " vs " in partido:
+                        parts = partido.split(" vs ")
+                        equipo_local = parts[0].strip()
+                        equipo_visitante = parts[1].strip()
+                    else:
+                        print(f"⚠️ Formato de partido inválido: {partido}")
+                        continue
+                        
                     matches_unicos[key] = {
                         "fecha": fecha,
                         "partido": partido,
-                        "equipo_local": partido.split(" vs ")[0].strip(),
-                        "equipo_visitante": partido.split(" vs ")[1].strip(),
+                        "equipo_local": equipo_local,
+                        "equipo_visitante": equipo_visitante,
                         "predicciones": []
                     }
                 matches_unicos[key]["predicciones"].append(prediccion)
             
-            matches_to_process = list(matches_unicos.items())[:max_matches]
+            def prioridad_match(item):
+                key, match_data = item
+                partido = match_data["partido"]
+                fecha = match_data["fecha"]
+                
+                if "Athletic Club" in partido and "Atlético GO" in partido:
+                    return 0
+                
+                if fecha in ["2025-08-04", "2025-08-03"]:
+                    return 1
+                    
+                return 2
+            
+            matches_ordenados = sorted(matches_unicos.items(), key=prioridad_match)
+            matches_to_process = matches_ordenados[:max_matches]
             
             print(f"Procesando {len(matches_to_process)} matches (máximo {max_matches}) de {len(matches_unicos)} únicos para {len(predicciones_pendientes)} predicciones...")
             
