@@ -1421,15 +1421,15 @@ class SergioBetsUnified:
                         mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(user_id)
                         
                         try:
-                            from telegram_utils import enviar_telegram_masivo
-                            resultado_envio = enviar_telegram_masivo(mensaje_confirmacion)
+                            from telegram_utils import enviar_telegram
+                            exito_envio = enviar_telegram(chat_id=user_id, mensaje=mensaje_confirmacion)
                             
-                            if resultado_envio.get('exito', False):
-                                messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado y mensaje enviado al usuario {user_id}")
+                            if exito_envio:
+                                messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado y mensaje de confirmación enviado al usuario {user_id}")
                             else:
-                                messagebox.showwarning("Parcial", f"✅ Acceso otorgado pero error enviando mensaje: {resultado_envio.get('error', 'Unknown')}")
+                                messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje de confirmación al usuario {user_id}")
                         except Exception as telegram_error:
-                            messagebox.showwarning("Parcial", f"✅ Acceso otorgado pero error enviando mensaje: {telegram_error}")
+                            messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje: {telegram_error}")
                         
                         refrescar_usuarios()
                     else:
