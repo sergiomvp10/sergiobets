@@ -158,6 +158,30 @@ class TrackRecordManager:
             elif "btts" in tipo_prediccion or "ambos equipos marcan" in tipo_prediccion:
                 acierto = resultado["home_score"] > 0 and resultado["away_score"] > 0
                 
+            elif "+0.5" in tipo_prediccion or "-0.5" in tipo_prediccion:
+                if "+0.5" in tipo_prediccion:
+                    team_name = tipo_prediccion.split(" +0.5")[0].strip()
+                    partido_parts = prediccion.get("partido", "").split(" vs ")
+                    if len(partido_parts) == 2:
+                        away_team = partido_parts[1].strip()
+                        if team_name.lower() in away_team.lower():
+                            acierto = resultado["resultado_1x2"] in ["X", "2"]
+                        else:
+                            acierto = resultado["resultado_1x2"] in ["1", "X"]
+                    else:
+                        acierto = False
+                elif "-0.5" in tipo_prediccion:
+                    team_name = tipo_prediccion.split(" -0.5")[0].strip()
+                    partido_parts = prediccion.get("partido", "").split(" vs ")
+                    if len(partido_parts) == 2:
+                        away_team = partido_parts[1].strip()
+                        if team_name.lower() in away_team.lower():
+                            acierto = resultado["resultado_1x2"] == "2"
+                        else:
+                            acierto = resultado["resultado_1x2"] == "1"
+                    else:
+                        acierto = False
+                        
             elif any(x in tipo_prediccion for x in ["1", "x", "2", "local", "empate", "visitante"]):
                 if "local" in tipo_prediccion or "1" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "1"

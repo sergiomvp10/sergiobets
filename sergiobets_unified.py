@@ -659,6 +659,8 @@ class SergioBetsUnified:
                 mensaje_completo += mensaje_predicciones
                 
                 for pred in predicciones_seleccionadas:
+                    pred['sent_to_telegram'] = True
+                    pred['fecha_envio_telegram'] = datetime.now().isoformat()
                     guardar_prediccion_historica(pred, fecha)
                 
                 with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
@@ -878,69 +880,195 @@ class SergioBetsUnified:
             tree.pack(side='left', fill='both', expand=True)
             scrollbar.pack(side='right', fill='y')
             
-            def cargar_datos_filtrados():
-                """Carga datos según el filtro actual"""
-                for item in tree.get_children():
-                    tree.delete(item)
-                
+            def mostrar_bets_por_categoria(categoria):
+                """Mostrar apuestas por categoría con interfaz scrollable mejorada"""
                 try:
                     historial = cargar_json('historial_predicciones.json') or []
+                except:
+                    historial = []
+                
+                for widget in frame_izquierdo.winfo_children():
+                    widget.destroy()
+                
+                if categoria == "pendientes":
+                    bets_filtrados = [p for p in historial if p.get("resultado_real") is None or p.get("acierto") is None]
+                    titulo = "⏳ APUESTAS PENDIENTES"
+                    color_titulo = "#f39c12"
+                elif categoria == "acertados":
+                    bets_filtrados = [p for p in historial if p.get("acierto") == True]
+                    titulo = "✅ APUESTAS ACERTADAS"
+                    color_titulo = "#27ae60"
+                elif categoria == "fallados":
+                    bets_filtrados = [p for p in historial if p.get("acierto") == False]
+                    titulo = "❌ APUESTAS FALLADAS"
+                    color_titulo = "#e74c3c"
+                else:
+                    return
+                
+                canvas = tk.Canvas(frame_izquierdo, bg="#ecf0f1")
+                scrollbar = ttk.Scrollbar(frame_izquierdo, orient="vertical", command=canvas.yview)
+                scrollable_frame = tk.Frame(canvas, bg="#ecf0f1")
+                
+                scrollable_frame.bind(
+                    "<Configure>",
+                    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+                )
+                
+                canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+                canvas.configure(yscrollcommand=scrollbar.set)
+                
+                titulo_label = tk.Label(scrollable_frame, text=f"{titulo} ({len(bets_filtrados)} apuestas)", 
+                                       bg="#ecf0f1", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
+                titulo_label.pack(pady=(10, 20))
+                
+                def eliminar_prediccion_individual(bet_to_delete):
+                    """Eliminar una predicción individual del historial"""
+                    respuesta = messagebox.askyesno("Confirmar eliminación", 
+                        f"¿Estás seguro de que quieres eliminar esta predicción?\n\n" +
+                        f"Partido: {bet_to_delete.get('partido', 'N/A')}\n" +
+                        f"Predicción: {bet_to_delete.get('prediccion', 'N/A')}")
                     
-                    historial = [p for p in historial if p.get('sent_to_telegram', False)]
-                    
-                    datos_filtrados = []
-                    
-                    filtro = filtro_actual.get()
-                    
-                    for prediccion in historial:
-                        if filtro == "por_fecha":
-                            fecha_pred = prediccion.get('fecha', '')
-                            if fecha_pred < fecha_inicio.get() or fecha_pred > fecha_fin.get():
-                                continue
+                    if respuesta:
+                        try:
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            historial_filtrado = []
+                            bet_removed = False
+                            for p in historial_actual:
+                                if (p.get('partido') == bet_to_delete.get('partido') and
+                                    p.get('prediccion') == bet_to_delete.get('prediccion') and
+                                    p.get('fecha') == bet_to_delete.get('fecha') and
+                                    p.get('cuota') == bet_to_delete.get('cuota') and
+                                    not bet_removed):
+                                    bet_removed = True
+                                    continue
+                                historial_filtrado.append(p)
+                            
+                            with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                json.dump(historial_filtrado, f, indent=2, ensure_ascii=False)
+                            
+                            messagebox.showinfo("Éxito", "Predicción eliminada correctamente")
+                            mostrar_bets_por_categoria(categoria)  # Refresh the display
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error eliminando predicción: {e}")
+                
+                if not bets_filtrados:
+                    no_bets_label = tk.Label(scrollable_frame, text=f"No hay apuestas en esta categoría", 
+                                            bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                    no_bets_label.pack(pady=20)
+                else:
+                    for i, bet in enumerate(bets_filtrados):
+                        bet_frame = tk.Frame(scrollable_frame, bg="white", relief='ridge', bd=1)
+                        bet_frame.pack(fill='x', pady=5, padx=10)
                         
-                        resultado_real = prediccion.get('resultado_real')
-                        acierto = prediccion.get('acierto')
+                        header_frame = tk.Frame(bet_frame, bg="white")
+                        header_frame.pack(fill='x', padx=10, pady=(5, 0))
                         
-                        if filtro == "pendientes" and resultado_real is not None:
-                            continue
-                        elif filtro == "acertados" and (resultado_real is None or not acierto):
-                            continue
-                        elif filtro == "fallados" and (resultado_real is None or acierto):
-                            continue
+                        partido_text = f"⚽ {bet.get('partido', 'N/A')}"
+                        partido_label = tk.Label(header_frame, text=partido_text, bg="white", 
+                                               font=('Segoe UI', 11, 'bold'), anchor='w')
+                        partido_label.pack(side='left', fill='x', expand=True)
                         
-                        if resultado_real is None:
-                            estado = "⏳ Pendiente"
-                            resultado_final = "-"
-                        elif acierto:
-                            estado = "✅ Ganada"
-                            resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
-                        else:
-                            estado = "❌ Perdida"
-                            resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                        delete_btn = tk.Button(header_frame, text="🗑️", 
+                                             command=lambda b=bet: eliminar_prediccion_individual(b),
+                                             bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                             padx=5, pady=2)
+                        delete_btn.pack(side='right', padx=(5, 0))
                         
-                        datos_filtrados.append((
-                            prediccion.get('fecha', ''),
-                            prediccion.get('liga', ''),
-                            prediccion.get('partido', ''),
-                            prediccion.get('prediccion', ''),
-                            f"{prediccion.get('cuota', 0):.2f}",
-                            resultado_final,
-                            estado
-                        ))
+                        prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
+                        prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 
+                                                  font=('Segoe UI', 10), anchor='w')
+                        prediccion_label.pack(fill='x', padx=10)
+                        
+                        fecha_text = f"📅 {bet.get('fecha', 'N/A')}"
+                        if bet.get('fecha_actualizacion'):
+                            fecha_text += f" | 🔄 Actualizado: {bet.get('fecha_actualizacion', '')[:10]}"
+                        fecha_label = tk.Label(bet_frame, text=fecha_text, bg="white", 
+                                             font=('Segoe UI', 9), fg="#7f8c8d", anchor='w')
+                        fecha_label.pack(fill='x', padx=10)
+                        
+                        if bet.get("resultado_real"):
+                            resultado = bet["resultado_real"]
+                            if categoria == "acertados":
+                                ganancia_text = f"💰 Ganancia: ${bet.get('ganancia', 0):.2f}"
+                                ganancia_label = tk.Label(bet_frame, text=ganancia_text, bg="white", 
+                                                        font=('Segoe UI', 10, 'bold'), fg="#27ae60", anchor='w')
+                                ganancia_label.pack(fill='x', padx=10, pady=(0, 5))
+                            elif categoria == "fallados":
+                                perdida_text = f"💸 Pérdida: ${bet.get('ganancia', 0):.2f}"
+                                perdida_label = tk.Label(bet_frame, text=perdida_text, bg="white", 
+                                                       font=('Segoe UI', 10, 'bold'), fg="#e74c3c", anchor='w')
+                                perdida_label.pack(fill='x', padx=10, pady=(0, 5))
+                            
+                            if 'corner' in bet.get('prediccion', '').lower():
+                                corners_text = f"🚩 Corners: {resultado.get('total_corners', 'N/A')} total"
+                            else:
+                                corners_text = f"⚽ Resultado: {resultado.get('home_score', 0)}-{resultado.get('away_score', 0)}"
+                            
+                            resultado_label = tk.Label(bet_frame, text=corners_text, bg="white", 
+                                                     font=('Segoe UI', 9), fg="#34495e", anchor='w')
+                            resultado_label.pack(fill='x', padx=10, pady=(0, 5))
+                
+                canvas.pack(side="left", fill="both", expand=True)
+                scrollbar.pack(side="right", fill="y")
+            
+            def cargar_datos_filtrados():
+                """Carga datos según el filtro actual - mantener para compatibilidad"""
+                filtro = filtro_actual.get()
+                if filtro in ["pendientes", "acertados", "fallados"]:
+                    mostrar_bets_por_categoria(filtro)
+                else:
+                    for item in tree.get_children():
+                        tree.delete(item)
                     
-                    datos_filtrados.sort(key=lambda x: x[0], reverse=True)
-                    
-                    for i, datos in enumerate(datos_filtrados):
-                        tag = 'evenrow' if i % 2 == 0 else 'oddrow'
-                        tree.insert('', 'end', values=datos, tags=(tag,))
-                    
-                    tree.tag_configure('evenrow', background='#f8f9fa')
-                    tree.tag_configure('oddrow', background='white')
-                    
-                    actualizar_estadisticas()
-                    
-                except Exception as e:
-                    messagebox.showerror("Error", f"Error cargando datos: {e}")
+                    try:
+                        historial = cargar_json('historial_predicciones.json') or []
+                        
+                        # historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                        
+                        datos_filtrados = []
+                        
+                        for prediccion in historial:
+                            if filtro == "por_fecha":
+                                fecha_pred = prediccion.get('fecha', '')
+                                if fecha_pred < fecha_inicio.get() or fecha_pred > fecha_fin.get():
+                                    continue
+                            
+                            resultado_real = prediccion.get('resultado_real')
+                            acierto = prediccion.get('acierto')
+                            
+                            if resultado_real is None:
+                                estado = "⏳ Pendiente"
+                                resultado_final = "-"
+                            elif acierto:
+                                estado = "✅ Ganada"
+                                resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                            else:
+                                estado = "❌ Perdida"
+                                resultado_final = f"{resultado_real.get('home_score', 0)}-{resultado_real.get('away_score', 0)}"
+                            
+                            datos_filtrados.append((
+                                prediccion.get('fecha', ''),
+                                prediccion.get('liga', ''),
+                                prediccion.get('partido', ''),
+                                prediccion.get('prediccion', ''),
+                                f"{prediccion.get('cuota', 0):.2f}",
+                                resultado_final,
+                                estado
+                            ))
+                        
+                        datos_filtrados.sort(key=lambda x: x[0], reverse=True)
+                        
+                        for i, datos in enumerate(datos_filtrados):
+                            tag = 'evenrow' if i % 2 == 0 else 'oddrow'
+                            tree.insert('', 'end', values=datos, tags=(tag,))
+                        
+                        tree.tag_configure('evenrow', background='#f8f9fa')
+                        tree.tag_configure('oddrow', background='white')
+                        
+                        actualizar_estadisticas()
+                        
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error cargando datos: {e}")
             
             def actualizar_estadisticas():
                 """Actualiza el panel de estadísticas"""
@@ -983,15 +1111,15 @@ ROI: {metricas['roi']:.2f}%
             
             def filtrar_pendientes():
                 filtro_actual.set("pendientes")
-                cargar_datos_filtrados()
+                mostrar_bets_por_categoria("pendientes")
             
             def filtrar_acertados():
                 filtro_actual.set("acertados")
-                cargar_datos_filtrados()
+                mostrar_bets_por_categoria("acertados")
             
             def filtrar_fallados():
                 filtro_actual.set("fallados")
-                cargar_datos_filtrados()
+                mostrar_bets_por_categoria("fallados")
             
             def filtrar_historico():
                 filtro_actual.set("historico")
@@ -1019,24 +1147,31 @@ ROI: {metricas['roi']:.2f}%
                     tk.Label(ventana_resumen, text=f"Error generando reporte: {e}").pack()
             
             def actualizar_resultados():
-                """Actualiza resultados desde la API"""
-                btn_actualizar.config(state='disabled', text="🔄 Procesando...")
+                """Actualizar resultados desde la API de forma rápida y silenciosa"""
+                btn_actualizar.config(state='disabled', text="🔄 Actualizando...")
                 ventana_track.update()
                 
                 try:
                     resultado = tracker.actualizar_historial_con_resultados()
-                    if "error" in resultado:
-                        messagebox.showerror("Error", f"Error actualizando: {resultado['error']}")
+                    
+                    filtro = filtro_actual.get()
+                    if filtro in ["pendientes", "acertados", "fallados"]:
+                        mostrar_bets_por_categoria(filtro)
                     else:
-                        mensaje = f"✅ Actualización completada\n\n"
-                        mensaje += f"📊 Predicciones actualizadas: {resultado['actualizaciones']}\n"
-                        mensaje += f"❌ Errores: {resultado['errores']}\n"
-                        mensaje += f"📈 Total procesadas: {resultado['total_procesadas']}\n"
-                        mensaje += f"⏳ Partidos incompletos: {resultado.get('partidos_incompletos', 0)}"
-                        messagebox.showinfo("Actualización Completada", mensaje)
                         cargar_datos_filtrados()
+                    
+                    if resultado.get('actualizaciones', 0) > 0:
+                        btn_actualizar.config(text=f"✅ {resultado['actualizaciones']} actualizadas")
+                        ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                    else:
+                        btn_actualizar.config(text="✅ Sin cambios")
+                        ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                        
+                except Exception as e:
+                    btn_actualizar.config(text="❌ Error")
+                    ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
                 finally:
-                    btn_actualizar.config(state='normal', text="🔄 Actualizar Resultados")
+                    btn_actualizar.config(state='normal')
             
             def actualizar_automatico():
                 """Actualiza resultados automáticamente al abrir track record"""
