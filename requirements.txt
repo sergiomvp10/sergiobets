@@ -4,3 +4,5 @@ python-dotenv
 psycopg2-binary
 tkcalendar
 requests
+flask
+flask-cors

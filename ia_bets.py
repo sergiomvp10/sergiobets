@@ -547,8 +547,6 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
             
             if prediccion:
                 predicciones_validas.append(prediccion)
-                if opcion_numero == 1:
-                    guardar_prediccion_historica(prediccion, fecha)
         except Exception as e:
             print(f"Error procesando partido {partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}: {e}")
             continue
@@ -600,6 +598,7 @@ def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None
             "valor_esperado": prediccion["valor_esperado"],
             "confianza": prediccion["confianza"],
             "timestamp": datetime.now().isoformat(),
+            "sent_to_telegram": True,
             "resultado_real": None,
             "ganancia": None
         }

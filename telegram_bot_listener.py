@@ -5,6 +5,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from dotenv import load_dotenv
+from access_manager import access_manager, verificar_acceso
 
 load_dotenv()
 
@@ -18,38 +19,11 @@ USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
     """Cargar usuarios ya registrados desde el archivo"""
-    usuarios_registrados = set()
-    try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        user_id = linea.split(' - ')[0].strip()
-                        usuarios_registrados.add(user_id)
-    except Exception as e:
-        logger.error(f"Error cargando usuarios registrados: {e}")
-    return usuarios_registrados
+    return access_manager.listar_usuarios()
 
 def registrar_usuario(user_id, username, first_name):
-    """Registrar nuevo usuario en el archivo usuarios.txt"""
-    try:
-        usuarios_registrados = cargar_usuarios_registrados()
-        
-        if str(user_id) not in usuarios_registrados:
-            username_str = username if username else "sin_username"
-            first_name_str = first_name if first_name else "sin_nombre"
-            
-            with open(USUARIOS_FILE, 'a', encoding='utf-8') as f:
-                f.write(f"{user_id} - {username_str} - {first_name_str}\n")
-            
-            logger.info(f"Usuario registrado: {user_id} - {username_str} - {first_name_str}")
-            return True
-        else:
-            logger.info(f"Usuario ya registrado: {user_id}")
-            return False
-    except Exception as e:
-        logger.error(f"Error registrando usuario: {e}")
-        return False
+    """Registrar nuevo usuario usando access_manager"""
+    return access_manager.registrar_usuario(str(user_id), username, first_name)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar comando /start con menú interactivo"""
@@ -60,10 +34,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     es_nuevo = registrar_usuario(user_id, username, first_name)
     
-    if es_nuevo:
-        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰"
+    access_manager.limpiar_usuarios_expirados()
+    
+    tiene_acceso = verificar_acceso(str(user_id))
+    if not tiene_acceso:
+        mensaje_acceso = "\n\n⚠️ Tu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
     else:
-        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰"
+        usuario_info = access_manager.obtener_usuario(str(user_id))
+        if usuario_info and usuario_info.get('fecha_expiracion'):
+            from datetime import datetime
+            try:
+                fecha_exp = datetime.fromisoformat(usuario_info['fecha_expiracion'])
+                mensaje_acceso = f"\n\n👑 Acceso Premium Activo hasta: {fecha_exp.strftime('%Y-%m-%d %H:%M')}"
+            except:
+                mensaje_acceso = "\n\n👑 Acceso Premium Activo"
+        else:
+            mensaje_acceso = ""
+    
+    if es_nuevo:
+        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
+    else:
+        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
         [
@@ -103,6 +94,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mostrar_membresia(update, context)
     elif query.data == "ayuda":
         await mostrar_ayuda(update, context)
+    elif query.data == "pay_usdt":
+        await procesar_pago(update, context, "usdttrc20")
+    elif query.data == "pay_ltc":
+        await procesar_pago(update, context, "ltc")
+    elif query.data == "pago_nequi":
+        await procesar_pago_nequi(update, context)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
@@ -114,12 +111,9 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         
-        total_usuarios = contar_usuarios_registrados()
-        
         if "error" in metricas:
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
-👥 Usuarios registrados: {total_usuarios}
 📈 Sistema: Activo y funcionando
 ⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
 
@@ -127,12 +121,10 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         else:
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
-👥 USUARIOS:
-• Registrados: {total_usuarios}
-
 🎯 PREDICCIONES:
 • Total: {metricas['total_predicciones']}
 • Resueltas: {metricas['predicciones_resueltas']}
+• Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
 
@@ -178,40 +170,64 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("❌ Error cargando novedades. Intenta de nuevo.")
 
 async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar información de membresía"""
+    """Mostrar información de membresía con opciones de pago"""
     query = update.callback_query
-    mensaje = """💳 MEMBRESÍA PREMIUM SERGIOBETS
+    
+    ngrok_url = get_current_ngrok_url()
+    
+    if ngrok_url:
+        mensaje = f"""💳 MEMBRESÍA VIP SERGIOBETS
 
-🌟 BENEFICIOS PREMIUM:
+🌟 ACCESO VIP (7 DÍAS):
 • Predicciones exclusivas de alta confianza
 • Acceso a estadísticas avanzadas
 • Alertas en tiempo real
 • Soporte prioritario
 • Análisis detallado de mercados
 
-💰 PRECIOS:
-• Mensual: $29.99 USD
-• Trimestral: $79.99 USD (33% descuento)
-• Anual: $299.99 USD (58% descuento)
+💰 PRECIO:
+• 7 días de acceso VIP: 12$ / 50.000 COP
 
-🔐 MÉTODOS DE PAGO:
-• Bitcoin (BTC)
-• Ethereum (ETH)
-• USDT (Tether)
-• Tarjeta de crédito
+🔐 MÉTODOS DE PAGO DISPONIBLES:
+• USDT (TRC20)
+• Litecoin (LTC)
+• NEQUI (Colombia)
 
-📞 Para adquirir tu membresía, contacta:
-@sergiomvp10
+🚀 ¡Selecciona tu método de pago preferido!
 
-🚀 ¡Únete a los ganadores!"""
+💳 También puedes pagar directamente aquí:
+👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
+    else:
+        mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
+
+🌟 ACCESO VIP (7 DÍAS):
+• Predicciones exclusivas de alta confianza
+• Acceso a estadísticas avanzadas
+• Alertas en tiempo real
+• Soporte prioritario
+• Análisis detallado de mercados
+
+💰 PRECIO:
+• 7 días de acceso VIP: 12$ / 50.000 COP
+
+🔐 MÉTODOS DE PAGO DISPONIBLES:
+• USDT (TRC20)
+• Litecoin (LTC)
+• NEQUI (Colombia)
+
+🚀 ¡Selecciona tu método de pago preferido!"""
     
     keyboard = [
-        [InlineKeyboardButton("📞 Contactar", url="https://t.me/sergiomvp10")],
+        [
+            InlineKeyboardButton("💰 Pagar con USDT (TRC20)", callback_data="pay_usdt"),
+            InlineKeyboardButton("🪙 Pagar con Litecoin", callback_data="pay_ltc")
+        ],
+        [InlineKeyboardButton("📲 Pagar con NEQUI", callback_data="pago_nequi")],
         [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
@@ -284,7 +300,8 @@ def iniciar_bot_listener():
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda)$"))
+        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
+        application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
@@ -301,27 +318,171 @@ def iniciar_bot_listener():
 
 def obtener_usuarios_registrados():
     """Obtener lista de usuarios registrados"""
-    usuarios = []
-    try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        partes = linea.strip().split(' - ')
-                        if len(partes) >= 3:
-                            usuarios.append({
-                                'user_id': partes[0],
-                                'username': partes[1],
-                                'first_name': partes[2]
-                            })
-    except Exception as e:
-        logger.error(f"Error obteniendo usuarios registrados: {e}")
-    
-    return usuarios
+    return access_manager.listar_usuarios()
 
 def contar_usuarios_registrados():
     """Contar total de usuarios registrados"""
-    return len(obtener_usuarios_registrados())
+    return access_manager.contar_usuarios_registrados()
+
+def get_current_ngrok_url():
+    """Obtener URL actual de ngrok desde archivo"""
+    import os
+    try:
+        if os.path.exists("ngrok_url.txt"):
+            with open("ngrok_url.txt", 'r') as f:
+                url = f.read().strip()
+                return url if url else None
+    except:
+        pass
+    return None
+
+def check_and_restart_ngrok():
+    """Verificar si ngrok está corriendo y reiniciarlo si es necesario"""
+    import requests
+    import subprocess
+    import time
+    
+    try:
+        response = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            tunnels = data.get('tunnels', [])
+            
+            for tunnel in tunnels:
+                if tunnel.get('proto') == 'https':
+                    url = tunnel.get('public_url')
+                    if url:
+                        with open("ngrok_url.txt", 'w') as f:
+                            f.write(url)
+                        return url
+        
+        print("⚠️ ngrok no está corriendo. Ejecuta: python launch_with_ngrok.py")
+        return None
+        
+    except Exception as e:
+        print(f"⚠️ Error verificando ngrok: {e}")
+        return None
+
+async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, currency: str):
+    """Procesar solicitud de pago"""
+    query = update.callback_query
+    user_id = str(query.from_user.id)
+    username = query.from_user.username or "sin_username"
+    
+    try:
+        from pagos.payments import PaymentManager
+        payment_manager = PaymentManager()
+        
+        result = payment_manager.create_membership_payment(
+            user_id=user_id,
+            username=username,
+            currency=currency,
+            membership_type="weekly"
+        )
+        
+        if result.get("success"):
+            currency_name = "USDT" if currency.startswith("usdt") else "Litecoin"
+            if currency.lower() in ["usdt", "usdttrc20"]:
+                instruction_text = "1. Envía exactamente 12 USDT en la red TRC20"
+            else:
+                instruction_text = f"1. Envía exactamente {result['pay_amount']} {result['pay_currency'].upper()}"
+            
+            mensaje = f"""💳 PAGO GENERADO - {currency_name}
+
+🔐 Detalles del pago:
+• Monto: {result['pay_amount']} {result['pay_currency']}
+• Dirección: `{result['pay_address']}`
+• ID de pago: {result['payment_id']}
+
+📋 INSTRUCCIONES:
+{instruction_text}
+2. A la dirección mostrada arriba
+3. El pago se confirmará automáticamente
+4. Recibirás tu acceso VIP inmediatamente
+
+⏰ Este pago expira en 30 minutos.
+🔄 Puedes verificar el estado con el botón de abajo"""
+            
+            keyboard = [
+                [InlineKeyboardButton("🔍 Verificar Pago", callback_data=f"verify_{result['payment_id']}")],
+                [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
+        else:
+            await query.edit_message_text(
+                f"❌ Error creando el pago: {result.get('error')}\n\n🔙 Intenta nuevamente.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="membresia")]])
+            )
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Error del sistema: {str(e)}\n\n🔙 Intenta más tarde.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="membresia")]])
+        )
+
+async def verificar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Verificar estado de un pago"""
+    query = update.callback_query
+    payment_id = query.data.replace("verify_", "")
+    
+    try:
+        from pagos.payments import PaymentManager
+        payment_manager = PaymentManager()
+        
+        status = payment_manager.nowpayments.get_payment_status(payment_id)
+        
+        if "error" not in status:
+            payment_status = status.get("payment_status", "unknown")
+            
+            if payment_status in ["confirmed", "finished"]:
+                mensaje = "✅ ¡Pago confirmado! Tu acceso VIP ha sido activado."
+            elif payment_status == "waiting":
+                mensaje = "⏳ Pago pendiente. Esperando confirmación de la red..."
+            elif payment_status == "confirming":
+                mensaje = "🔄 Pago en proceso de confirmación..."
+            else:
+                mensaje = f"📊 Estado del pago: {payment_status}"
+        else:
+            mensaje = f"❌ Error verificando pago: {status.get('error')}"
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 Verificar de nuevo", callback_data=f"verify_{payment_id}")],
+            [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(mensaje, reply_markup=reply_markup)
+        
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Error del sistema: {str(e)}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
+        )
+
+async def procesar_pago_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar solicitud de pago NEQUI"""
+    query = update.callback_query
+    
+    mensaje = """📲 PAGO CON NEQUI
+
+Para completar tu pago por NEQUI:
+
+💰 Valor: *50.000 COP*
+📱 Número: *3137526084*
+📸 Envíanos el comprobante de pago por este chat.
+
+_Verificaremos y activaremos tu acceso manualmente._
+
+⏰ Una vez realices el pago, envía una captura del comprobante y te activaremos el acceso VIP en máximo 24 horas."""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""

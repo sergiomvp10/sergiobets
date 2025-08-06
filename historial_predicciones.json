@@ -121,8 +121,24 @@
         "valor_esperado": 0.243,
         "confianza": 82.9,
         "timestamp": "2025-08-03T01:32:23.854773",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979164"
     },
     {
         "fecha": "2025-08-03",
@@ -134,8 +150,24 @@
         "valor_esperado": 0.291,
         "confianza": 86.1,
         "timestamp": "2025-08-03T01:32:23.858796",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159688"
     },
     {
         "fecha": "2025-08-03",
@@ -175,8 +207,24 @@
         "valor_esperado": 0.132,
         "confianza": 80.9,
         "timestamp": "2025-08-03T01:32:27.724801",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979192"
     },
     {
         "fecha": "2025-08-03",
@@ -188,8 +236,24 @@
         "valor_esperado": 0.132,
         "confianza": 80.9,
         "timestamp": "2025-08-03T01:32:27.726786",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159717"
     },
     {
         "fecha": "2025-08-03",
@@ -257,8 +321,24 @@
         "valor_esperado": 0.272,
         "confianza": 84.8,
         "timestamp": "2025-08-03T01:32:30.200922",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979205"
     },
     {
         "fecha": "2025-08-03",
@@ -270,8 +350,24 @@
         "valor_esperado": 0.436,
         "confianza": 95.8,
         "timestamp": "2025-08-03T01:32:30.204524",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159727"
     },
     {
         "fecha": "2025-08-03",
@@ -311,8 +407,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:32:32.846391",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979214"
     },
     {
         "fecha": "2025-08-03",
@@ -324,8 +436,24 @@
         "valor_esperado": 0.132,
         "confianza": 80.9,
         "timestamp": "2025-08-03T01:32:32.848386",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159738"
     },
     {
         "fecha": "2025-08-03",
@@ -393,8 +521,24 @@
         "valor_esperado": 0.376,
         "confianza": 91.8,
         "timestamp": "2025-08-03T01:32:36.328062",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979223"
     },
     {
         "fecha": "2025-08-03",
@@ -406,8 +550,24 @@
         "valor_esperado": 0.281,
         "confianza": 82.6,
         "timestamp": "2025-08-03T01:32:36.330065",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159747"
     },
     {
         "fecha": "2025-08-03",
@@ -755,8 +915,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:18.670617",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979231"
     },
     {
         "fecha": "2025-08-03",
@@ -768,8 +944,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:18.672723",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159755"
     },
     {
         "fecha": "2025-08-03",
@@ -837,8 +1029,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:27.635927",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979238"
     },
     {
         "fecha": "2025-08-03",
@@ -850,8 +1058,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:27.636925",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159762"
     },
     {
         "fecha": "2025-08-03",
@@ -919,8 +1143,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:28.773505",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979246"
     },
     {
         "fecha": "2025-08-03",
@@ -932,8 +1172,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:28.774516",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159768"
     },
     {
         "fecha": "2025-08-03",
@@ -1001,8 +1257,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:34.800671",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979253"
     },
     {
         "fecha": "2025-08-03",
@@ -1014,8 +1286,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:34.802733",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159775"
     },
     {
         "fecha": "2025-08-03",
@@ -1083,8 +1371,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:36.049781",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979260"
     },
     {
         "fecha": "2025-08-03",
@@ -1096,8 +1400,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:36.050781",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159782"
     },
     {
         "fecha": "2025-08-03",
@@ -1165,8 +1485,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:37.156503",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979267"
     },
     {
         "fecha": "2025-08-03",
@@ -1178,8 +1514,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:37.158532",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159811"
     },
     {
         "fecha": "2025-08-03",
@@ -1247,8 +1599,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:38.282828",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979274"
     },
     {
         "fecha": "2025-08-03",
@@ -1260,8 +1628,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:38.284849",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159834"
     },
     {
         "fecha": "2025-08-03",
@@ -1329,8 +1713,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:39.628125",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979295"
     },
     {
         "fecha": "2025-08-03",
@@ -1342,8 +1742,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:39.630137",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159843"
     },
     {
         "fecha": "2025-08-03",
@@ -1411,8 +1827,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T01:49:40.944798",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979303"
     },
     {
         "fecha": "2025-08-03",
@@ -1424,8 +1856,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T01:49:40.947245",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159852"
     },
     {
         "fecha": "2025-08-03",
@@ -1773,8 +2221,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:00:45.252734",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979310"
     },
     {
         "fecha": "2025-08-03",
@@ -1786,8 +2250,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:00:45.255783",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159859"
     },
     {
         "fecha": "2025-08-03",
@@ -1855,8 +2335,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:00:54.753022",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979316"
     },
     {
         "fecha": "2025-08-03",
@@ -1868,8 +2364,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:00:54.758031",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159866"
     },
     {
         "fecha": "2025-08-03",
@@ -1937,8 +2449,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:00:55.873515",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979341"
     },
     {
         "fecha": "2025-08-03",
@@ -1950,8 +2478,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:00:55.876566",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159875"
     },
     {
         "fecha": "2025-08-03",
@@ -2019,8 +2563,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:24:29.233824",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979351"
     },
     {
         "fecha": "2025-08-03",
@@ -2032,8 +2592,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:24:29.240831",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159881"
     },
     {
         "fecha": "2025-08-03",
@@ -2717,8 +3293,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:25:33.813832",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979359"
     },
     {
         "fecha": "2025-08-03",
@@ -2730,8 +3322,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:25:33.818833",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159888"
     },
     {
         "fecha": "2025-08-03",
@@ -2799,8 +3407,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:25:34.852441",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979366"
     },
     {
         "fecha": "2025-08-03",
@@ -2812,8 +3436,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:25:34.856994",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159897"
     },
     {
         "fecha": "2025-08-03",
@@ -2881,8 +3521,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:25:46.622420",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979383"
     },
     {
         "fecha": "2025-08-03",
@@ -2894,8 +3550,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:25:46.626006",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159924"
     },
     {
         "fecha": "2025-08-03",
@@ -2963,8 +3635,24 @@
         "valor_esperado": 0.43,
         "confianza": 92.3,
         "timestamp": "2025-08-03T02:25:51.639092",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979401"
     },
     {
         "fecha": "2025-08-03",
@@ -2976,8 +3664,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:25:51.643676",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159949"
     },
     {
         "fecha": "2025-08-03",
@@ -3017,8 +3721,24 @@
         "valor_esperado": 0.191,
         "confianza": 88.2,
         "timestamp": "2025-08-03T02:26:05.126638",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959472,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 3,
+            "total_corners": 5,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:18.159958"
     },
     {
         "fecha": "2025-08-03",
@@ -3030,8 +3750,24 @@
         "valor_esperado": 0.369,
         "confianza": 97.8,
         "timestamp": "2025-08-03T02:26:17.697673",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7959471,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 2,
+            "corners_away": 6,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:15.979418"
     },
     {
         "fecha": "2025-08-03",
@@ -3382,8 +4118,24 @@
         "valor_esperado": 0.051,
         "confianza": 75.0,
         "timestamp": "2025-08-03T18:02:05.830576",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7818943,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 9,
+            "corners_away": 2,
+            "total_corners": 11,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:44.201277"
     },
     {
         "fecha": "2025-08-03",
@@ -3395,8 +4147,24 @@
         "valor_esperado": 0.22,
         "confianza": 81.3,
         "timestamp": "2025-08-03T18:02:05.856388",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 4,
+            "corners_away": 5,
+            "total_corners": 9,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:46.836123"
     },
     {
         "fecha": "2025-08-03",
@@ -3408,8 +4176,24 @@
         "valor_esperado": 0.373,
         "confianza": 91.6,
         "timestamp": "2025-08-03T18:02:05.872902",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841224,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 5,
+            "corners_away": 3,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:49.431152"
     },
     {
         "fecha": "2025-08-03",
@@ -3421,8 +4205,24 @@
         "valor_esperado": 0.051,
         "confianza": 75.0,
         "timestamp": "2025-08-03T18:02:06.957389",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7818943,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 9,
+            "corners_away": 2,
+            "total_corners": 11,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:44.201323"
     },
     {
         "fecha": "2025-08-03",
@@ -3434,8 +4234,24 @@
         "valor_esperado": 0.22,
         "confianza": 81.3,
         "timestamp": "2025-08-03T18:02:06.986442",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 4,
+            "corners_away": 5,
+            "total_corners": 9,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:46.836143"
     },
     {
         "fecha": "2025-08-03",
@@ -3447,8 +4263,24 @@
         "valor_esperado": 0.373,
         "confianza": 91.6,
         "timestamp": "2025-08-03T18:02:07.000086",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841224,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 5,
+            "corners_away": 3,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:49.431174"
     },
     {
         "fecha": "2025-08-03",
@@ -3460,8 +4292,24 @@
         "valor_esperado": 0.051,
         "confianza": 75.0,
         "timestamp": "2025-08-03T18:10:03.123300",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7818943,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 9,
+            "corners_away": 2,
+            "total_corners": 11,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:44.201340"
     },
     {
         "fecha": "2025-08-03",
@@ -3473,8 +4321,24 @@
         "valor_esperado": 0.22,
         "confianza": 81.3,
         "timestamp": "2025-08-03T18:10:03.148355",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 4,
+            "corners_away": 5,
+            "total_corners": 9,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:46.836153"
     },
     {
         "fecha": "2025-08-03",
@@ -3486,8 +4350,24 @@
         "valor_esperado": 0.373,
         "confianza": 91.6,
         "timestamp": "2025-08-03T18:10:03.163452",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841224,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 5,
+            "corners_away": 3,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:49.431184"
     },
     {
         "fecha": "2025-08-03",
@@ -3499,8 +4379,24 @@
         "valor_esperado": 0.051,
         "confianza": 75.0,
         "timestamp": "2025-08-03T18:10:03.756284",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7818943,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 9,
+            "corners_away": 2,
+            "total_corners": 11,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:44.201355"
     },
     {
         "fecha": "2025-08-03",
@@ -3512,8 +4408,24 @@
         "valor_esperado": 0.22,
         "confianza": 81.3,
         "timestamp": "2025-08-03T18:10:03.778654",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 4,
+            "corners_away": 5,
+            "total_corners": 9,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:46.836161"
     },
     {
         "fecha": "2025-08-03",
@@ -3525,8 +4437,24 @@
         "valor_esperado": 0.373,
         "confianza": 91.6,
         "timestamp": "2025-08-03T18:10:03.788245",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841224,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 5,
+            "corners_away": 3,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:49.431192"
     },
     {
         "fecha": "2025-08-03",
@@ -3538,8 +4466,24 @@
         "valor_esperado": 0.051,
         "confianza": 75.0,
         "timestamp": "2025-08-03T18:10:04.662626",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7818943,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 9,
+            "corners_away": 2,
+            "total_corners": 11,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:44.201385"
     },
     {
         "fecha": "2025-08-03",
@@ -3551,8 +4495,24 @@
         "valor_esperado": 0.22,
         "confianza": 81.3,
         "timestamp": "2025-08-03T18:10:04.689786",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 4,
+            "corners_away": 5,
+            "total_corners": 9,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:46.836169"
     },
     {
         "fecha": "2025-08-03",
@@ -3564,8 +4524,24 @@
         "valor_esperado": 0.373,
         "confianza": 91.6,
         "timestamp": "2025-08-03T18:10:04.706853",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7841224,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 5,
+            "corners_away": 3,
+            "total_corners": 8,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:00:49.431200"
     },
     {
         "fecha": "2025-08-03",
@@ -3798,8 +4774,24 @@
         "valor_esperado": 0.318,
         "confianza": 87.9,
         "timestamp": "2025-08-03T18:11:50.394177",
-        "resultado_real": null,
-        "ganancia": null
+        "resultado_real": {
+            "match_id": 7818948,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 11,
+            "corners_away": 2,
+            "total_corners": 13,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-05T07:01:36.775663"
     },
     {
         "fecha": "2025-08-03",
@@ -4268,5 +5260,32 @@
         "timestamp": "2025-08-03T18:12:34.611381",
         "resultado_real": null,
         "ganancia": null
+    },
+    {
+        "fecha": "2025-08-04",
+        "partido": "Athletic Club vs Atlético GO",
+        "prediccion": "Más de 8.5 corners",
+        "cuota": 1.4,
+        "stake": 10,
+        "valor_esperado": 0.15,
+        "fecha_prediccion": "2025-08-04T10:00:00",
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 4,
+            "corners_away": 5,
+            "total_corners": 9,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "corner_data_available": true,
+            "resultado_1x2": "X"
+        },
+        "acierto": true,
+        "ganancia": 3.999999999999999,
+        "fecha_actualizacion": "2025-08-06T01:39:52.443997"
     }
 ]

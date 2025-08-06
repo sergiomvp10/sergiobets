@@ -622,6 +622,119 @@ def abrir_track_record():
                              font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
         btn_tipos.pack(side='left')
         
+        frame_categorias = tk.Frame(frame_principal, bg="#2c3e50")
+        frame_categorias.pack(fill='x', pady=(10, 20))
+        
+        def mostrar_bets_por_categoria(categoria):
+            try:
+                with open('historial_predicciones.json', 'r', encoding='utf-8') as f:
+                    historial = json.load(f)
+            except:
+                historial = []
+            
+            for widget in frame_resultados.winfo_children():
+                widget.destroy()
+            
+            if categoria == "pendiente":
+                bets_filtrados = [p for p in historial if p.get("resultado_real") is None or p.get("acierto") is None]
+                titulo = "⏳ APUESTAS PENDIENTES"
+                color_titulo = "#f39c12"
+            elif categoria == "acertado":
+                bets_filtrados = [p for p in historial if p.get("acierto") == True]
+                titulo = "✅ APUESTAS ACERTADAS"
+                color_titulo = "#27ae60"
+            elif categoria == "fallado":
+                bets_filtrados = [p for p in historial if p.get("acierto") == False]
+                titulo = "❌ APUESTAS FALLADAS"
+                color_titulo = "#e74c3c"
+            else:
+                return
+            
+            canvas = tk.Canvas(frame_resultados, bg="#ecf0f1")
+            scrollbar = ttk.Scrollbar(frame_resultados, orient="vertical", command=canvas.yview)
+            scrollable_frame = tk.Frame(canvas, bg="#ecf0f1")
+            
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+            
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+            
+            titulo_label = tk.Label(scrollable_frame, text=titulo, 
+                                   bg="#ecf0f1", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
+            titulo_label.pack(pady=(10, 20))
+            
+            if not bets_filtrados:
+                no_bets_label = tk.Label(scrollable_frame, text=f"No hay apuestas en esta categoría", 
+                                        bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                no_bets_label.pack(pady=20)
+            else:
+                for i, bet in enumerate(bets_filtrados):
+                    bet_frame = tk.Frame(scrollable_frame, bg="white", relief='ridge', bd=1)
+                    bet_frame.pack(fill='x', pady=5, padx=10)
+                    
+                    partido_text = f"⚽ {bet.get('partido', 'N/A')}"
+                    partido_label = tk.Label(bet_frame, text=partido_text, bg="white", 
+                                           font=('Segoe UI', 11, 'bold'), anchor='w')
+                    partido_label.pack(fill='x', padx=10, pady=(5, 0))
+                    
+                    prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
+                    prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 
+                                              font=('Segoe UI', 10), anchor='w')
+                    prediccion_label.pack(fill='x', padx=10)
+                    
+                    fecha_text = f"📅 {bet.get('fecha', 'N/A')}"
+                    if bet.get('fecha_actualizacion'):
+                        fecha_text += f" | 🔄 Actualizado: {bet.get('fecha_actualizacion', '')[:10]}"
+                    fecha_label = tk.Label(bet_frame, text=fecha_text, bg="white", 
+                                         font=('Segoe UI', 9), fg="#7f8c8d", anchor='w')
+                    fecha_label.pack(fill='x', padx=10)
+                    
+                    if bet.get("resultado_real"):
+                        resultado = bet["resultado_real"]
+                        if categoria == "acertado":
+                            ganancia_text = f"💰 Ganancia: ${bet.get('ganancia', 0):.2f}"
+                            ganancia_label = tk.Label(bet_frame, text=ganancia_text, bg="white", 
+                                                    font=('Segoe UI', 10, 'bold'), fg="#27ae60", anchor='w')
+                            ganancia_label.pack(fill='x', padx=10, pady=(0, 5))
+                        elif categoria == "fallado":
+                            perdida_text = f"💸 Pérdida: ${bet.get('ganancia', 0):.2f}"
+                            perdida_label = tk.Label(bet_frame, text=perdida_text, bg="white", 
+                                                   font=('Segoe UI', 10, 'bold'), fg="#e74c3c", anchor='w')
+                            perdida_label.pack(fill='x', padx=10, pady=(0, 5))
+                        
+                        if 'corner' in bet.get('prediccion', '').lower():
+                            corners_text = f"🚩 Corners: {resultado.get('total_corners', 'N/A')} total"
+                        else:
+                            corners_text = f"⚽ Resultado: {resultado.get('home_score', 0)}-{resultado.get('away_score', 0)}"
+                        
+                        resultado_label = tk.Label(bet_frame, text=corners_text, bg="white", 
+                                                 font=('Segoe UI', 9), fg="#34495e", anchor='w')
+                        resultado_label.pack(fill='x', padx=10, pady=(0, 5))
+            
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+            
+            count_text = f" ({len(bets_filtrados)} apuestas)"
+            titulo_label.config(text=titulo + count_text)
+        
+        btn_pendientes = tk.Button(frame_categorias, text="⏳ Pendientes", 
+                                  command=lambda: mostrar_bets_por_categoria("pendiente"), 
+                                  bg="#f39c12", fg="white", font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_pendientes.pack(side='left', padx=(0, 10))
+        
+        btn_acertados = tk.Button(frame_categorias, text="✅ Acertados", 
+                                 command=lambda: mostrar_bets_por_categoria("acertado"), 
+                                 bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_acertados.pack(side='left', padx=(0, 10))
+        
+        btn_fallados = tk.Button(frame_categorias, text="❌ Fallados", 
+                                command=lambda: mostrar_bets_por_categoria("fallado"), 
+                                bg="#e74c3c", fg="white", font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
+        btn_fallados.pack(side='left')
+        
         frame_resultados = tk.Frame(frame_principal, bg="#ecf0f1", relief='ridge', bd=2)
         frame_resultados.pack(fill='both', expand=True)
         

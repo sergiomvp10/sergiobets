@@ -1,16 +1,16 @@
 {
-    "fecha": "2025-08-08",
+    "fecha": "2025-08-04",
     "predicciones": [
         {
-            "partido": "Atlético Nacional vs Alianza Petrolera",
-            "liga": "Liga Colombiana",
-            "hora": "13:30",
-            "prediccion": "Más de 1.5 goles",
-            "cuota": 1.35,
+            "partido": "Athletic Club vs Atlético GO",
+            "liga": "Brasileirão",
+            "hora": "15:00",
+            "prediccion": "Más de 8.5 corners",
+            "cuota": 1.4,
             "stake_recomendado": 10,
-            "confianza": 87.1,
-            "valor_esperado": 0.176,
-            "razon": "Modelo predictivo estima 3.6 goles. Rendimiento ofensivo equipos favorece línea. VE: +17.6%",
+            "confianza": 86.2,
+            "valor_esperado": 0.207,
+            "razon": "Promedio corners equipos: 1.1x media liga. Estilo de juego favorece línea. VE: +20.7%",
             "opcion_numero": 1,
             "total_opciones": 2
         }

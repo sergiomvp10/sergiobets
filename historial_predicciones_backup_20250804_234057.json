@@ -1,0 +1,59 @@
+[
+    {
+        "fecha": "2025-08-04",
+        "partido": "Athletic Club vs Atlético GO",
+        "liga": "Brasileirão",
+        "prediccion": "Más de 8.5 corners",
+        "cuota": 1.4,
+        "stake": 10,
+        "valor_esperado": 0.207,
+        "confianza": 86.2,
+        "timestamp": "2025-08-04T15:42:00.831295",
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 0,
+            "corners_away": 0,
+            "total_corners": 0,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-04T17:08:07.219625"
+    },
+    {
+        "fecha": "2025-08-04",
+        "partido": "Athletic Club vs Atlético GO",
+        "liga": "Brasileirão",
+        "prediccion": "Más de 8.5 corners",
+        "cuota": 1.4,
+        "stake": 10,
+        "valor_esperado": 0.207,
+        "confianza": 86.2,
+        "timestamp": "2025-08-04T16:34:20.570309",
+        "sent_to_telegram": true,
+        "resultado_real": {
+            "match_id": 7841229,
+            "status": "complete",
+            "home_score": 0,
+            "away_score": 0,
+            "total_goals": 0,
+            "corners_home": 0,
+            "corners_away": 0,
+            "total_corners": 0,
+            "cards_home": 0,
+            "cards_away": 0,
+            "total_cards": 0,
+            "resultado_1x2": "X"
+        },
+        "ganancia": -10,
+        "acierto": false,
+        "fecha_actualizacion": "2025-08-04T17:08:07.220601"
+    }
+]
