@@ -216,10 +216,19 @@ def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Di
 
 def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     """Análisis completo de un partido con múltiples mercados y contexto determinístico"""
+    from league_utils import detectar_liga_por_imagen
+    
     cuotas = partido.get("cuotas", {})
     local = partido.get('local', 'Local')
     visitante = partido.get('visitante', 'Visitante')
     fecha = partido.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+    
+    liga = partido.get("liga")
+    if not liga or liga == "Desconocida":
+        home_image = partido.get('home_image', '')
+        away_image = partido.get('away_image', '')
+        liga_detectada = detectar_liga_por_imagen(home_image, away_image)
+        liga = liga_detectada if liga_detectada != "Liga Internacional" else "Desconocida"
     
     semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
     
@@ -235,7 +244,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     
     return {
         "partido": f"{local} vs {visitante}",
-        "liga": partido.get("liga", "Desconocida"),
+        "liga": liga,
         "hora": partido.get("hora", "00:00"),
         "probabilidades_1x2": prob_1x2,
         "probabilidades_btts": prob_btts,
