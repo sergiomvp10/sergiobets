@@ -826,24 +826,17 @@ class SergioBetsUnified:
             frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
             frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
             
-            frame_izquierdo = tk.Frame(frame_principal, bg="#2c3e50")
-            frame_izquierdo.pack(side='left', fill='both', expand=True, padx=(0, 10))
-            
-            frame_estadisticas = tk.Frame(frame_principal, bg="#ecf0f1", width=300, relief='ridge', bd=2)
-            frame_estadisticas.pack(side='right', fill='y', padx=(10, 0))
-            frame_estadisticas.pack_propagate(False)
-            
-            titulo = tk.Label(frame_izquierdo, text="📊 TRACK RECORD DE PREDICCIONES", 
+            titulo = tk.Label(frame_principal, text="📊 TRACK RECORD DE PREDICCIONES", 
                              bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
             titulo.pack(pady=(0, 20))
             
-            frame_filtros = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_filtros = tk.Frame(frame_principal, bg="#2c3e50")
             frame_filtros.pack(fill='x', pady=(0, 10))
             
-            frame_fechas = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_fechas = tk.Frame(frame_principal, bg="#2c3e50")
             frame_fechas.pack(fill='x', pady=(0, 10))
             
-            frame_acciones = tk.Frame(frame_izquierdo, bg="#2c3e50")
+            frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
             frame_acciones.pack(fill='x', pady=(0, 10))
             
             filtro_actual = tk.StringVar(value="historico")
@@ -856,7 +849,7 @@ class SergioBetsUnified:
             fecha_fin.set(hoy.strftime('%Y-%m-%d'))
             
             columns = ('fecha', 'liga', 'equipos', 'tipo_apuesta', 'cuota', 'resultado', 'estado')
-            tree = ttk.Treeview(frame_izquierdo, columns=columns, show='headings', height=20)
+            tree = ttk.Treeview(frame_principal, columns=columns, show='headings', height=20)
             
             tree.heading('fecha', text='Fecha')
             tree.heading('liga', text='Liga')
@@ -874,7 +867,7 @@ class SergioBetsUnified:
             tree.column('resultado', width=120)
             tree.column('estado', width=100)
             
-            scrollbar = ttk.Scrollbar(frame_izquierdo, orient='vertical', command=tree.yview)
+            scrollbar = ttk.Scrollbar(frame_principal, orient='vertical', command=tree.yview)
             tree.configure(yscrollcommand=scrollbar.set)
             
             tree.pack(side='left', fill='both', expand=True)
@@ -887,8 +880,9 @@ class SergioBetsUnified:
                 except:
                     historial = []
                 
-                for widget in frame_izquierdo.winfo_children():
-                    widget.destroy()
+                for widget in frame_principal.winfo_children():
+                    if widget not in [frame_filtros, frame_fechas, frame_acciones]:
+                        widget.destroy()
                 
                 historial = [p for p in historial if p.get('sent_to_telegram', False)]
                 
@@ -907,9 +901,9 @@ class SergioBetsUnified:
                 else:
                     return
                 
-                canvas = tk.Canvas(frame_izquierdo, bg="#ecf0f1")
-                scrollbar = ttk.Scrollbar(frame_izquierdo, orient="vertical", command=canvas.yview)
-                scrollable_frame = tk.Frame(canvas, bg="#ecf0f1")
+                canvas = tk.Canvas(frame_principal, bg="#2c3e50", highlightthickness=0)
+                scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
+                scrollable_frame = tk.Frame(canvas, bg="#2c3e50")
                 
                 scrollable_frame.bind(
                     "<Configure>",
@@ -920,7 +914,7 @@ class SergioBetsUnified:
                 canvas.configure(yscrollcommand=scrollbar.set)
                 
                 titulo_label = tk.Label(scrollable_frame, text=f"{titulo} ({len(bets_filtrados)} apuestas)", 
-                                       bg="#ecf0f1", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
+                                       bg="#2c3e50", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
                 titulo_label.pack(pady=(10, 20))
                 
                 def eliminar_prediccion_individual(bet_to_delete):
@@ -956,13 +950,13 @@ class SergioBetsUnified:
                 if not bets_filtrados:
                     if categoria == "pendientes":
                         no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas pendientes enviadas a Telegram", 
-                                                bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                                                bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
                     elif categoria == "acertados":
                         no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas acertadas enviadas a Telegram", 
-                                                bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                                                bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
                     else:
                         no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas falladas enviadas a Telegram", 
-                                                bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                                                bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
                     no_bets_label.pack(pady=20)
                 else:
                     for i, bet in enumerate(bets_filtrados):
@@ -1035,7 +1029,7 @@ class SergioBetsUnified:
                         historial = [p for p in historial if p.get('sent_to_telegram', False)]
                         
                         if not historial:
-                            tk.Label(frame_izquierdo, text="No hay predicciones enviadas a Telegram", 
+                            tk.Label(frame_principal, text="No hay predicciones enviadas a Telegram", 
                                    font=('Segoe UI', 12), fg="#7f8c8d", bg="#2c3e50").pack(pady=20)
                         
                         datos_filtrados = []
@@ -1078,49 +1072,10 @@ class SergioBetsUnified:
                         tree.tag_configure('evenrow', background='#f8f9fa')
                         tree.tag_configure('oddrow', background='white')
                         
-                        actualizar_estadisticas()
                         
                     except Exception as e:
                         messagebox.showerror("Error", f"Error cargando datos: {e}")
             
-            def actualizar_estadisticas():
-                """Actualiza el panel de estadísticas"""
-                for widget in frame_estadisticas.winfo_children():
-                    widget.destroy()
-                
-                tk.Label(frame_estadisticas, text="📈 ESTADÍSTICAS", 
-                        bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 14, 'bold')).pack(pady=10)
-                
-                try:
-                    metricas = tracker.calcular_metricas_rendimiento()
-                    
-                    if "error" not in metricas:
-                        stats_frame = tk.Frame(frame_estadisticas, bg="#ecf0f1")
-                        stats_frame.pack(fill='x', padx=10, pady=5)
-                        
-                        tk.Label(stats_frame, text="📊 RESUMEN GENERAL", 
-                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 12, 'bold')).pack()
-                        
-                        stats_text = f"""
-Total predicciones: {metricas['total_predicciones']}
-Resueltas: {metricas['predicciones_resueltas']}
-Pendientes: {metricas['predicciones_pendientes']}
-Aciertos: {metricas['aciertos']}
-Tasa de éxito: {metricas.get('tasa_acierto', 0):.1f}%
-
-💰 RENDIMIENTO:
-Total apostado: ${metricas['total_apostado']:.2f}
-Ganancia: ${metricas['total_ganancia']:.2f}
-ROI: {metricas['roi']:.2f}%
-"""
-                        
-                        tk.Label(stats_frame, text=stats_text, 
-                                bg="#ecf0f1", fg="#2c3e50", font=('Segoe UI', 10),
-                                justify='left').pack(pady=5)
-                    
-                except Exception as e:
-                    tk.Label(frame_estadisticas, text=f"Error: {e}", 
-                            bg="#ecf0f1", fg="red").pack(pady=10)
             
             def filtrar_pendientes():
                 filtro_actual.set("pendientes")
@@ -1250,10 +1205,6 @@ ROI: {metricas['roi']:.2f}%
                                      font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
             btn_historico.pack(side='left', padx=5)
             
-            btn_resumen = tk.Button(frame_filtros, text="📊 RESUMEN", 
-                                   command=mostrar_resumen, bg="#9b59b6", fg="white",
-                                   font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_resumen.pack(side='left', padx=5)
             
             tk.Label(frame_fechas, text="🗓️ Filtro por fechas:", 
                     bg="#2c3e50", fg="white", font=('Segoe UI', 10, 'bold')).pack(side='left')
@@ -1327,8 +1278,11 @@ ROI: {metricas['roi']:.2f}%
             def actualizar_estadisticas():
                 try:
                     stats = access_manager.obtener_estadisticas()
-                    stats_text = f"📊 Total: {stats['total_usuarios']} | 👑 Premium: {stats['usuarios_premium']} | 🆓 Gratuitos: {stats['usuarios_gratuitos']} | 📈 Premium: {stats['porcentaje_premium']:.1f}%"
-                    stats_label.config(text=stats_text)
+                    if stats and isinstance(stats, dict):
+                        stats_text = f"📊 Total: {stats.get('total_usuarios', 0)} | 👑 Premium: {stats.get('usuarios_premium', 0)} | 🆓 Gratuitos: {stats.get('usuarios_gratuitos', 0)} | 📈 Premium: {stats.get('porcentaje_premium', 0):.1f}%"
+                        stats_label.config(text=stats_text)
+                    else:
+                        stats_label.config(text="📊 Estadísticas no disponibles")
                 except Exception as e:
                     stats_label.config(text=f"❌ Error cargando estadísticas: {e}")
             
@@ -1339,34 +1293,39 @@ ROI: {metricas['roi']:.2f}%
                     text_area.delete('1.0', tk.END)
                     text_area.config(state='normal')
                     
-                    if usuarios:
+                    if usuarios and isinstance(usuarios, list):
                         text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
                         text_area.insert(tk.END, "="*90 + "\n")
                         
                         for usuario in usuarios:
-                            user_id = usuario.get('user_id', 'N/A')
-                            username = usuario.get('username', 'N/A')[:19]
-                            first_name = usuario.get('first_name', 'N/A')[:19]
-                            premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
-                            
-                            expira = "N/A"
-                            if usuario.get('fecha_expiracion'):
-                                try:
-                                    from datetime import datetime
-                                    fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                    expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
-                                except:
-                                    expira = "Error fecha"
-                            
-                            linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
-                            text_area.insert(tk.END, linea)
+                            if usuario and isinstance(usuario, dict):
+                                user_id = usuario.get('user_id', 'N/A')
+                                username = usuario.get('username', 'N/A')[:19]
+                                first_name = usuario.get('first_name', 'N/A')[:19]
+                                premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
+                                
+                                expira = "N/A"
+                                if usuario.get('fecha_expiracion'):
+                                    try:
+                                        from datetime import datetime
+                                        fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
+                                        expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                    except:
+                                        expira = "Error fecha"
+                                
+                                linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
+                                text_area.insert(tk.END, linea)
                     else:
-                        text_area.insert('1.0', "No hay usuarios registrados.")
+                        text_area.insert('1.0', "No hay usuarios registrados o datos no disponibles.")
                     
                     text_area.config(state='disabled')
                     actualizar_estadisticas()
                 except Exception as e:
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error cargando usuarios: {e}")
+                    text_area.config(state='disabled')
             
             def otorgar_acceso():
                 user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
