@@ -514,8 +514,6 @@ class SergioBetsUnified:
                     self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                     self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
 
-            self.output.insert(tk.END, f"✅ Búsqueda completada para {fecha}\n")
-            self.output.insert(tk.END, f"📊 {len(partidos_filtrados)} partidos encontrados\n")
             self.output.insert(tk.END, f"🎯 {len(predicciones_ia)} predicciones generadas\n")
 
             self.guardar_datos_json(fecha)
