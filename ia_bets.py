@@ -584,9 +584,10 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
 def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None:
     """Guarda predicción en el historial para seguimiento futuro"""
     try:
-        from json_storage import guardar_json, cargar_json
+        from json_storage import guardar_json, cargar_json, clear_json_cache
         
-        historial = cargar_json("historial_predicciones.json") or []
+        historial_data = cargar_json("historial_predicciones.json")
+        historial = historial_data if historial_data is not None else []
         
         registro = {
             "fecha": fecha,
@@ -604,6 +605,7 @@ def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None
         }
         
         historial.append(registro)
+        clear_json_cache("historial_predicciones.json")
         guardar_json("historial_predicciones.json", historial)
         
     except Exception as e:
