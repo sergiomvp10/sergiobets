@@ -2,17 +2,19 @@
     "fecha": "2025-08-04",
     "predicciones": [
         {
-            "partido": "Athletic Club vs Atlético GO",
-            "liga": "Brasileirão",
+            "partido": "Universidad Chile vs Cobresal",
+            "liga": "Primera División Chile",
             "hora": "15:00",
-            "prediccion": "Más de 8.5 corners",
-            "cuota": 1.4,
+            "prediccion": "Ambos equipos marcan - NO",
+            "cuota": 1.55,
             "stake_recomendado": 10,
-            "confianza": 86.2,
-            "valor_esperado": 0.207,
-            "razon": "Promedio corners equipos: 1.1x media liga. Estilo de juego favorece línea. VE: +20.7%",
+            "confianza": 75.0,
+            "valor_esperado": 0.163,
+            "razon": "Análisis estadístico indica 75.0% probabilidad. Promedio goles: 1.3 + 1.2. VE: +16.3%",
             "opcion_numero": 1,
-            "total_opciones": 2
+            "total_opciones": 2,
+            "sent_to_telegram": true,
+            "fecha_envio_telegram": "2025-08-05T23:22:40.955594"
         }
     ]
 }

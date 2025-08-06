@@ -3,32 +3,32 @@
     "user_id": "7659029315",
     "username": "n3utro6",
     "first_name": "No",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-08-12T20:47:26.805782",
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
     "user_id": "6286055084",
     "username": "Sie7e0",
     "first_name": "Left",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-08-12T22:55:43.433594",
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
     "user_id": "6937898258",
-    "username": "sin_username",
+    "username": null,
     "first_name": "Juli",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-08-12T21:46:51.687605",
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
     "user_id": "7173680564",
     "username": "jhgocho2",
     "first_name": "Jh",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-08-06T21:37:26.838205",
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
@@ -43,8 +43,8 @@
     "user_id": "7356807202",
     "username": "sin_username",
     "first_name": "Catalina",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-08-06T21:29:39.788298",
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
