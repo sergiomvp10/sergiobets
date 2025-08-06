@@ -6,7 +6,7 @@ Clean track record to remove predictions not sent to Telegram
 import json
 import shutil
 from datetime import datetime
-from json_storage import cargar_json, guardar_json
+from json_storage import cargar_json, guardar_json, clear_json_cache
 
 def clean_track_record():
     """Clean historical predictions to keep only Telegram-sent ones"""
@@ -43,6 +43,7 @@ def clean_track_record():
             except:
                 pass
     
+    clear_json_cache("historial_predicciones.json")
     guardar_json("historial_predicciones.json", cleaned_historial)
     
     print(f"✅ Cleaned predictions: {len(cleaned_historial)}")

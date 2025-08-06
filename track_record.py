@@ -187,6 +187,8 @@ class TrackRecordManager:
             predicciones_corregidas = []
             
             for prediccion in historial:
+                if not isinstance(prediccion, dict):
+                    continue
                 resultado_real = prediccion.get("resultado_real")
                 
                 if resultado_real is not None:
@@ -210,6 +212,8 @@ class TrackRecordManager:
                         correcciones += 1
             
             if correcciones > 0:
+                from json_storage import clear_json_cache
+                clear_json_cache(self.historial_file)
                 guardar_json(self.historial_file, historial)
                 print(f"Corregidas {correcciones} predicciones con estados de partido inválidos")
                 
@@ -241,7 +245,7 @@ class TrackRecordManager:
             errores = 0
             partidos_incompletos = 0
             
-            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
+            predicciones_pendientes = [p for p in historial if isinstance(p, dict) and p.get("resultado_real") is None]
             
             if not predicciones_pendientes:
                 return {
@@ -319,6 +323,8 @@ class TrackRecordManager:
                     errores += len(match_data["predicciones"])
                     continue
             
+            from json_storage import clear_json_cache
+            clear_json_cache(self.historial_file)
             guardar_json(self.historial_file, historial)
             
             print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos")
@@ -348,7 +354,7 @@ class TrackRecordManager:
             if not historial:
                 return {"error": "No hay historial disponible"}
             
-            con_resultado = [p for p in historial if p.get("resultado_real") is not None]
+            con_resultado = [p for p in historial if isinstance(p, dict) and p.get("resultado_real") is not None]
             
             if not con_resultado:
                 return {
@@ -359,14 +365,16 @@ class TrackRecordManager:
             
             total_predicciones = len(historial)
             predicciones_resueltas = len(con_resultado)
-            aciertos = [p for p in con_resultado if p.get("acierto", False)]
+            aciertos = [p for p in con_resultado if isinstance(p, dict) and p.get("acierto", False)]
             
-            total_apostado = sum(p["stake"] for p in con_resultado)
-            total_ganancia = sum(p.get("ganancia", 0) for p in con_resultado)
+            total_apostado = sum(p.get("stake", 0) for p in con_resultado if isinstance(p, dict) and "stake" in p)
+            total_ganancia = sum(p.get("ganancia", 0) for p in con_resultado if isinstance(p, dict))
             roi = (total_ganancia / total_apostado * 100) if total_apostado > 0 else 0
             
             tipos_apuesta = {}
             for pred in con_resultado:
+                if not isinstance(pred, dict) or "prediccion" not in pred:
+                    continue
                 tipo = pred["prediccion"]
                 if tipo not in tipos_apuesta:
                     tipos_apuesta[tipo] = {"total": 0, "aciertos": 0, "ganancia": 0}
@@ -389,7 +397,7 @@ class TrackRecordManager:
                 "total_apostado": total_apostado,
                 "total_ganancia": total_ganancia,
                 "roi": roi,
-                "valor_esperado_promedio": sum(p["valor_esperado"] for p in historial) / total_predicciones,
+                "valor_esperado_promedio": sum(p.get("valor_esperado", 0) for p in historial if isinstance(p, dict) and "valor_esperado" in p) / max(1, len([p for p in historial if isinstance(p, dict) and "valor_esperado" in p])),
                 "tipos_apuesta": tipos_apuesta,
                 "fecha_calculo": datetime.now().isoformat()
             }
