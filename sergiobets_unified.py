@@ -890,6 +890,8 @@ class SergioBetsUnified:
                 for widget in frame_izquierdo.winfo_children():
                     widget.destroy()
                 
+                historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                
                 if categoria == "pendientes":
                     bets_filtrados = [p for p in historial if p.get("resultado_real") is None or p.get("acierto") is None]
                     titulo = "⏳ APUESTAS PENDIENTES"
@@ -952,8 +954,15 @@ class SergioBetsUnified:
                             messagebox.showerror("Error", f"Error eliminando predicción: {e}")
                 
                 if not bets_filtrados:
-                    no_bets_label = tk.Label(scrollable_frame, text=f"No hay apuestas en esta categoría", 
-                                            bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                    if categoria == "pendientes":
+                        no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas pendientes enviadas a Telegram", 
+                                                bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                    elif categoria == "acertados":
+                        no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas acertadas enviadas a Telegram", 
+                                                bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
+                    else:
+                        no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas falladas enviadas a Telegram", 
+                                                bg="#ecf0f1", fg="#7f8c8d", font=('Segoe UI', 12))
                     no_bets_label.pack(pady=20)
                 else:
                     for i, bet in enumerate(bets_filtrados):
@@ -1024,6 +1033,10 @@ class SergioBetsUnified:
                         historial = cargar_json('historial_predicciones.json') or []
                         
                         historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                        
+                        if not historial:
+                            tk.Label(frame_izquierdo, text="No hay predicciones enviadas a Telegram", 
+                                   font=('Segoe UI', 12), fg="#7f8c8d", bg="#2c3e50").pack(pady=20)
                         
                         datos_filtrados = []
                         
@@ -1148,30 +1161,44 @@ ROI: {metricas['roi']:.2f}%
             
             def actualizar_resultados():
                 """Actualizar resultados desde la API de forma rápida y silenciosa"""
-                btn_actualizar.config(state='disabled', text="🔄 Actualizando...")
-                ventana_track.update()
+                import threading
                 
-                try:
-                    resultado = tracker.actualizar_historial_con_resultados()
-                    
-                    filtro = filtro_actual.get()
-                    if filtro in ["pendientes", "acertados", "fallados"]:
-                        mostrar_bets_por_categoria(filtro)
-                    else:
-                        cargar_datos_filtrados()
-                    
-                    if resultado.get('actualizaciones', 0) > 0:
-                        btn_actualizar.config(text=f"✅ {resultado['actualizaciones']} actualizadas")
-                        ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
-                    else:
-                        btn_actualizar.config(text="✅ Sin cambios")
-                        ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                def update_in_thread():
+                    try:
+                        resultado = tracker.actualizar_historial_con_resultados()
                         
-                except Exception as e:
-                    btn_actualizar.config(text="❌ Error")
-                    ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
-                finally:
-                    btn_actualizar.config(state='normal')
+                        def update_gui():
+                            try:
+                                filtro = filtro_actual.get()
+                                if filtro in ["pendientes", "acertados", "fallados"]:
+                                    mostrar_bets_por_categoria(filtro)
+                                else:
+                                    cargar_datos_filtrados()
+                                
+                                if resultado.get('actualizaciones', 0) > 0:
+                                    btn_actualizar.config(text=f"✅ {resultado['actualizaciones']} actualizadas")
+                                    ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                                else:
+                                    btn_actualizar.config(text="✅ Sin cambios")
+                                    ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                            except Exception as e:
+                                btn_actualizar.config(text="❌ Error GUI")
+                                ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                            finally:
+                                btn_actualizar.config(state='normal')
+                        
+                        ventana_track.after(0, update_gui)
+                        
+                    except Exception as e:
+                        def show_error():
+                            btn_actualizar.config(text="❌ Error API", state='normal')
+                            ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                        
+                        ventana_track.after(0, show_error)
+                
+                btn_actualizar.config(state='disabled', text="🔄 Actualizando...")
+                thread = threading.Thread(target=update_in_thread, daemon=True)
+                thread.start()
             
             def actualizar_automatico():
                 """Actualiza resultados automáticamente al abrir track record"""
@@ -1183,7 +1210,7 @@ ROI: {metricas['roi']:.2f}%
                         if resultado.get('actualizaciones', 0) > 0:
                             ventana_track.after(0, cargar_datos_filtrados)
                     except Exception as e:
-                        print(f"Error en actualización automática: {e}")
+                        pass
                 
                 thread = threading.Thread(target=update_in_background, daemon=True)
                 thread.start()
