@@ -587,7 +587,10 @@ def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None
         from json_storage import guardar_json, cargar_json, clear_json_cache
         
         historial_data = cargar_json("historial_predicciones.json")
-        historial = historial_data if historial_data is not None else []
+        if isinstance(historial_data, list):
+            historial = historial_data
+        else:
+            historial = []
         
         registro = {
             "fecha": fecha,

@@ -210,7 +210,9 @@ class TrackRecordManager:
                         correcciones += 1
             
             if correcciones > 0:
-                guardar_json(self.historial_file, historial)
+                from json_storage import clear_json_cache
+            clear_json_cache(self.historial_file)
+            guardar_json(self.historial_file, historial)
                 print(f"Corregidas {correcciones} predicciones con estados de partido inválidos")
                 
                 for correccion in predicciones_corregidas:
@@ -319,6 +321,8 @@ class TrackRecordManager:
                     errores += len(match_data["predicciones"])
                     continue
             
+            from json_storage import clear_json_cache
+            clear_json_cache(self.historial_file)
             guardar_json(self.historial_file, historial)
             
             print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos")
