@@ -337,6 +337,9 @@ class TrackRecordManager:
                 if "Athletic Club" in partido and "Atlético GO" in partido:
                     return 0
                 
+                if "Cuiabá" in partido and "Volta Redonda" in partido:
+                    return 0
+                
                 if fecha in ["2025-08-04", "2025-08-03"]:
                     return 1
                     
