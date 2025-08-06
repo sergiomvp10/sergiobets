@@ -5,7 +5,7 @@ def detectar_liga_por_imagen(home_image, away_image):
     Detecta la liga basándose en las rutas de imágenes de los equipos
     """
     if home_image and 'colombia' in home_image.lower():
-        return "Liga Colombiana"
+        return "Copa Colombia"
     elif home_image and 'chile' in home_image.lower():
         return "Primera División Chile"
     elif home_image and 'spain' in home_image.lower():
