@@ -46,6 +46,7 @@ class TrackRecordManager:
                     "timezone": "America/Bogota"
                 }
                 
+                print(f"API call: {endpoint} with date={date_to_try}")
                 response = requests.get(endpoint, params=params, timeout=timeout)
                 if response.status_code != 200:
                     print(f"Error API for {date_to_try}: {response.status_code}")
@@ -53,21 +54,33 @@ class TrackRecordManager:
                 
                 data = response.json()
                 partidos = data.get("data", [])
+                print(f"API returned {len(partidos)} matches for {date_to_try}")
+                
+                for i, partido in enumerate(partidos[:3]):
+                    print(f"  Match {i+1}: {partido.get('home_name')} vs {partido.get('away_name')}")
                 
                 for partido in partidos:
                     home_name = partido.get("home_name", "").lower()
                     away_name = partido.get("away_name", "").lower()
                     
+                    equipo_local_clean = equipo_local.lower().strip()
+                    equipo_visitante_clean = equipo_visitante.lower().strip()
+                    home_name_clean = home_name.strip()
+                    away_name_clean = away_name.strip()
+                    
                     local_match = (
-                        equipo_local.lower() in home_name or 
-                        home_name in equipo_local.lower() or
-                        any(word in home_name for word in equipo_local.lower().split() if len(word) > 3)
+                        equipo_local_clean in home_name_clean or 
+                        home_name_clean in equipo_local_clean or
+                        any(word in home_name_clean for word in equipo_local_clean.split() if len(word) > 3) or
+                        (equipo_local_clean.startswith('athletic') and 'athletic' in home_name_clean) or
+                        (equipo_local_clean.startswith('atletico') and 'atletico' in home_name_clean)
                     )
                     
                     visitante_match = (
-                        equipo_visitante.lower() in away_name or 
-                        away_name in equipo_visitante.lower() or
-                        any(word in away_name for word in equipo_visitante.lower().split() if len(word) > 3)
+                        equipo_visitante_clean in away_name_clean or 
+                        away_name_clean in equipo_visitante_clean or
+                        any(word in away_name_clean for word in equipo_visitante_clean.split() if len(word) > 3) or
+                        (equipo_visitante_clean.startswith('atletico') and 'atletico' in away_name_clean)
                     )
                     
                     if local_match and visitante_match:

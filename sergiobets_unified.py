@@ -1290,8 +1290,14 @@ class SergioBetsUnified:
             
             try:
                 from access_manager import access_manager
+                if not access_manager or not hasattr(access_manager, 'listar_usuarios'):
+                    messagebox.showerror("Error", "Sistema de usuarios no está configurado correctamente.")
+                    return
             except ImportError:
                 messagebox.showerror("Error", "Módulo access_manager no encontrado.\nEsta funcionalidad no está disponible.")
+                return
+            except Exception as e:
+                messagebox.showerror("Error", f"Error cargando sistema de usuarios: {e}")
                 return
             
             ventana_usuarios = tk.Toplevel(self.root)
