@@ -1147,7 +1147,7 @@ class SergioBetsUnified:
                 
                 def update_in_thread():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados()
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=5, timeout_per_match=10)
                         
                         def update_gui():
                             try:
@@ -1157,12 +1157,24 @@ class SergioBetsUnified:
                                 else:
                                     cargar_datos_filtrados()
                                 
-                                if resultado.get('actualizaciones', 0) > 0:
-                                    btn_actualizar.config(text=f"✅ {resultado['actualizaciones']} actualizadas")
-                                    ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                                actualizaciones = resultado.get('actualizaciones', 0)
+                                timeouts = resultado.get('timeouts', 0)
+                                restantes = resultado.get('matches_restantes', 0)
+                                
+                                if actualizaciones > 0:
+                                    text = f"✅ {actualizaciones} actualizadas"
+                                    if restantes > 0:
+                                        text += f" ({restantes} pendientes)"
+                                    btn_actualizar.config(text=text)
+                                elif timeouts > 0:
+                                    btn_actualizar.config(text=f"⏰ {timeouts} timeouts")
+                                elif restantes > 0:
+                                    btn_actualizar.config(text=f"⏳ {restantes} pendientes")
                                 else:
                                     btn_actualizar.config(text="✅ Sin cambios")
-                                    ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                                
+                                ventana_track.after(3000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
+                                
                             except Exception as e:
                                 btn_actualizar.config(text="❌ Error GUI")
                                 ventana_track.after(2000, lambda: btn_actualizar.config(text="🔄 Actualizar Resultados"))
@@ -1188,7 +1200,7 @@ class SergioBetsUnified:
                 
                 def update_in_background():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados()
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=3, timeout_per_match=8)
                         if resultado.get('actualizaciones', 0) > 0:
                             ventana_track.after(0, cargar_datos_filtrados)
                     except Exception as e:

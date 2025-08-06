@@ -21,9 +21,9 @@ class TrackRecordManager:
         self.base_url = base_url
         self.historial_file = "historial_predicciones.json"
     
-    def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str) -> Optional[Dict[str, Any]]:
+    def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 10) -> Optional[Dict[str, Any]]:
         """
-        Obtiene el resultado de un partido específico de la API
+        Obtiene el resultado de un partido específico de la API con timeout
         """
         try:
             endpoint = f"{self.base_url}/todays-matches"
@@ -46,7 +46,7 @@ class TrackRecordManager:
                     "timezone": "America/Bogota"
                 }
                 
-                response = requests.get(endpoint, params=params)
+                response = requests.get(endpoint, params=params, timeout=timeout)
                 if response.status_code != 200:
                     print(f"Error API for {date_to_try}: {response.status_code}")
                     continue
@@ -111,6 +111,9 @@ class TrackRecordManager:
             print(f"No match found for {equipo_local} vs {equipo_visitante} on any date")
             return None
             
+        except requests.exceptions.Timeout:
+            print(f"Timeout obteniendo resultado del partido {equipo_local} vs {equipo_visitante}")
+            return None
         except Exception as e:
             print(f"Error obteniendo resultado: {e}")
             return None
@@ -250,10 +253,10 @@ class TrackRecordManager:
             print(f"Error corrigiendo datos históricos: {e}")
             return {"error": str(e)}
 
-    def actualizar_historial_con_resultados(self) -> Dict[str, Any]:
+    def actualizar_historial_con_resultados(self, max_matches=10, timeout_per_match=15) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
-        Optimizado para procesar matches únicos y evitar crashes por exceso de API calls
+        Optimizado para evitar colgados con límites y timeouts
         """
         try:
             import time
@@ -264,6 +267,7 @@ class TrackRecordManager:
             actualizaciones = 0
             errores = 0
             partidos_incompletos = 0
+            timeouts = 0
             
             predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
             
@@ -292,51 +296,64 @@ class TrackRecordManager:
                     }
                 matches_unicos[key]["predicciones"].append(prediccion)
             
-            print(f"Procesando {len(matches_unicos)} matches únicos para {len(predicciones_pendientes)} predicciones...")
+            matches_to_process = list(matches_unicos.items())[:max_matches]
             
-            for i, (key, match_data) in enumerate(matches_unicos.items()):
+            print(f"Procesando {len(matches_to_process)} matches (máximo {max_matches}) de {len(matches_unicos)} únicos para {len(predicciones_pendientes)} predicciones...")
+            
+            for i, (key, match_data) in enumerate(matches_to_process):
                 try:
-                    print(f"Procesando {i+1}/{len(matches_unicos)}: {match_data['partido']}")
+                    print(f"Procesando {i+1}/{len(matches_to_process)}: {match_data['partido']}")
                     print(f"  Buscando: {match_data['equipo_local']} vs {match_data['equipo_visitante']} en {match_data['fecha']}")
                     
                     if i > 0:
-                        time.sleep(2)
+                        time.sleep(1)
                     
-                    resultado = self.obtener_resultado_partido(
-                        match_data["fecha"],
-                        match_data["equipo_local"],
-                        match_data["equipo_visitante"]
-                    )
-                    
-                    if resultado:
-                        print(f"  ✅ Resultado encontrado: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
-                        for prediccion in match_data["predicciones"]:
-                            try:
-                                validation_result = self.validar_prediccion(prediccion, resultado)
-                                
-                                if validation_result == (None, None):
-                                    print(f"    ⏳ Predicción '{prediccion['prediccion']}': DATA PENDING (corner data not available)")
-                                    continue
-                                
-                                acierto, ganancia = validation_result
-                                
-                                prediccion["resultado_real"] = resultado
-                                prediccion["ganancia"] = ganancia
-                                prediccion["acierto"] = acierto
-                                prediccion["fecha_actualizacion"] = datetime.now().isoformat()
-                                
-                                actualizaciones += 1
-                                print(f"    ✅ Predicción '{prediccion['prediccion']}': {'WIN' if acierto else 'LOSS'} (${ganancia:.2f})")
-                                
-                            except Exception as e:
-                                print(f"    ❌ Error validando predicción {prediccion.get('prediccion', 'Unknown')}: {e}")
-                                errores += 1
+                    try:
+                        resultado = self.obtener_resultado_partido(
+                            match_data["fecha"],
+                            match_data["equipo_local"],
+                            match_data["equipo_visitante"],
+                            timeout=timeout_per_match
+                        )
                         
-                        print(f"  ✅ Match actualizado: {len(match_data['predicciones'])} predicciones procesadas")
-                    else:
-                        partidos_incompletos += 1
+                        if resultado:
+                            print(f"  ✅ Resultado encontrado: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
+                            for prediccion in match_data["predicciones"]:
+                                try:
+                                    validation_result = self.validar_prediccion(prediccion, resultado)
+                                    
+                                    if validation_result == (None, None):
+                                        print(f"    ⏳ Predicción '{prediccion['prediccion']}': DATA PENDING (corner data not available)")
+                                        continue
+                                    
+                                    acierto, ganancia = validation_result
+                                    
+                                    prediccion["resultado_real"] = resultado
+                                    prediccion["ganancia"] = ganancia
+                                    prediccion["acierto"] = acierto
+                                    prediccion["fecha_actualizacion"] = datetime.now().isoformat()
+                                    
+                                    actualizaciones += 1
+                                    print(f"    ✅ Predicción '{prediccion['prediccion']}': {'WIN' if acierto else 'LOSS'} (${ganancia:.2f})")
+                                    
+                                except Exception as e:
+                                    print(f"    ❌ Error validando predicción {prediccion.get('prediccion', 'Unknown')}: {e}")
+                                    errores += 1
+                            
+                            print(f"  ✅ Match actualizado: {len(match_data['predicciones'])} predicciones procesadas")
+                        else:
+                            partidos_incompletos += 1
+                            errores += len(match_data["predicciones"])
+                            print(f"  ⏳ Match incompleto: {len(match_data['predicciones'])} predicciones pendientes")
+                    
+                    except Exception as e:
+                        if "timeout" in str(e).lower():
+                            timeouts += 1
+                            print(f"  ⏰ Timeout procesando match {match_data['partido']} (>{timeout_per_match}s)")
+                        else:
+                            print(f"  ❌ Error procesando match {match_data['partido']}: {e}")
                         errores += len(match_data["predicciones"])
-                        print(f"  ⏳ Match incompleto: {len(match_data['predicciones'])} predicciones pendientes")
+                        continue
                         
                 except Exception as e:
                     print(f"  ❌ Error procesando match {match_data['partido']}: {e}")
@@ -345,15 +362,20 @@ class TrackRecordManager:
             
             guardar_json(self.historial_file, historial)
             
-            print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos")
+            remaining_matches = len(matches_unicos) - len(matches_to_process)
+            print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos, {timeouts} timeouts")
+            if remaining_matches > 0:
+                print(f"⏳ {remaining_matches} matches restantes - ejecutar nuevamente para continuar")
             
             return {
                 "actualizaciones": actualizaciones,
                 "errores": errores,
                 "partidos_incompletos": partidos_incompletos,
+                "timeouts": timeouts,
                 "correcciones_historicas": correccion_result.get("correcciones", 0),
                 "total_procesadas": len(predicciones_pendientes),
-                "matches_procesados": len(matches_unicos)
+                "matches_procesados": len(matches_to_process),
+                "matches_restantes": remaining_matches
             }
             
         except Exception as e:
