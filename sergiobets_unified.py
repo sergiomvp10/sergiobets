@@ -1377,18 +1377,15 @@ class SergioBetsUnified:
                         text_area.insert(tk.END, "No hay usuarios registrados o datos no disponibles.")
                     
                 except AttributeError as e:
-                    text_area.delete('1.0', tk.END)
-                    text_area.insert(tk.END, f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.insert(tk.END, f"\nError: Módulo access_manager no configurado - {e}")
                     messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
                     print(f"AttributeError en refrescar_usuarios: {e}")
                 except TypeError as e:
-                    text_area.delete('1.0', tk.END)
-                    text_area.insert(tk.END, f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.insert(tk.END, f"\nError: Datos de usuarios inválidos - {e}")
                     messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
                     print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
-                    text_area.delete('1.0', tk.END)
-                    text_area.insert(tk.END, f"Error cargando usuarios: {e}")
+                    text_area.insert(tk.END, f"\nError cargando usuarios: {e}")
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
                     print(f"Error en refrescar_usuarios: {e}")
                     import traceback
