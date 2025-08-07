@@ -684,12 +684,13 @@ class TrackRecordManager:
             return {
                 "total_predicciones": total_predicciones,
                 "predicciones_resueltas": predicciones_resueltas,
+                "predicciones_pendientes": total_predicciones - predicciones_resueltas,
                 "aciertos": len(aciertos),
-                "tasa_acierto": len(aciertos) / predicciones_resueltas * 100,
+                "tasa_acierto": len(aciertos) / predicciones_resueltas * 100 if predicciones_resueltas > 0 else 0,
                 "total_apostado": total_apostado,
                 "total_ganancia": total_ganancia,
                 "roi": roi,
-                "valor_esperado_promedio": sum(p["valor_esperado"] for p in historial) / total_predicciones,
+                "valor_esperado_promedio": sum(p.get("valor_esperado", 0) for p in historial) / total_predicciones if total_predicciones > 0 else 0,
                 "tipos_apuesta": tipos_apuesta,
                 "fecha_calculo": datetime.now().isoformat()
             }

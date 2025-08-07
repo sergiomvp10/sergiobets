@@ -112,7 +112,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await procesar_pago_nequi(update, context)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar estadísticas del sistema"""
+    """Mostrar estadísticas del sistema con métricas claras"""
     query = update.callback_query
     try:
         from track_record import TrackRecordManager
@@ -129,19 +129,25 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
 
 🔄 El sistema está recopilando datos..."""
         else:
+            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
+            porcentaje_acertividad = metricas['tasa_acierto']
+            
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
-🎯 PREDICCIONES:
-• Total: {metricas['total_predicciones']}
-• Resueltas: {metricas['predicciones_resueltas']}
-• Pendientes: {metricas['predicciones_pendientes']}
-• Aciertos: {metricas['aciertos']}
-• Tasa de éxito: {metricas['tasa_acierto']:.1f}%
+🎯 RENDIMIENTO GENERAL:
+✅ Aciertos: {metricas['aciertos']}
+❌ Fallos: {fallos}
+📈 Porcentaje de Acertividad: {porcentaje_acertividad:.1f}%
 
-💰 RENDIMIENTO:
-• Total apostado: ${metricas['total_apostado']:.2f}
-• Ganancia: ${metricas['total_ganancia']:.2f}
-• ROI: {metricas['roi']:.2f}%
+📋 RESUMEN DE PREDICCIONES:
+- Total predicciones: {metricas['total_predicciones']}
+- Predicciones resueltas: {metricas['predicciones_resueltas']}
+- Predicciones pendientes: {metricas['predicciones_pendientes']}
+
+💰 RENDIMIENTO FINANCIERO:
+- Total apostado: ${metricas['total_apostado']:.2f}
+- Ganancia total: ${metricas['total_ganancia']:.2f}
+- ROI: {metricas['roi']:.2f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
         
