@@ -118,32 +118,64 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
     
     query = update.callback_query
     
+    print(f"🔍 [DEBUG] mostrar_estadisticas iniciado para usuario {query.from_user.id}")
     logger.info(f"🔍 mostrar_estadisticas iniciado para usuario {query.from_user.id}")
     
     try:
+        print("📊 [DEBUG] Paso 1: Importando TrackRecordManager...")
         logger.info("📊 Importando TrackRecordManager...")
         from track_record import TrackRecordManager
+        print("✅ [DEBUG] TrackRecordManager importado exitosamente")
         
         api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        print(f"🔧 [DEBUG] Paso 2: Creando instancia de TrackRecordManager con API key: {api_key[:20]}...")
         logger.info("🔧 Creando instancia de TrackRecordManager...")
         tracker = TrackRecordManager(api_key)
+        print("✅ [DEBUG] Instancia de TrackRecordManager creada exitosamente")
         
+        print("📈 [DEBUG] Paso 3: Calculando métricas de rendimiento...")
         logger.info("📈 Calculando métricas de rendimiento...")
         metricas = tracker.calcular_metricas_rendimiento()
+        print(f"✅ [DEBUG] Métricas calculadas: {list(metricas.keys())}")
+        print(f"📋 [DEBUG] Contenido de métricas: {metricas}")
         logger.info(f"✅ Métricas calculadas: {list(metricas.keys())}")
         
         if "error" in metricas:
-            logger.warning(f"⚠️ Error en métricas: {metricas.get('error')}")
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            error_msg = metricas.get('error', 'Error desconocido')
+            print(f"⚠️ [DEBUG] Error en métricas detectado: {error_msg}")
+            logger.warning(f"⚠️ Error en métricas: {error_msg}")
+            
+            if "No hay predicciones enviadas a Telegram" in error_msg or "No hay historial disponible" in error_msg:
+                print("🎯 [DEBUG] Generando mensaje amigable para sin pronósticos...")
+                mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+
+🎯 ¡Bienvenido al sistema de estadísticas!
+
+📈 Estado: Sistema activo y funcionando
+🔄 Pronósticos: No hay pronósticos registrados aún
+
+💡 Las estadísticas aparecerán aquí una vez que:
+• Se generen predicciones con la IA
+• Se envíen pronósticos a través del bot
+• Se resuelvan los resultados de los partidos
+
+¡Mantente atento a las próximas predicciones!"""
+            else:
+                print("⚠️ [DEBUG] Generando mensaje de error genérico...")
+                mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
 📈 Sistema: Activo y funcionando
-⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
+⚠️ Datos de predicciones: {error_msg}
 
 🔄 El sistema está recopilando datos..."""
         else:
+            print("📊 [DEBUG] Paso 4: Formateando mensaje de estadísticas con datos válidos...")
             logger.info("📊 Formateando mensaje de estadísticas...")
+            
+            print(f"🔢 [DEBUG] Calculando fallos: {metricas['predicciones_resueltas']} - {metricas['aciertos']}")
             fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
             porcentaje_acertividad = metricas['tasa_acierto']
+            print(f"📊 [DEBUG] Fallos calculados: {fallos}, Porcentaje: {porcentaje_acertividad:.1f}%")
             
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
@@ -164,27 +196,81 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
             
+            print(f"📝 [DEBUG] Mensaje formateado exitosamente: {len(mensaje)} caracteres")
             logger.info(f"📝 Mensaje formateado: {len(mensaje)} caracteres")
         
+        print("⌨️ [DEBUG] Paso 5: Creando keyboard markup...")
         logger.info("⌨️ Creando keyboard markup...")
         keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        print("✅ [DEBUG] Keyboard markup creado exitosamente")
         
+        print("📤 [DEBUG] Paso 6: Enviando mensaje a Telegram...")
+        print(f"📤 [DEBUG] Mensaje a enviar (primeros 200 chars): {mensaje[:200]}...")
         logger.info("📤 Enviando mensaje a Telegram...")
-        await query.edit_message_text(mensaje, reply_markup=reply_markup)
-        logger.info("✅ Mensaje enviado exitosamente a Telegram")
         
+        max_retries = 3
+        retry_delay = 1
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"🔄 [DEBUG] Intento {attempt + 1} de {max_retries} enviando a Telegram...")
+                await query.edit_message_text(mensaje, reply_markup=reply_markup)
+                print("✅ [DEBUG] Mensaje enviado exitosamente a Telegram")
+                logger.info("✅ Mensaje enviado exitosamente a Telegram")
+                break
+                
+            except Exception as telegram_error:
+                print(f"⚠️ [DEBUG] Error en intento {attempt + 1}: {type(telegram_error).__name__}")
+                
+                if "TimedOut" in str(type(telegram_error)) and attempt < max_retries - 1:
+                    print(f"🕐 [DEBUG] Timeout detectado, reintentando en {retry_delay} segundos...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                
+                elif "TimedOut" in str(type(telegram_error)) and attempt == max_retries - 1:
+                    print("🚨 [DEBUG] Timeout persistente, enviando mensaje corto como fallback...")
+                    mensaje_corto = f"""📊 ESTADÍSTICAS SERGIOBETS
+
+🎯 Aciertos: {metricas.get('aciertos', 0)} | Fallos: {metricas.get('predicciones_resueltas', 0) - metricas.get('aciertos', 0)}
+📈 Tasa de acierto: {metricas.get('tasa_acierto', 0):.1f}%
+💰 ROI: {metricas.get('roi', 0):.1f}%
+
+📊 Total predicciones: {metricas.get('total_predicciones', 0)}"""
+                    
+                    try:
+                        await query.edit_message_text(mensaje_corto, reply_markup=reply_markup)
+                        print("✅ [DEBUG] Mensaje corto enviado exitosamente tras timeout")
+                        logger.info("✅ Mensaje corto enviado exitosamente tras timeout")
+                        break
+                    except Exception as short_msg_error:
+                        print(f"❌ [DEBUG] Error enviando mensaje corto: {short_msg_error}")
+                        raise telegram_error
+                
+                else:
+                    print(f"❌ [DEBUG] Error no-timeout: {telegram_error}")
+                    raise telegram_error
+        
+        print("🎯 [DEBUG] mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
         logger.info("🎯 mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
         return
         
     except Exception as e:
+        print(f"❌ [DEBUG] Excepción capturada en mostrar_estadisticas: {e}")
+        print(f"❌ [DEBUG] Tipo de excepción: {type(e).__name__}")
         logger.error(f"❌ Error mostrando estadísticas: {e}")
         logger.error(f"📋 Tipo de excepción: {type(e).__name__}")
         logger.error(f"📋 Módulo de excepción: {type(e).__module__}")
         logger.error(f"📋 Args de excepción: {e.args}")
         
+        is_timeout_error = False
         if isinstance(e, asyncio.TimeoutError):
             logger.error("🕐 TIMEOUT ERROR: Problema de tiempo de espera en Telegram API")
+            is_timeout_error = True
+        elif "TimedOut" in str(type(e)):
+            logger.error("🕐 TELEGRAM TIMEOUT ERROR: API de Telegram tardó demasiado en responder")
+            is_timeout_error = True
         elif isinstance(e, ConnectionError):
             logger.error("🌐 CONNECTION ERROR: Problema de conexión con Telegram")
         elif isinstance(e, AttributeError):
@@ -194,16 +280,24 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         
         logger.error(f"📋 Traceback completo: {traceback.format_exc()}")
         
+        if is_timeout_error:
+            print("🚨 [DEBUG] Timeout detectado - NO enviando mensaje de error porque datos están correctos")
+            logger.error("🚨 TIMEOUT MANEJADO: No enviando mensaje de error - datos calculados correctamente")
+            return
+        
         logger.error("🔍 Verificando si el error ocurrió después del envío exitoso...")
         
         error_location = traceback.format_exc()
         if "✅ Mensaje enviado exitosamente a Telegram" not in str(e) and "edit_message_text" in error_location:
             try:
+                print("⚠️ [DEBUG] Enviando mensaje de error como fallback...")
                 await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
                 logger.error("⚠️ Mensaje de error enviado como fallback")
             except Exception as edit_error:
+                print(f"💥 [DEBUG] Error adicional al editar mensaje: {edit_error}")
                 logger.error(f"💥 Error adicional al editar mensaje: {edit_error}")
         else:
+            print("🚫 [DEBUG] NO enviando mensaje de error - estadísticas ya fueron enviadas exitosamente")
             logger.error("🚫 NO enviando mensaje de error - estadísticas ya fueron enviadas exitosamente")
 
 async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
