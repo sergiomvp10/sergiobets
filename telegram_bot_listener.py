@@ -158,7 +158,12 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         
     except Exception as e:
         logger.error(f"Error mostrando estadísticas: {e}")
-        await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
+        import traceback
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        try:
+            await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
+        except Exception as edit_error:
+            logger.error(f"Error adicional al editar mensaje: {edit_error}")
 
 async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar novedades desde archivo"""
