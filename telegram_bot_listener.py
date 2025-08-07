@@ -103,7 +103,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "predicciones_gratuitas":
         await enviar_predicciones_gratuitas_bot(update, context)
     elif query.data == "menu_principal":
-        await start_command(update, context)
+        await volver_menu_principal(update, context)
     elif query.data == "pay_usdt":
         await procesar_pago(update, context, "usdttrc20")
     elif query.data == "pay_ltc":
