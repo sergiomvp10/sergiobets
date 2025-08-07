@@ -978,29 +978,54 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
     
     return predicciones_validas[:5]
 
+def obtener_contador_pronostico() -> int:
+    """Obtiene y actualiza el contador global de pronósticos"""
+    try:
+        from json_storage import cargar_json, guardar_json
+        
+        contador_data = cargar_json("contador_pronosticos.json") or {"contador": 0}
+        contador_actual = contador_data.get("contador", 0) + 1
+        
+        contador_data["contador"] = contador_actual
+        guardar_json("contador_pronosticos.json", contador_data)
+        
+        return contador_actual
+    except Exception as e:
+        print(f"Error manejando contador de pronósticos: {e}")
+        return 1
+
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
     if not predicciones:
         return f"🤖 IA SERGIOBETS - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
     mensaje = f"🤖 IA SERGIOBETS - ANÁLISIS AVANZADO ({fecha})\n\n"
     
-    for i, pred in enumerate(predicciones, 1):
-        mensaje += f"🎯 PICK #{i} - VALUE BET\n"
+    contador_base = obtener_contador_pronostico()
+    
+    for i, pred in enumerate(predicciones):
+        numero_pronostico = contador_base + i
+        mensaje += f"🎯 PRONOSTICO #{numero_pronostico}\n"
         mensaje += f"🏆 {pred['liga']}\n"
         mensaje += f"⚽ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
-        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
+        mensaje += f"📊 Confianza: {pred['confianza']}%\n"
         mensaje += f"📝 {pred['razon']}\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
+    if len(predicciones) > 1:
+        try:
+            from json_storage import cargar_json, guardar_json
+            contador_data = cargar_json("contador_pronosticos.json") or {"contador": 0}
+            contador_data["contador"] = contador_base + len(predicciones) - 1
+            guardar_json("contador_pronosticos.json", contador_data)
+        except Exception as e:
+            print(f"Error actualizando contador final: {e}")
+    
     total_ve = sum(pred['valor_esperado'] for pred in predicciones)
     mensaje += f"📈 RESUMEN DEL DÍA:\n"
-    mensaje += f"• {len(predicciones)} value bets identificadas\n"
-    mensaje += f"• Valor esperado total: +{total_ve:.1f}%\n\n"
-    
-    mensaje += "🧠 Análisis generado por IA avanzada con modelos probabilísticos.\n"
-    mensaje += "⚠️ Apostar con responsabilidad."
+    mensaje += f"- {len(predicciones)} value bets identificadas\n"
+    mensaje += f"- Valor esperado total: +{total_ve:.1f}%"
     
     return mensaje
 
