@@ -174,14 +174,6 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(mensaje, reply_markup=reply_markup)
         logger.info("✅ Mensaje enviado exitosamente a Telegram")
         
-        try:
-            logger.info("🔍 Verificando estado post-envío...")
-            await asyncio.sleep(0.01)
-            logger.info("✅ Verificación post-envío completada")
-        except Exception as post_send_error:
-            logger.error(f"❌ Error en verificación post-envío: {post_send_error}")
-            logger.error(f"📋 Tipo de excepción post-envío: {type(post_send_error).__name__}")
-        
         logger.info("🎯 mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
         return
         
@@ -204,11 +196,15 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         
         logger.error("🔍 Verificando si el error ocurrió después del envío exitoso...")
         
-        try:
-            await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
-            logger.error("⚠️ Mensaje de error enviado como fallback")
-        except Exception as edit_error:
-            logger.error(f"💥 Error adicional al editar mensaje: {edit_error}")
+        error_location = traceback.format_exc()
+        if "✅ Mensaje enviado exitosamente a Telegram" not in str(e) and "edit_message_text" in error_location:
+            try:
+                await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
+                logger.error("⚠️ Mensaje de error enviado como fallback")
+            except Exception as edit_error:
+                logger.error(f"💥 Error adicional al editar mensaje: {edit_error}")
+        else:
+            logger.error("🚫 NO enviando mensaje de error - estadísticas ya fueron enviadas exitosamente")
 
 async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar novedades desde archivo"""
