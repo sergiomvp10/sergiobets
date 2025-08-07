@@ -113,6 +113,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema con métricas claras"""
+    import asyncio
+    import traceback
+    
     query = update.callback_query
     
     logger.info(f"🔍 mostrar_estadisticas iniciado para usuario {query.from_user.id}")
@@ -173,7 +176,6 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         
         try:
             logger.info("🔍 Verificando estado post-envío...")
-            import asyncio
             await asyncio.sleep(0.01)
             logger.info("✅ Verificación post-envío completada")
         except Exception as post_send_error:
@@ -198,7 +200,6 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         elif "telegram" in str(type(e)).lower():
             logger.error("📱 TELEGRAM API ERROR: Error específico de la API de Telegram")
         
-        import traceback
         logger.error(f"📋 Traceback completo: {traceback.format_exc()}")
         
         logger.error("🔍 Verificando si el error ocurrió después del envío exitoso...")
