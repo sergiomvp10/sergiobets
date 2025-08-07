@@ -211,6 +211,7 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         
         max_retries = 3
         retry_delay = 1
+        message_sent_successfully = False
         
         for attempt in range(max_retries):
             try:
@@ -218,12 +219,20 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
                 await query.edit_message_text(mensaje, reply_markup=reply_markup)
                 print("✅ [DEBUG] Mensaje enviado exitosamente a Telegram")
                 logger.info("✅ Mensaje enviado exitosamente a Telegram")
+                message_sent_successfully = True
                 break
                 
             except Exception as telegram_error:
                 print(f"⚠️ [DEBUG] Error en intento {attempt + 1}: {type(telegram_error).__name__}")
+                error_message = str(telegram_error)
                 
-                if "TimedOut" in str(type(telegram_error)) and attempt < max_retries - 1:
+                if "Message is not modified" in error_message or "not modified" in error_message:
+                    print("✅ [DEBUG] Mensaje ya fue enviado exitosamente (detectado por 'not modified')")
+                    logger.info("✅ Mensaje ya fue enviado exitosamente (detectado por 'not modified')")
+                    message_sent_successfully = True
+                    break
+                
+                elif "TimedOut" in str(type(telegram_error)) and attempt < max_retries - 1:
                     print(f"🕐 [DEBUG] Timeout detectado, reintentando en {retry_delay} segundos...")
                     await asyncio.sleep(retry_delay)
                     retry_delay *= 2
@@ -243,14 +252,25 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
                         await query.edit_message_text(mensaje_corto, reply_markup=reply_markup)
                         print("✅ [DEBUG] Mensaje corto enviado exitosamente tras timeout")
                         logger.info("✅ Mensaje corto enviado exitosamente tras timeout")
+                        message_sent_successfully = True
                         break
                     except Exception as short_msg_error:
                         print(f"❌ [DEBUG] Error enviando mensaje corto: {short_msg_error}")
+                        if "Message is not modified" in str(short_msg_error):
+                            print("✅ [DEBUG] Mensaje corto ya fue enviado (detectado por 'not modified')")
+                            logger.info("✅ Mensaje corto ya fue enviado (detectado por 'not modified')")
+                            message_sent_successfully = True
+                            break
                         raise telegram_error
                 
                 else:
                     print(f"❌ [DEBUG] Error no-timeout: {telegram_error}")
                     raise telegram_error
+        
+        if message_sent_successfully:
+            print("🎯 [DEBUG] mostrar_estadisticas completado exitosamente - mensaje enviado")
+            logger.info("🎯 mostrar_estadisticas completado exitosamente - mensaje enviado")
+            return
         
         print("🎯 [DEBUG] mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
         logger.info("🎯 mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
@@ -265,12 +285,17 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         logger.error(f"📋 Args de excepción: {e.args}")
         
         is_timeout_error = False
+        is_message_already_sent = False
+        
         if isinstance(e, asyncio.TimeoutError):
             logger.error("🕐 TIMEOUT ERROR: Problema de tiempo de espera en Telegram API")
             is_timeout_error = True
         elif "TimedOut" in str(type(e)):
             logger.error("🕐 TELEGRAM TIMEOUT ERROR: API de Telegram tardó demasiado en responder")
             is_timeout_error = True
+        elif "Message is not modified" in str(e) or "not modified" in str(e):
+            logger.error("✅ MESSAGE ALREADY SENT: El mensaje ya fue enviado exitosamente")
+            is_message_already_sent = True
         elif isinstance(e, ConnectionError):
             logger.error("🌐 CONNECTION ERROR: Problema de conexión con Telegram")
         elif isinstance(e, AttributeError):
@@ -280,9 +305,13 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         
         logger.error(f"📋 Traceback completo: {traceback.format_exc()}")
         
-        if is_timeout_error:
-            print("🚨 [DEBUG] Timeout detectado - NO enviando mensaje de error porque datos están correctos")
-            logger.error("🚨 TIMEOUT MANEJADO: No enviando mensaje de error - datos calculados correctamente")
+        if is_timeout_error or is_message_already_sent:
+            if is_timeout_error:
+                print("🚨 [DEBUG] Timeout detectado - NO enviando mensaje de error porque datos están correctos")
+                logger.error("🚨 TIMEOUT MANEJADO: No enviando mensaje de error - datos calculados correctamente")
+            else:
+                print("✅ [DEBUG] Mensaje ya enviado - NO enviando mensaje de error")
+                logger.error("✅ MENSAJE YA ENVIADO: No enviando mensaje de error - estadísticas ya mostradas")
             return
         
         logger.error("🔍 Verificando si el error ocurrió después del envío exitoso...")
