@@ -114,14 +114,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema con métricas claras"""
     query = update.callback_query
+    
+    logger.info(f"🔍 mostrar_estadisticas iniciado para usuario {query.from_user.id}")
+    
     try:
+        logger.info("📊 Importando TrackRecordManager...")
         from track_record import TrackRecordManager
         
         api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        logger.info("🔧 Creando instancia de TrackRecordManager...")
         tracker = TrackRecordManager(api_key)
+        
+        logger.info("📈 Calculando métricas de rendimiento...")
         metricas = tracker.calcular_metricas_rendimiento()
+        logger.info(f"✅ Métricas calculadas: {list(metricas.keys())}")
         
         if "error" in metricas:
+            logger.warning(f"⚠️ Error en métricas: {metricas.get('error')}")
             mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
 
 📈 Sistema: Activo y funcionando
@@ -129,6 +138,7 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
 
 🔄 El sistema está recopilando datos..."""
         else:
+            logger.info("📊 Formateando mensaje de estadísticas...")
             fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
             porcentaje_acertividad = metricas['tasa_acierto']
             
@@ -150,20 +160,33 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
 - ROI: {metricas['roi']:.2f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
+            
+            logger.info(f"📝 Mensaje formateado: {len(mensaje)} caracteres")
         
+        logger.info("⌨️ Creando keyboard markup...")
         keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
+        logger.info("📤 Enviando mensaje a Telegram...")
         await query.edit_message_text(mensaje, reply_markup=reply_markup)
+        logger.info("✅ Mensaje enviado exitosamente a Telegram")
+        
+        import asyncio
+        await asyncio.sleep(0.1)
+        logger.info("🎯 mostrar_estadisticas completado exitosamente")
         
     except Exception as e:
-        logger.error(f"Error mostrando estadísticas: {e}")
+        logger.error(f"❌ Error mostrando estadísticas: {e}")
         import traceback
-        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        logger.error(f"📋 Traceback completo: {traceback.format_exc()}")
+        
+        logger.error("🔍 Verificando si el error ocurrió después del envío exitoso...")
+        
         try:
             await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
+            logger.error("⚠️ Mensaje de error enviado como fallback")
         except Exception as edit_error:
-            logger.error(f"Error adicional al editar mensaje: {edit_error}")
+            logger.error(f"💥 Error adicional al editar mensaje: {edit_error}")
 
 async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar novedades desde archivo"""
