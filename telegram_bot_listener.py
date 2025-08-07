@@ -171,11 +171,33 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(mensaje, reply_markup=reply_markup)
         logger.info("✅ Mensaje enviado exitosamente a Telegram")
         
+        try:
+            logger.info("🔍 Verificando estado post-envío...")
+            import asyncio
+            await asyncio.sleep(0.01)
+            logger.info("✅ Verificación post-envío completada")
+        except Exception as post_send_error:
+            logger.error(f"❌ Error en verificación post-envío: {post_send_error}")
+            logger.error(f"📋 Tipo de excepción post-envío: {type(post_send_error).__name__}")
+        
         logger.info("🎯 mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
         return
         
     except Exception as e:
         logger.error(f"❌ Error mostrando estadísticas: {e}")
+        logger.error(f"📋 Tipo de excepción: {type(e).__name__}")
+        logger.error(f"📋 Módulo de excepción: {type(e).__module__}")
+        logger.error(f"📋 Args de excepción: {e.args}")
+        
+        if isinstance(e, asyncio.TimeoutError):
+            logger.error("🕐 TIMEOUT ERROR: Problema de tiempo de espera en Telegram API")
+        elif isinstance(e, ConnectionError):
+            logger.error("🌐 CONNECTION ERROR: Problema de conexión con Telegram")
+        elif isinstance(e, AttributeError):
+            logger.error("🔧 ATTRIBUTE ERROR: Problema de atributo - posible objeto None")
+        elif "telegram" in str(type(e)).lower():
+            logger.error("📱 TELEGRAM API ERROR: Error específico de la API de Telegram")
+        
         import traceback
         logger.error(f"📋 Traceback completo: {traceback.format_exc()}")
         
