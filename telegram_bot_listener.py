@@ -183,17 +183,6 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
 ✅ Aciertos: {metricas['aciertos']}
 ❌ Fallos: {fallos}
 📈 Porcentaje de Acertividad: {porcentaje_acertividad:.1f}%
-
-📋 RESUMEN DE PREDICCIONES:
-- Total predicciones: {metricas['total_predicciones']}
-- Predicciones resueltas: {metricas['predicciones_resueltas']}
-- Predicciones pendientes: {metricas['predicciones_pendientes']}
-
-💰 RENDIMIENTO FINANCIERO:
-- Total apostado: ${metricas['total_apostado']:.2f}
-- Ganancia total: ${metricas['total_ganancia']:.2f}
-- ROI: {metricas['roi']:.2f}%
-
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
             
             print(f"📝 [DEBUG] Mensaje formateado exitosamente: {len(mensaje)} caracteres")
