@@ -16,8 +16,8 @@ LIGAS_CONOCIDAS = {
     "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana"
 }
 
-CUOTA_MIN = 1.30
-CUOTA_MAX = 1.60
+CUOTA_MIN = 1.45
+CUOTA_MAX = 1.75
 
 _cache_predicciones = {}
 
@@ -260,7 +260,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > 0.05  # Mínimo 5% de valor esperado
+    es_value_bet = valor_esperado > 0.12  # Mínimo 12% de valor esperado
     
     return valor_esperado, es_value_bet
 
@@ -477,7 +477,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
         
         for opcion in opciones_finales:
             kelly_fraction = opcion["valor_esperado"] / (opcion["cuota"] - 1)
-            stake_recomendado = min(10, max(1, int(kelly_fraction * 100)))
+            stake_recomendado = min(8, max(1, int(kelly_fraction * 50)))
             
             opcion["stake_recomendado"] = stake_recomendado
             opcion["justificacion"] = generar_justificacion(opcion, analisis)
