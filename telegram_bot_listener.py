@@ -171,9 +171,8 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(mensaje, reply_markup=reply_markup)
         logger.info("✅ Mensaje enviado exitosamente a Telegram")
         
-        import asyncio
-        await asyncio.sleep(0.1)
-        logger.info("🎯 mostrar_estadisticas completado exitosamente")
+        logger.info("🎯 mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
+        return
         
     except Exception as e:
         logger.error(f"❌ Error mostrando estadísticas: {e}")
