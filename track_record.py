@@ -641,12 +641,18 @@ class TrackRecordManager:
     def calcular_metricas_rendimiento(self) -> Dict[str, Any]:
         """
         Calcula métricas de rendimiento del sistema de predicciones
+        Filtra solo predicciones enviadas a Telegram para mostrar track record actual
         """
         try:
             historial = cargar_json(self.historial_file) or []
             
             if not historial:
                 return {"error": "No hay historial disponible"}
+            
+            historial = [p for p in historial if p.get('sent_to_telegram', False)]
+            
+            if not historial:
+                return {"error": "No hay predicciones enviadas a Telegram"}
             
             con_resultado = [p for p in historial if p.get("resultado_real") is not None]
             
