@@ -5,7 +5,7 @@ def detectar_liga_por_imagen(home_image, away_image):
     Detecta la liga basándose en las rutas de imágenes de los equipos
     """
     if home_image and 'colombia' in home_image.lower():
-        return "Liga Colombiana"
+        return "Copa Colombia"
     elif home_image and 'chile' in home_image.lower():
         return "Primera División Chile"
     elif home_image and 'spain' in home_image.lower():
@@ -40,6 +40,22 @@ def detectar_liga_por_imagen(home_image, away_image):
         return "Liga Uruguaya"
     elif home_image and 'bolivia' in home_image.lower():
         return "Liga Boliviana"
+    
+    european_countries = ['austria', 'belgium', 'czech', 'denmark', 'finland', 'greece', 
+                         'hungary', 'norway', 'poland', 'romania', 'serbia', 'slovakia', 
+                         'slovenia', 'sweden', 'switzerland', 'turkey', 'ukraine', 'croatia',
+                         'bosnia', 'montenegro', 'albania', 'macedonia', 'moldova', 'estonia',
+                         'latvia', 'lithuania', 'belarus', 'georgia', 'armenia', 'azerbaijan']
+    
+    home_european = any(country in home_image.lower() for country in european_countries) if home_image else False
+    away_european = any(country in away_image.lower() for country in european_countries) if away_image else False
+    
+    if home_european and away_european:
+        return "Champions League"
+    
+    elif home_european or away_european:
+        return "Champions League"
+    
     else:
         return "Liga Internacional"
 

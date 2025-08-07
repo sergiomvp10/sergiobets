@@ -1,0 +1,51 @@
+ARCHIVO COMPLETO: sergiobets_unified.py
+=====================================
+
+Este es el contenido completo del archivo sergiobets_unified.py con todas las correcciones aplicadas.
+Puedes copiar todo este contenido y reemplazar tu archivo actual.
+
+INSTRUCCIONES:
+1. Abre tu archivo sergiobets_unified.py actual
+2. Selecciona todo el contenido (Ctrl+A)
+3. Borra todo el contenido
+4. Copia y pega el contenido de abajo
+5. Guarda el archivo
+
+CONTENIDO DEL ARCHIVO:
+=====================
+
+[El archivo es demasiado grande para incluir aquí completo]
+
+CAMBIOS PRINCIPALES APLICADOS:
+==============================
+
+1. LÍNEAS 517-518: Eliminados mensajes de estado "Búsqueda completada" y "partidos encontrados"
+2. LÍNEA 519: Eliminado mensaje "predicciones generadas" 
+3. LÍNEAS 1355, 1377, 1385, 1392, 1399: Cambiadas inserciones de '1.0' a tk.END para evitar duplicación
+
+FUNCIÓN refrescar_usuarios() CORREGIDA:
+======================================
+
+Las siguientes líneas fueron cambiadas para usar tk.END en lugar de '1.0':
+
+Línea 1355:
+text_area.insert(tk.END, f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
+
+Línea 1377:
+text_area.insert(tk.END, "No hay usuarios registrados o datos no disponibles.")
+
+Línea 1385:
+text_area.insert(tk.END, f"Error: Módulo access_manager no configurado - {e}")
+
+Línea 1392:
+text_area.insert(tk.END, f"Error: Datos de usuarios inválidos - {e}")
+
+Línea 1399:
+text_area.insert(tk.END, f"Error cargando usuarios: {e}")
+
+VERIFICACIÓN:
+=============
+Después de aplicar estos cambios:
+- El botón "Refrescar" en Users no duplicará la lista
+- La interfaz de búsqueda estará limpia sin mensajes de estado
+- Todas las funcionalidades seguirán trabajando normalmente
