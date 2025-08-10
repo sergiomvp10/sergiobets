@@ -264,10 +264,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Litecoin (LTC)
 • NEQUI (Colombia)
 
-🚀 ¡Selecciona tu método de pago preferido!
-
-💳 También puedes pagar directamente aquí:
-👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
+🚀 ¡Selecciona tu método de pago preferido!"""
     else:
         mensaje = """MEMBRESÍA VIP BETGENIUX
 
