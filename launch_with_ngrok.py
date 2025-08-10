@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SergioBets - Launcher con ngrok
+BetGeniuX - Launcher con ngrok
 Inicia el servidor webhook y configura túnel ngrok automáticamente
 """
 
@@ -162,7 +162,7 @@ class NgrokManager:
     
     def launch(self):
         """Lanzar sistema completo"""
-        print("🎯 SergioBets - Launcher con ngrok")
+        print("🎯 BetGeniuX - Launcher con ngrok")
         print("=" * 50)
         
         if not self.check_ngrok_installed():

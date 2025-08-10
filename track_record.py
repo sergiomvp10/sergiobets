@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Track Record Module for SergioBets
+Track Record Module for BetGeniuX
 Compares predictions against actual match results and calculates performance metrics
 """
 
@@ -696,7 +696,7 @@ class TrackRecordManager:
             return f"Error generando reporte: {metricas['error']}"
         
         reporte = f"""
-📊 REPORTE DE RENDIMIENTO - SERGIOBETS IA
+📊 REPORTE DE RENDIMIENTO - BETGENIUX IA
 {'='*50}
 
 📈 MÉTRICAS GENERALES:

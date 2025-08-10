@@ -38,7 +38,7 @@ def test_confirmation_message():
                 "Días adquiridos:",
                 "Fecha de activación:",
                 "Fecha de vencimiento:",
-                "Gracias por confiar en SergioBets"
+                "Gracias por confiar en BetGeniuX"
             ]
             
             for element in required_elements:

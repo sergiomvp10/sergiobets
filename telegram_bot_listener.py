@@ -52,9 +52,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mensaje_acceso = ""
     
     if es_nuevo:
-        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
+        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a BetGeniuX 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
     else:
-        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
+        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
         [
@@ -115,7 +115,7 @@ async def mostrar_gratis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar contenido gratuito"""
     query = update.callback_query
     
-    mensaje = """💲 CONTENIDO GRATUITO SERGIOBETS
+    mensaje = """💲 CONTENIDO GRATUITO BETGENIUX
 
 🎯 PREDICCIONES BÁSICAS:
 • Análisis de partidos principales
@@ -142,7 +142,7 @@ async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar contenido premium"""
     query = update.callback_query
     
-    mensaje = """💰 CONTENIDO PREMIUM SERGIOBETS
+    mensaje = """💰 CONTENIDO PREMIUM BETGENIUX
 
 🏆 PREDICCIONES VIP:
 • Análisis profesional completo
@@ -182,14 +182,14 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         metricas = tracker.calcular_metricas_rendimiento()
         
         if "error" in metricas:
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 📈 Sistema: Activo y funcionando
 ⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
 
 🔄 El sistema está recopilando datos..."""
         else:
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 🎯 PREDICCIONES:
 • Total: {metricas['total_predicciones']}
@@ -222,7 +222,7 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
                 contenido = f.read()
         else:
-            contenido = """📢 NOVEDADES SERGIOBETS
+            contenido = """📢 NOVEDADES BETGENIUX
 
 🎯 Sistema activo y funcionando
 📊 Estadísticas disponibles en tiempo real
@@ -246,7 +246,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ngrok_url = get_current_ngrok_url()
     
     if ngrok_url:
-        mensaje = f"""💳 MEMBRESÍA VIP SERGIOBETS
+        mensaje = f"""💳 MEMBRESÍA VIP BETGENIUX
 
 🌟 ACCESO VIP (7 DÍAS):
 • Predicciones exclusivas de alta confianza
@@ -268,7 +268,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 💳 También puedes pagar directamente aquí:
 👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
     else:
-        mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
+        mensaje = """💳 MEMBRESÍA VIP BETGENIUX
 
 🌟 ACCESO VIP (7 DÍAS):
 • Predicciones exclusivas de alta confianza
@@ -302,7 +302,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
     query = update.callback_query
-    mensaje = """❓ AYUDA - SERGIOBETS
+    mensaje = """❓ AYUDA - BETGENIUX
 
 🤖 COMANDOS DISPONIBLES:
 • /start - Mostrar menú principal
@@ -344,7 +344,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     user = query.from_user
     first_name = user.first_name
     
-    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
+    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
     
     keyboard = [
         [
@@ -576,7 +576,7 @@ def iniciar_bot_en_hilo():
     return hilo_bot
 
 if __name__ == "__main__":
-    print("🤖 Iniciando SergioBets Bot Listener...")
+    print("🤖 Iniciando BetGeniuX Bot Listener...")
     print("📝 Registrando usuarios automáticamente...")
     print("💬 Los usuarios pueden usar /start o enviar cualquier mensaje")
     print("📁 Usuarios se guardan en usuarios.txt")

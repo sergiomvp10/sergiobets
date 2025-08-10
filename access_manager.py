@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Access Manager for SergioBets VIP System
+Access Manager for BetGeniuX VIP System
 Manages premium user access, expiration dates, and user permissions
 """
 
@@ -150,7 +150,7 @@ class AccessManager:
 • Estadísticas avanzadas
 • Soporte prioritario
 
-💎 ¡Gracias por confiar en SergioBets! 
+💎 ¡Gracias por confiar en BetGeniuX! 
 Estamos comprometidos a brindarte los mejores pronósticos deportivos para maximizar tus ganancias.
 
 ¡Que tengas mucho éxito en tus apuestas! 🍀💰"""

@@ -137,10 +137,10 @@ def test_syntax_validation():
     print("=" * 60)
     
     try:
-        with open('sergiobets_unified.py', 'r', encoding='utf-8') as f:
+        with open('betgeniux_unified.py', 'r', encoding='utf-8') as f:
             code = f.read()
         
-        compile(code, 'sergiobets_unified.py', 'exec')
+        compile(code, 'betgeniux_unified.py', 'exec')
         print("✅ Syntax validation successful - no syntax errors")
         return True
         

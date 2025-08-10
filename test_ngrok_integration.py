@@ -118,7 +118,7 @@ def test_payments_integration():
         return False
 
 def main():
-    print("🎯 SergioBets - Ngrok Integration Test")
+    print("🎯 BetGeniuX - Ngrok Integration Test")
     print("=" * 50)
     
     tests = [

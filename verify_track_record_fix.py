@@ -11,16 +11,16 @@ def test_interface_after_cache_clear():
         import importlib
         import sys
         
-        modules_to_remove = [name for name in sys.modules.keys() if 'sergiobets_unified' in name]
+        modules_to_remove = [name for name in sys.modules.keys() if 'betgeniux_unified' in name]
         for module in modules_to_remove:
             del sys.modules[module]
         
-        from sergiobets_unified import SergioBetsUnified
+        from betgeniux_unified import BetGeniuXUnified
         
         print("✅ Fresh import successful")
         
         import inspect
-        method_source = inspect.getsource(SergioBetsUnified.abrir_track_record)
+        method_source = inspect.getsource(BetGeniuXUnified.abrir_track_record)
         
         enhanced_features = [
             "Track Record Mejorado",
@@ -67,7 +67,7 @@ def main():
     if success:
         print("🎉 SUCCESS! Enhanced track record interface should now work correctly.")
         print("\n📋 What the user should see:")
-        print("- Window title: '📊 Track Record Mejorado - SergioBets IA'")
+        print("- Window title: '📊 Track Record Mejorado - BetGeniuX IA'")
         print("- Filter buttons: 📌 PENDIENTES, ✅ ACERTADOS, ❌ FALLADOS, 📅 HISTÓRICO, 📊 RESUMEN")
         print("- Date range selector with calendar widgets")
         print("- Structured table with columns: Fecha, Liga, Equipos, Tipo de Apuesta, Cuota, Resultado Final, Estado")
@@ -75,7 +75,7 @@ def main():
         print("- Action buttons: 🔄 Actualizar Resultados, 🧹 Limpiar Historial")
         
         print("\n💡 Instructions for user:")
-        print("1. Run: python sergiobets_unified.py")
+        print("1. Run: python betgeniux_unified.py")
         print("2. Click the 'Track Record' button in the GUI")
         print("3. The enhanced interface should now appear")
     else:

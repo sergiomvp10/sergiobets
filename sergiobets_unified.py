@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SergioBets - Sistema Completo con GUI y Pagos NOWPayments
+BetGeniuX - Sistema Completo con GUI y Pagos NOWPayments
 Aplicación única que maneja GUI, webhook server, ngrok tunnel y bot de Telegram
 """
 
@@ -30,9 +30,9 @@ from track_record import TrackRecordManager
 
 def setup_logging():
     """Setup comprehensive logging for debugging"""
-    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sergiobets_debug.log')
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'betgeniux_debug.log')
     
-    logger = logging.getLogger('SergioBets')
+    logger = logging.getLogger('BetGeniuX')
     logger.setLevel(logging.DEBUG)
     
     file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
@@ -51,7 +51,7 @@ def setup_logging():
     return logger
 
 logger = setup_logging()
-logger.info("=== SergioBets Starting ===")
+logger.info("=== BetGeniuX Starting ===")
 logger.info(f"Python version: {sys.version}")
 logger.info(f"Platform: {sys.platform}")
 logger.info(f"Working directory: {os.getcwd()}")
@@ -66,18 +66,18 @@ except Exception as e:
     input("Press Enter to exit...")
     sys.exit(1)
 
-class SergioBetsUnified:
+class BetGeniuXUnified:
     def __init__(self):
-        logger.info("Initializing SergioBetsUnified...")
+        logger.info("Initializing BetGeniuXUnified...")
         try:
             self.webhook_thread = None
             self.bot_thread = None
             self.ngrok_process = None
             self.ngrok_url = None
             self.running = True
-            logger.info("✅ SergioBetsUnified initialized successfully")
+            logger.info("✅ BetGeniuXUnified initialized successfully")
         except Exception as e:
-            logger.error(f"❌ Error initializing SergioBetsUnified: {e}")
+            logger.error(f"❌ Error initializing BetGeniuXUnified: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
         
@@ -88,8 +88,8 @@ class SergioBetsUnified:
         """Manejar señales de interrupción"""
         if not hasattr(self, '_stopping'):
             self._stopping = True
-            logger.info("🛑 Signal received, stopping SergioBets...")
-            print("\n🛑 Deteniendo SergioBets...")
+            logger.info("🛑 Signal received, stopping BetGeniuX...")
+            print("\n🛑 Deteniendo BetGeniuX...")
             self.running = False
             self.stop_all_services()
             sys.exit(0)
@@ -333,7 +333,7 @@ class SergioBetsUnified:
         from tkcalendar import DateEntry
         
         self.root = tk.Tk()
-        self.root.title("🧐 SergioBets v.2 – Sistema Completo con Pagos")
+        self.root.title("🧐 BetGeniuX v.2 – Sistema Completo con Pagos")
         self.root.geometry("800x600")
         self.root.minsize(800, 600)
         try:
@@ -951,7 +951,7 @@ class SergioBetsUnified:
             tracker = TrackRecordManager(api_key)
             
             ventana_track = tk.Toplevel(self.root)
-            ventana_track.title("📊 Track Record Mejorado - SergioBets IA")
+            ventana_track.title("📊 Track Record Mejorado - BetGeniuX IA")
             ventana_track.geometry("1400x800")
             ventana_track.configure(bg="#2c3e50")
             
@@ -1659,7 +1659,7 @@ class SergioBetsUnified:
 
     def run(self):
         """Ejecutar aplicación principal con GUI y servicios backend"""
-        print("🎯 SergioBets - Sistema Completo con GUI y Pagos")
+        print("🎯 BetGeniuX - Sistema Completo con GUI y Pagos")
         print("=" * 60)
         
         if not self.check_dependencies():
@@ -1682,7 +1682,7 @@ class SergioBetsUnified:
             return False
         
         print("\n" + "=" * 60)
-        print("🎉 ¡SergioBets iniciado correctamente!")
+        print("🎉 ¡BetGeniuX iniciado correctamente!")
         if ngrok_success and self.ngrok_url and "ngrok" in self.ngrok_url:
             print(f"🌐 URL pública: {self.ngrok_url}")
             print(f"📡 Webhook: {self.ngrok_url}/webhook/nowpayments")
@@ -1709,7 +1709,7 @@ class SergioBetsUnified:
             print("🔗 El túnel ngrok está conectado")
         else:
             print("⚠️ El túnel ngrok no está disponible")
-        print("\n🎉 Iniciando GUI de SergioBets...")
+        print("\n🎉 Iniciando GUI de BetGeniuX...")
         
         try:
             self.setup_gui()
@@ -1734,11 +1734,11 @@ def main():
     """Función principal"""
     try:
         logger.info("=== Starting main function ===")
-        print("🎯 SergioBets - Sistema Unificado de Pagos")
+        print("🎯 BetGeniuX - Sistema Unificado de Pagos")
         print("=" * 60)
         
-        logger.debug("Creating SergioBetsUnified instance...")
-        app = SergioBetsUnified()
+        logger.debug("Creating BetGeniuXUnified instance...")
+        app = BetGeniuXUnified()
         
         logger.debug("Setting up signal handlers...")
         signal.signal(signal.SIGINT, app.signal_handler)

@@ -417,9 +417,9 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
 
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
     if not predicciones:
-        return f"🤖 IA SERGIOBETS - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
+        return f"🤖 IA BetGeniuX - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
-    mensaje = f"🤖 IA SERGIOBETS - ANÁLISIS AVANZADO ({fecha})\n\n"
+    mensaje = f"🤖 IA BetGeniuX - ANÁLISIS AVANZADO ({fecha})\n\n"
     
     for i, pred in enumerate(predicciones, 1):
         mensaje += f"🎯 PICK #{i} - VALUE BET\n"

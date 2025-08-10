@@ -51,7 +51,7 @@ def test_footystats_api():
         return False, None
 
 def test_search_functionality():
-    """Test the search functionality from sergiobets_unified"""
+    """Test the search functionality from BetGeniuX_unified"""
     print("\n" + "=" * 60)
     print("TESTING SEARCH FUNCTIONALITY")
     print("=" * 60)
@@ -147,7 +147,7 @@ def test_widget_creation():
         return False
 
 if __name__ == "__main__":
-    print("🔍 DIAGNOSING SERGIOBETS API AND USERS ISSUES")
+    print("🔍 DIAGNOSING BETGENIUX API AND USERS ISSUES")
     print("=" * 60)
     print(f"Test run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
     

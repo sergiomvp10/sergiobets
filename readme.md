@@ -1,6 +1,6 @@
-# ⚽ SergioBets – Bot de Apuestas Deportivas
+# ⚽ BetGeniuX – Bot de Apuestas Deportivas
 
-**SergioBets** es un bot de apuestas deportivas desarrollado en Python con interfaz gráfica (Tkinter), que muestra partidos, cuotas, envía pronósticos por Telegram y gestiona el progreso del usuario.
+**BetGeniuX** es un bot de apuestas deportivas desarrollado en Python con interfaz gráfica (Tkinter), que muestra partidos, cuotas, envía pronósticos por Telegram y gestiona el progreso del usuario.
 
 ---
 

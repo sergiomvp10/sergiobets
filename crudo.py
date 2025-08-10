@@ -460,7 +460,7 @@ def abrir_track_record():
         tracker = TrackRecordManager(api_key)
         
         ventana_track = tk.Toplevel(root)
-        ventana_track.title("📊 Track Record - SergioBets IA")
+        ventana_track.title("📊 Track Record - BetGeniuX IA")
         ventana_track.geometry("900x700")
         ventana_track.configure(bg="#2c3e50")
         
@@ -751,7 +751,7 @@ def abrir_track_record():
 def abrir_usuarios():
     """Abrir ventana para mostrar usuarios registrados de Telegram"""
     ventana_usuarios = tk.Toplevel(root)
-    ventana_usuarios.title("👥 Usuarios Registrados - SergioBets")
+    ventana_usuarios.title("👥 Usuarios Registrados - BetGeniuX")
     ventana_usuarios.geometry("700x500")
     ventana_usuarios.configure(bg="#f1f3f4")
     
@@ -1037,7 +1037,7 @@ def abrir_ajustes():
 
 # --- Interfaz ---
 root = tk.Tk()
-root.title("🧐 SergioBets v.1 – Cuotas de Partidos (Reales)")
+root.title("🧐 BetGeniuX v.1 – Cuotas de Partidos (Reales)")
 root.geometry("800x600")
 root.minsize(800, 600)
 root.state('zoomed')  # Maximizar ventana en Windows

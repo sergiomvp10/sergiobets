@@ -68,7 +68,7 @@ def test_telegram_bot_integration():
         metricas = tracker.calcular_metricas_rendimiento()
         
         if "error" in metricas:
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 📈 Sistema: Activo y funcionando
 ⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
@@ -76,7 +76,7 @@ def test_telegram_bot_integration():
 🔄 El sistema está recopilando datos..."""
             print("✅ Error case message generation works")
         else:
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 🎯 PREDICCIONES:
 • Total: {metricas['total_predicciones']}

@@ -31,7 +31,7 @@ def test_multiuser_telegram():
             print(f"   ✅ Created {len(usuarios)} test users")
         
         print("\n2. Testing message broadcast structure...")
-        test_message = "🤖 TEST MESSAGE - SergioBets Multi-User System\n\nThis is a test of the multi-user broadcast functionality."
+        test_message = "🤖 TEST MESSAGE - BetGeniuX Multi-User System\n\nThis is a test of the multi-user broadcast functionality."
         
         print(f"   📤 Would broadcast to {len(usuarios)} users:")
         for usuario in usuarios:

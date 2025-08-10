@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Servidor de webhooks para SergioBets - NOWPayments Integration
+Servidor de webhooks para BetGeniuX - NOWPayments Integration
 Ejecutar este script para iniciar el servidor de webhooks
 """
 
@@ -35,7 +35,7 @@ def validate_environment():
 
 def main():
     """Función principal"""
-    print("🚀 SergioBets - Servidor de Webhooks NOWPayments")
+    print("🚀 BetGeniuX - Servidor de Webhooks NOWPayments")
     print("=" * 50)
     
     if not validate_environment():

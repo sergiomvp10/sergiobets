@@ -1,4 +1,4 @@
-# SergioBets - Sistema de Pagos NOWPayments
+# BetGeniuX - Sistema de Pagos NOWPayments
 
 ## Configuración del Sistema de Pagos
 

@@ -98,7 +98,7 @@ def test_file_structure():
         'pagos/webhook_server.py',
         'pagos/payments.py',
         'telegram_bot_listener.py',
-        'sergiobets_unified.py'
+        'betgeniux_unified.py'
     ]
     
     all_found = True
@@ -112,7 +112,7 @@ def test_file_structure():
     return all_found
 
 def main():
-    print("🧪 SergioBets Windows Compatibility Test")
+    print("🧪 BetGeniuX Windows Compatibility Test")
     print("=" * 50)
     
     tests = [

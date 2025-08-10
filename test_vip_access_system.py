@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test VIP Access System for SergioBets
+Test VIP Access System for BetGeniuX
 """
 
 import os

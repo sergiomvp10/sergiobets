@@ -107,7 +107,7 @@ def test_api_endpoint():
 
 def main():
     """Ejecutar todas las pruebas"""
-    print("🧪 SergioBets - Pruebas del Sistema de Pagos")
+    print("🧪 BetGeniuX - Pruebas del Sistema de Pagos")
     print("=" * 50)
     
     tests_passed = 0

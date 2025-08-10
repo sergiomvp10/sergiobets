@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to verify sergiobets_unified.py crash fixes
+Test script to verify betgeniux_unified.py crash fixes
 """
 
 import sys
@@ -8,7 +8,7 @@ import os
 
 def test_crash_fixes():
     """Test that the unified system fixes work without crashing"""
-    print("Testing SergioBets Unified crash fixes...")
+    print("Testing BetGeniuX Unified crash fixes...")
     
     try:
         print("1. Testing imports...")
@@ -32,10 +32,10 @@ def test_crash_fixes():
         print("   ✅ TrackRecordManager initialization successful")
         
         print("\n5. Testing syntax validation...")
-        with open('sergiobets_unified.py', 'r', encoding='utf-8') as f:
+        with open('betgeniux_unified.py', 'r', encoding='utf-8') as f:
             code = f.read()
         
-        compile(code, 'sergiobets_unified.py', 'exec')
+        compile(code, 'betgeniux_unified.py', 'exec')
         print("   ✅ Syntax validation successful - no syntax errors")
         
         print("\n🎉 All crash fix tests passed - application should work without crashing")
