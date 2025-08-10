@@ -58,8 +58,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [
-            InlineKeyboardButton("GRATIS", callback_data="estadisticas"),
-            InlineKeyboardButton("PREMIUM", callback_data="novedades")
+            InlineKeyboardButton("📊 Stats", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 News", callback_data="novedades")
         ],
         [
             InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
@@ -278,8 +278,8 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     
     keyboard = [
         [
-            InlineKeyboardButton("GRATIS", callback_data="estadisticas"),
-            InlineKeyboardButton("PREMIUM", callback_data="novedades")
+            InlineKeyboardButton("📊 Stats", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 News", callback_data="novedades")
         ],
         [
             InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
