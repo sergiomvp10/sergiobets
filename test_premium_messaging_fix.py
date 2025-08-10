@@ -89,7 +89,7 @@ def test_message_content_quality():
         "días",
         "Fecha de activación",
         "Fecha de vencimiento",
-        "SergioBets"
+        "BetGeniuX"
     ]
     
     missing_elements = []

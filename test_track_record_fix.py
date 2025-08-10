@@ -34,18 +34,18 @@ def test_track_record_imports():
         print(f"❌ Import error: {e}")
         return False
 
-def test_sergiobets_unified_integration():
-    """Test that SergioBetsUnified has the enhanced track record method"""
-    print("\n=== TESTING SERGIOBETS_UNIFIED INTEGRATION ===")
+def test_betgeniux_unified_integration():
+    """Test that BetGeniuXUnified has the enhanced track record method"""
+    print("\n=== TESTING BETGENIUX_UNIFIED INTEGRATION ===")
     
     try:
-        from sergiobets_unified import SergioBetsUnified
+        from betgeniux_unified import BetGeniuXUnified
         
-        if hasattr(SergioBetsUnified, 'abrir_track_record'):
-            print("✅ SergioBetsUnified has abrir_track_record method")
+        if hasattr(BetGeniuXUnified, 'abrir_track_record'):
+            print("✅ BetGeniuXUnified has abrir_track_record method")
             
             import inspect
-            method_source = inspect.getsource(SergioBetsUnified.abrir_track_record)
+            method_source = inspect.getsource(BetGeniuXUnified.abrir_track_record)
             
             enhanced_indicators = [
                 "Track Record Mejorado",
@@ -73,11 +73,11 @@ def test_sergiobets_unified_integration():
                 return False
                 
         else:
-            print("❌ SergioBetsUnified missing abrir_track_record method")
+            print("❌ BetGeniuXUnified missing abrir_track_record method")
             return False
             
     except Exception as e:
-        print(f"❌ Error testing SergioBetsUnified integration: {e}")
+        print(f"❌ Error testing BetGeniuXUnified integration: {e}")
         return False
 
 def test_track_record_manager_availability():
@@ -154,10 +154,10 @@ def test_method_signature():
     print("\n=== TESTING METHOD SIGNATURE ===")
     
     try:
-        from sergiobets_unified import SergioBetsUnified
+        from betgeniux_unified import BetGeniuXUnified
         import inspect
         
-        method = getattr(SergioBetsUnified, 'abrir_track_record')
+        method = getattr(BetGeniuXUnified, 'abrir_track_record')
         signature = inspect.signature(method)
         
         print(f"✅ Method signature: {signature}")
@@ -179,7 +179,7 @@ def check_for_conflicts():
     print("\n=== CHECKING FOR CONFLICTS ===")
     
     try:
-        with open('sergiobets_unified.py', 'r', encoding='utf-8') as f:
+        with open('betgeniux_unified.py', 'r', encoding='utf-8') as f:
             content = f.read()
         
         track_record_count = content.count('def abrir_track_record')
@@ -219,7 +219,7 @@ def check_user_scenario():
     try:
         files_with_track_record = []
         
-        for filename in ['sergiobets_unified.py', 'crudo.py']:
+        for filename in ['betgeniux_unified.py', 'crudo.py']:
             if os.path.exists(filename):
                 with open(filename, 'r', encoding='utf-8') as f:
                     content = f.read()
@@ -240,7 +240,7 @@ def check_user_scenario():
         pycache_files = []
         if os.path.exists('__pycache__'):
             for file in os.listdir('__pycache__'):
-                if 'sergiobets_unified' in file:
+                if 'betgeniux_unified' in file:
                     pycache_files.append(file)
         
         if pycache_files:
@@ -261,7 +261,7 @@ def main():
     
     tests = [
         ("Track Record Imports", test_track_record_imports),
-        ("SergioBetsUnified Integration", test_sergiobets_unified_integration),
+        ("BetGeniuXUnified Integration", test_betgeniux_unified_integration),
         ("TrackRecordManager Availability", test_track_record_manager_availability),
         ("Data Structure Compatibility", test_data_structure),
         ("Method Signature", test_method_signature),
@@ -294,7 +294,7 @@ def main():
         
         print("\n💡 Recommended solutions:")
         print("1. Clear Python cache: rm -rf __pycache__")
-        print("2. Ensure running: python sergiobets_unified.py")
+        print("2. Ensure running: python betgeniux_unified.py")
         print("3. Restart the application completely")
         print("4. Check if imports are working at runtime")
     else:

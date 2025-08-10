@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Track Record Module for SergioBets
+Track Record Module for BetGeniuX
 Compares predictions against actual match results and calculates performance metrics
 """
 
@@ -617,12 +617,23 @@ class TrackRecordManager:
             if not historial:
                 return {"error": "No hay historial disponible"}
             
+            historial = [p for p in historial if p.get('sent_to_telegram', False)]
+            
+            if not historial:
+                return {"error": "No hay predicciones enviadas a Telegram"}
+            
             con_resultado = [p for p in historial if p.get("resultado_real") is not None]
             
             if not con_resultado:
                 return {
                     "total_predicciones": len(historial),
                     "predicciones_resueltas": 0,
+                    "predicciones_pendientes": len(historial),
+                    "aciertos": 0,
+                    "tasa_acierto": 0,
+                    "total_apostado": 0,
+                    "total_ganancia": 0,
+                    "roi": 0,
                     "mensaje": "No hay predicciones resueltas aún"
                 }
             
@@ -650,15 +661,23 @@ class TrackRecordManager:
                 aciertos_tipo = tipos_apuesta[tipo]["aciertos"]
                 tipos_apuesta[tipo]["win_rate"] = (aciertos_tipo / total * 100) if total > 0 else 0
             
+            predicciones_pendientes = total_predicciones - predicciones_resueltas
+            
+            predicciones_con_ve = [p for p in historial if "valor_esperado" in p]
+            valor_esperado_promedio = 0
+            if predicciones_con_ve:
+                valor_esperado_promedio = sum(p["valor_esperado"] for p in predicciones_con_ve) / len(predicciones_con_ve)
+            
             return {
                 "total_predicciones": total_predicciones,
                 "predicciones_resueltas": predicciones_resueltas,
+                "predicciones_pendientes": predicciones_pendientes,
                 "aciertos": len(aciertos),
                 "tasa_acierto": len(aciertos) / predicciones_resueltas * 100,
                 "total_apostado": total_apostado,
                 "total_ganancia": total_ganancia,
                 "roi": roi,
-                "valor_esperado_promedio": sum(p["valor_esperado"] for p in historial) / total_predicciones,
+                "valor_esperado_promedio": valor_esperado_promedio,
                 "tipos_apuesta": tipos_apuesta,
                 "fecha_calculo": datetime.now().isoformat()
             }
@@ -677,7 +696,7 @@ class TrackRecordManager:
             return f"Error generando reporte: {metricas['error']}"
         
         reporte = f"""
-📊 REPORTE DE RENDIMIENTO - SERGIOBETS IA
+📊 REPORTE DE RENDIMIENTO - BETGENIUX IA
 {'='*50}
 
 📈 MÉTRICAS GENERALES:

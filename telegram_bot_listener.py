@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
 USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
@@ -52,18 +52,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mensaje_acceso = ""
     
     if es_nuevo:
-        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
+        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a BetGeniuX 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
     else:
-        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
+        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
         [
-            InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 Novedades", callback_data="novedades")
+            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
+            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
         ],
         [
-            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
-            InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
+            InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
+        ],
+        [
+            InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
+            InlineKeyboardButton("❓ AYUDA", callback_data="ayuda")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -86,7 +90,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if query.data == "estadisticas":
+    if query.data == "gratis":
+        await mostrar_gratis(update, context)
+    elif query.data == "premium":
+        await mostrar_premium(update, context)
+    elif query.data == "estadisticas":
         await mostrar_estadisticas(update, context)
     elif query.data == "novedades":
         await mostrar_novedades(update, context)
@@ -100,6 +108,68 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await procesar_pago(update, context, "ltc")
     elif query.data == "pago_nequi":
         await procesar_pago_nequi(update, context)
+    elif query.data == "menu_principal":
+        await volver_menu_principal(update, context)
+
+async def mostrar_gratis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar contenido gratuito"""
+    query = update.callback_query
+    
+    mensaje = """💲 CONTENIDO GRATUITO BETGENIUX
+
+🎯 PREDICCIONES BÁSICAS:
+• Análisis de partidos principales
+• Tips básicos de apuestas
+• Estadísticas generales
+
+📊 ACCESO INCLUYE:
+• Predicciones diarias seleccionadas
+• Análisis de cuotas básico
+• Tips de gestión de bankroll
+
+🔄 Para acceder a predicciones premium y análisis avanzado, consulta nuestra membresía.
+
+¿Te gustaría ver las predicciones gratuitas de hoy?"""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+
+async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar contenido premium"""
+    query = update.callback_query
+    
+    mensaje = """💰 CONTENIDO PREMIUM BETGENIUX
+
+🏆 PREDICCIONES VIP:
+• Análisis profesional completo
+• Predicciones de alta confianza
+• Estrategias avanzadas de apuestas
+
+💎 ACCESO PREMIUM INCLUYE:
+• Predicciones diarias premium
+• Análisis detallado de mercados
+• Gestión avanzada de bankroll
+• Soporte personalizado
+• Estadísticas en tiempo real
+
+📈 RESULTADOS COMPROBADOS:
+• ROI superior al 15%
+• Más de 70% de aciertos
+• Seguimiento detallado
+
+¿Quieres acceder al contenido premium?"""
+    
+    keyboard = [
+        [InlineKeyboardButton("💳 Ver Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
@@ -112,14 +182,14 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         metricas = tracker.calcular_metricas_rendimiento()
         
         if "error" in metricas:
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 📈 Sistema: Activo y funcionando
 ⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
 
 🔄 El sistema está recopilando datos..."""
         else:
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 🎯 PREDICCIONES:
 • Total: {metricas['total_predicciones']}
@@ -152,7 +222,7 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
                 contenido = f.read()
         else:
-            contenido = """📢 NOVEDADES SERGIOBETS
+            contenido = """📢 NOVEDADES BETGENIUX
 
 🎯 Sistema activo y funcionando
 📊 Estadísticas disponibles en tiempo real
@@ -176,41 +246,40 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ngrok_url = get_current_ngrok_url()
     
     if ngrok_url:
-        mensaje = f"""💳 MEMBRESÍA VIP SERGIOBETS
+        mensaje = f"""MEMBRESÍA VIP BETGENIUX
 
-🌟 ACCESO VIP (7 DÍAS):
-• Predicciones exclusivas de alta confianza
-• Acceso a estadísticas avanzadas
+⭐ ACCESO VIP 7 DÍAS ⭐
+
+• Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
 • Soporte prioritario
-• Análisis detallado de mercados
 
-💰 PRECIO:
+
+💰 PRECIO
 • 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
+
 • USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
 
-🚀 ¡Selecciona tu método de pago preferido!
-
-💳 También puedes pagar directamente aquí:
-👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
+🚀 ¡Selecciona tu método de pago preferido!"""
     else:
-        mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
+        mensaje = """MEMBRESÍA VIP BETGENIUX
 
-🌟 ACCESO VIP (7 DÍAS):
-• Predicciones exclusivas de alta confianza
-• Acceso a estadísticas avanzadas
+⭐ ACCESO VIP 7 DÍAS ⭐
+
+• Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
 • Soporte prioritario
-• Análisis detallado de mercados
 
-💰 PRECIO:
+
+💰 PRECIO
 • 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
+
 • USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
@@ -232,7 +301,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
     query = update.callback_query
-    mensaje = """❓ AYUDA - SERGIOBETS
+    mensaje = """❓ AYUDA - BETGENIUX
 
 🤖 COMANDOS DISPONIBLES:
 • /start - Mostrar menú principal
@@ -274,16 +343,20 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     user = query.from_user
     first_name = user.first_name
     
-    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
+    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
     
     keyboard = [
         [
-            InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 Novedades", callback_data="novedades")
+            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
+            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
         ],
         [
-            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
-            InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
+            InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
+        ],
+        [
+            InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
+            InlineKeyboardButton("❓ AYUDA", callback_data="ayuda")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -306,7 +379,7 @@ def iniciar_bot_listener():
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
         
-        logger.info("Bot listener iniciado - Registrando usuarios automáticamente")
+        logger.info("BetGeniuXBot listener iniciado - Registrando usuarios automáticamente")
         
         application.run_polling(stop_signals=None)
         
@@ -498,11 +571,11 @@ def iniciar_bot_en_hilo():
     
     hilo_bot = threading.Thread(target=ejecutar_bot, daemon=True)
     hilo_bot.start()
-    logger.info("Bot listener iniciado en hilo separado")
+    logger.info("BetGeniuXBot listener iniciado en hilo separado")
     return hilo_bot
 
 if __name__ == "__main__":
-    print("🤖 Iniciando SergioBets Bot Listener...")
+    print("🤖 Iniciando BetGeniuX Bot Listener...")
     print("📝 Registrando usuarios automáticamente...")
     print("💬 Los usuarios pueden usar /start o enviar cualquier mensaje")
     print("📁 Usuarios se guardan en usuarios.txt")

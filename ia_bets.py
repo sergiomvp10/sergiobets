@@ -16,8 +16,19 @@ LIGAS_CONOCIDAS = {
     "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana"
 }
 
-CUOTA_MIN = 1.30
-CUOTA_MAX = 1.60
+def cargar_configuracion_cuotas():
+    """Carga la configuración de cuotas desde config_app.json"""
+    from json_storage import cargar_json
+    config = cargar_json("config_app.json")
+    if config is None:
+        return 1.30, 1.60
+    return config.get("odds_min", 1.30), config.get("odds_max", 1.60)
+
+def obtener_cuotas_configuradas():
+    """Obtiene las cuotas configuradas (función helper para usar en el código)"""
+    return cargar_configuracion_cuotas()
+
+
 
 _cache_predicciones = {}
 
@@ -256,210 +267,59 @@ def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tu
     return valor_esperado, es_value_bet
 
 def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) -> List[Dict[str, Any]]:
-    """Encuentra las mejores apuestas basadas en value betting con múltiples mercados"""
+    """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado"""
     mejores_apuestas = []
+    cuota_min, cuota_max = obtener_cuotas_configuradas()
     
-    prob_1x2 = analisis["probabilidades_1x2"]
-    cuotas = analisis["cuotas_disponibles"]
+    cuotas_reales = analisis["cuotas_disponibles"]
     
-    for resultado, probabilidad in prob_1x2.items():
+    mercados_disponibles = [
+        ("1X2", "local", analisis["probabilidades_1x2"]["local"], cuotas_reales.get("local", "0"), f"Victoria {analisis['partido'].split(' vs ')[0]}"),
+        ("1X2", "empate", analisis["probabilidades_1x2"]["empate"], cuotas_reales.get("empate", "0"), "Empate"),
+        ("1X2", "visitante", analisis["probabilidades_1x2"]["visitante"], cuotas_reales.get("visitante", "0"), f"Victoria {analisis['partido'].split(' vs ')[1]}"),
+        
+        ("BTTS", "btts_si", analisis.get("probabilidades_btts", {}).get("btts_si", 0.5), cuotas_reales.get("btts_si", "0"), "Ambos equipos marcan - SÍ"),
+        ("BTTS", "btts_no", analisis.get("probabilidades_btts", {}).get("btts_no", 0.5), cuotas_reales.get("btts_no", "0"), "Ambos equipos marcan - NO"),
+        
+        ("Over/Under", "over_15", analisis.get("probabilidades_over_under", {}).get("over_15", 0.8), cuotas_reales.get("over_15", "0"), "Más de 1.5 goles"),
+        ("Over/Under", "under_15", analisis.get("probabilidades_over_under", {}).get("under_15", 0.2), cuotas_reales.get("under_15", "0"), "Menos de 1.5 goles"),
+        ("Over/Under", "over_25", analisis.get("probabilidades_over_under", {}).get("over_25", 0.6), cuotas_reales.get("over_25", "0"), "Más de 2.5 goles"),
+        ("Over/Under", "under_25", analisis.get("probabilidades_over_under", {}).get("under_25", 0.4), cuotas_reales.get("under_25", "0"), "Menos de 2.5 goles"),
+        
+        ("Corners", "over_85", analisis.get("probabilidades_corners", {}).get("over_85_corners", 0.6), cuotas_reales.get("corners_over_85", "0"), "Más de 8.5 corners"),
+        ("Corners", "over_95", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.5), cuotas_reales.get("corners_over_95", "0"), "Más de 9.5 corners"),
+        ("Corners", "over_105", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.4), cuotas_reales.get("corners_over_105", "0"), "Más de 10.5 corners"),
+        
+        ("1H", "over_05", analisis.get("probabilidades_primera_mitad", {}).get("over_05_1h", 0.6), cuotas_reales.get("1h_over_05", "0"), "Más de 0.5 goles 1H"),
+        ("1H", "over_15", analisis.get("probabilidades_primera_mitad", {}).get("over_15_1h", 0.3), cuotas_reales.get("1h_over_15", "0"), "Más de 1.5 goles 1H"),
+    ]
+    
+    for tipo_mercado, mercado, probabilidad, cuota_str, descripcion in mercados_disponibles:
         try:
-            cuota = float(cuotas.get(resultado, "1.00"))
-            if cuota > 1.0:
-                ve, es_value = calcular_value_bet(probabilidad, cuota)
-                if es_value and CUOTA_MIN <= cuota <= CUOTA_MAX:
-                    mejores_apuestas.append({
-                        "tipo": "1X2",
-                        "mercado": resultado,
-                        "descripcion": {
-                            "local": f"Victoria {analisis['partido'].split(' vs ')[0]}",
-                            "empate": "Empate",
-                            "visitante": f"Victoria {analisis['partido'].split(' vs ')[1]}"
-                        }.get(resultado, resultado),
-                        "probabilidad": probabilidad,
-                        "cuota": cuota,
-                        "valor_esperado": ve,
-                        "confianza": probabilidad * 100
-                    })
+            cuota_real = float(cuota_str)
+            
+            if cuota_real <= 1.0:
+                continue
+                
+            if not (cuota_min <= cuota_real <= cuota_max):
+                continue
+                
+            ve, es_value = calcular_value_bet(probabilidad, cuota_real)
+            
+            if es_value:
+                mejores_apuestas.append({
+                    "tipo": tipo_mercado,
+                    "mercado": mercado,
+                    "descripcion": descripcion,
+                    "probabilidad": probabilidad,
+                    "cuota": cuota_real,
+                    "valor_esperado": ve,
+                    "confianza": probabilidad * 100,
+                    "ajuste": "ninguno"
+                })
+                
         except (ValueError, TypeError):
             continue
-    
-    prob_btts = analisis["probabilidades_btts"]
-    cuota_btts_si = 1.45  # Cuota ajustada al nuevo rango
-    cuota_btts_no = 1.55  # Cuota ajustada al nuevo rango
-    
-    ve_btts_si, es_value_si = calcular_value_bet(prob_btts["btts_si"], cuota_btts_si)
-    ve_btts_no, es_value_no = calcular_value_bet(prob_btts["btts_no"], cuota_btts_no)
-    
-    if es_value_si and CUOTA_MIN <= cuota_btts_si <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "BTTS",
-            "mercado": "btts_si",
-            "descripcion": "Ambos equipos marcan - SÍ",
-            "probabilidad": prob_btts["btts_si"],
-            "cuota": cuota_btts_si,
-            "valor_esperado": ve_btts_si,
-            "confianza": prob_btts["btts_si"] * 100
-        })
-    
-    if es_value_no and CUOTA_MIN <= cuota_btts_no <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "BTTS",
-            "mercado": "btts_no",
-            "descripcion": "Ambos equipos marcan - NO",
-            "probabilidad": prob_btts["btts_no"],
-            "cuota": cuota_btts_no,
-            "valor_esperado": ve_btts_no,
-            "confianza": prob_btts["btts_no"] * 100
-        })
-    
-    prob_ou = analisis["probabilidades_over_under"]
-    
-    cuota_over_15 = 1.35
-    cuota_under_15 = 1.50
-    
-    ve_over_15, es_value_over_15 = calcular_value_bet(prob_ou["over_15"], cuota_over_15)
-    ve_under_15, es_value_under_15 = calcular_value_bet(prob_ou["under_15"], cuota_under_15)
-    
-    if es_value_over_15 and CUOTA_MIN <= cuota_over_15 <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Over/Under",
-            "mercado": "over_15",
-            "descripcion": "Más de 1.5 goles",
-            "probabilidad": prob_ou["over_15"],
-            "cuota": cuota_over_15,
-            "valor_esperado": ve_over_15,
-            "confianza": prob_ou["over_15"] * 100
-        })
-    
-    if es_value_under_15 and CUOTA_MIN <= cuota_under_15 <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Over/Under",
-            "mercado": "under_15",
-            "descripcion": "Menos de 1.5 goles",
-            "probabilidad": prob_ou["under_15"],
-            "cuota": cuota_under_15,
-            "valor_esperado": ve_under_15,
-            "confianza": prob_ou["under_15"] * 100
-        })
-    
-    cuota_over_25 = 1.55
-    cuota_under_25 = 1.40
-    
-    ve_over_25, es_value_over_25 = calcular_value_bet(prob_ou["over_25"], cuota_over_25)
-    ve_under_25, es_value_under_25 = calcular_value_bet(prob_ou["under_25"], cuota_under_25)
-    
-    if es_value_over_25 and CUOTA_MIN <= cuota_over_25 <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Over/Under",
-            "mercado": "over_25",
-            "descripcion": "Más de 2.5 goles",
-            "probabilidad": prob_ou["over_25"],
-            "cuota": cuota_over_25,
-            "valor_esperado": ve_over_25,
-            "confianza": prob_ou["over_25"] * 100
-        })
-    
-    if es_value_under_25 and CUOTA_MIN <= cuota_under_25 <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Over/Under",
-            "mercado": "under_25",
-            "descripcion": "Menos de 2.5 goles",
-            "probabilidad": prob_ou["under_25"],
-            "cuota": cuota_under_25,
-            "valor_esperado": ve_under_25,
-            "confianza": prob_ou["under_25"] * 100
-        })
-    
-    prob_handicap = analisis["probabilidades_handicap"]
-    
-    cuota_handicap_local_05 = 1.45
-    cuota_handicap_visitante_05 = 1.50
-    
-    ve_h_local, es_value_h_local = calcular_value_bet(prob_handicap["handicap_local_05"], cuota_handicap_local_05)
-    ve_h_visitante, es_value_h_visitante = calcular_value_bet(prob_handicap["handicap_visitante_05"], cuota_handicap_visitante_05)
-    
-    if es_value_h_local and CUOTA_MIN <= cuota_handicap_local_05 <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Hándicap",
-            "mercado": "handicap_local_05",
-            "descripcion": f"{analisis['partido'].split(' vs ')[0]} -0.5",
-            "probabilidad": prob_handicap["handicap_local_05"],
-            "cuota": cuota_handicap_local_05,
-            "valor_esperado": ve_h_local,
-            "confianza": prob_handicap["handicap_local_05"] * 100
-        })
-    
-    if es_value_h_visitante and CUOTA_MIN <= cuota_handicap_visitante_05 <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Hándicap",
-            "mercado": "handicap_visitante_05",
-            "descripcion": f"{analisis['partido'].split(' vs ')[1]} +0.5",
-            "probabilidad": prob_handicap["handicap_visitante_05"],
-            "cuota": cuota_handicap_visitante_05,
-            "valor_esperado": ve_h_visitante,
-            "confianza": prob_handicap["handicap_visitante_05"] * 100
-        })
-    
-    prob_corners = analisis["probabilidades_corners"]
-    
-    cuota_over_85_corners = 1.40
-    cuota_over_105_corners = 1.55
-    
-    ve_corners_85, es_value_corners_85 = calcular_value_bet(prob_corners["over_85_corners"], cuota_over_85_corners)
-    ve_corners_105, es_value_corners_105 = calcular_value_bet(prob_corners["over_105_corners"], cuota_over_105_corners)
-    
-    if es_value_corners_85 and CUOTA_MIN <= cuota_over_85_corners <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Corners",
-            "mercado": "over_85_corners",
-            "descripcion": "Más de 8.5 corners",
-            "probabilidad": prob_corners["over_85_corners"],
-            "cuota": cuota_over_85_corners,
-            "valor_esperado": ve_corners_85,
-            "confianza": prob_corners["over_85_corners"] * 100
-        })
-    
-    if es_value_corners_105 and CUOTA_MIN <= cuota_over_105_corners <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Corners",
-            "mercado": "over_105_corners",
-            "descripcion": "Más de 10.5 corners",
-            "probabilidad": prob_corners["over_105_corners"],
-            "cuota": cuota_over_105_corners,
-            "valor_esperado": ve_corners_105,
-            "confianza": prob_corners["over_105_corners"] * 100
-        })
-    
-    prob_tarjetas = analisis["probabilidades_tarjetas"]
-    
-    cuota_over_35_cards = 1.50
-    cuota_over_55_cards = 1.35
-    
-    ve_cards_35, es_value_cards_35 = calcular_value_bet(prob_tarjetas["over_35_cards"], cuota_over_35_cards)
-    ve_cards_55, es_value_cards_55 = calcular_value_bet(prob_tarjetas["over_55_cards"], cuota_over_55_cards)
-    
-    if es_value_cards_35 and CUOTA_MIN <= cuota_over_35_cards <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Tarjetas",
-            "mercado": "over_35_cards",
-            "descripcion": "Más de 3.5 tarjetas",
-            "probabilidad": prob_tarjetas["over_35_cards"],
-            "cuota": cuota_over_35_cards,
-            "valor_esperado": ve_cards_35,
-            "confianza": prob_tarjetas["over_35_cards"] * 100
-        })
-    
-    if es_value_cards_55 and CUOTA_MIN <= cuota_over_55_cards <= CUOTA_MAX:
-        mejores_apuestas.append({
-            "tipo": "Tarjetas",
-            "mercado": "over_55_cards",
-            "descripcion": "Más de 5.5 tarjetas",
-            "probabilidad": prob_tarjetas["over_55_cards"],
-            "cuota": cuota_over_55_cards,
-            "valor_esperado": ve_cards_55,
-            "confianza": prob_tarjetas["over_55_cards"] * 100
-        })
     
     if mejores_apuestas:
         mejores_apuestas.sort(key=lambda x: x["valor_esperado"], reverse=True)
@@ -557,9 +417,9 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
 
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
     if not predicciones:
-        return f"🤖 IA SERGIOBETS - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
+        return f"🤖 IA BetGeniuX - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
-    mensaje = f"🤖 IA SERGIOBETS - ANÁLISIS AVANZADO ({fecha})\n\n"
+    mensaje = f"🤖 IA BetGeniuX - ANÁLISIS AVANZADO ({fecha})\n\n"
     
     for i, pred in enumerate(predicciones, 1):
         mensaje += f"🎯 PICK #{i} - VALUE BET\n"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SergioBets - Sistema Completo con GUI y Pagos NOWPayments
+BetGeniuX - Sistema Completo con GUI y Pagos NOWPayments
 Aplicación única que maneja GUI, webhook server, ngrok tunnel y bot de Telegram
 """
 
@@ -30,9 +30,9 @@ from track_record import TrackRecordManager
 
 def setup_logging():
     """Setup comprehensive logging for debugging"""
-    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sergiobets_debug.log')
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'betgeniux_debug.log')
     
-    logger = logging.getLogger('SergioBets')
+    logger = logging.getLogger('BetGeniuX')
     logger.setLevel(logging.DEBUG)
     
     file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
@@ -51,7 +51,7 @@ def setup_logging():
     return logger
 
 logger = setup_logging()
-logger.info("=== SergioBets Starting ===")
+logger.info("=== BetGeniuX Starting ===")
 logger.info(f"Python version: {sys.version}")
 logger.info(f"Platform: {sys.platform}")
 logger.info(f"Working directory: {os.getcwd()}")
@@ -66,18 +66,18 @@ except Exception as e:
     input("Press Enter to exit...")
     sys.exit(1)
 
-class SergioBetsUnified:
+class BetGeniuXUnified:
     def __init__(self):
-        logger.info("Initializing SergioBetsUnified...")
+        logger.info("Initializing BetGeniuXUnified...")
         try:
             self.webhook_thread = None
             self.bot_thread = None
             self.ngrok_process = None
             self.ngrok_url = None
             self.running = True
-            logger.info("✅ SergioBetsUnified initialized successfully")
+            logger.info("✅ BetGeniuXUnified initialized successfully")
         except Exception as e:
-            logger.error(f"❌ Error initializing SergioBetsUnified: {e}")
+            logger.error(f"❌ Error initializing BetGeniuXUnified: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
         
@@ -88,8 +88,8 @@ class SergioBetsUnified:
         """Manejar señales de interrupción"""
         if not hasattr(self, '_stopping'):
             self._stopping = True
-            logger.info("🛑 Signal received, stopping SergioBets...")
-            print("\n🛑 Deteniendo SergioBets...")
+            logger.info("🛑 Signal received, stopping BetGeniuX...")
+            print("\n🛑 Deteniendo BetGeniuX...")
             self.running = False
             self.stop_all_services()
             sys.exit(0)
@@ -333,7 +333,7 @@ class SergioBetsUnified:
         from tkcalendar import DateEntry
         
         self.root = tk.Tk()
-        self.root.title("🧐 SergioBets v.2 – Sistema Completo con Pagos")
+        self.root.title("🧐 BetGeniuX v.2 – Sistema Completo con Pagos")
         self.root.geometry("800x600")
         self.root.minsize(800, 600)
         try:
@@ -360,7 +360,16 @@ class SergioBetsUnified:
         self.mensaje_telegram = ""
         self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
-        frame_top = tk.Frame(self.root, bg="#f1f3f4")
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        self.tab_principal = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.notebook.add(self.tab_principal, text="🏠 Principal")
+        
+        self.tab_ajustes = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.notebook.add(self.tab_ajustes, text="⚙️ Ajustes")
+        
+        frame_top = tk.Frame(self.tab_principal, bg="#f1f3f4")
         frame_top.pack(pady=15)
         
         ttk.Label(frame_top, text="📅 Fecha:").pack(side=tk.LEFT)
@@ -381,16 +390,94 @@ class SergioBetsUnified:
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
         
-        self.frame_predicciones = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_predicciones = tk.Frame(self.tab_principal, bg="#f1f3f4")
         self.frame_predicciones.pack(pady=5, padx=10, fill='x')
         
-        self.frame_partidos = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_partidos = tk.Frame(self.tab_principal, bg="#f1f3f4")
         self.frame_partidos.pack(pady=5, padx=10, fill='x')
         
-        self.output = ScrolledText(self.root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
+        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
         self.output.pack(pady=10, padx=10, expand=True, fill='both')
         
+        self.setup_settings_tab()
+        
         print("✅ GUI setup completed")
+    
+    def cargar_configuracion(self):
+        """Carga la configuración desde config_app.json"""
+        config = cargar_json("config_app.json")
+        if config is None:
+            config = {"odds_min": 1.30, "odds_max": 1.60}
+            guardar_json("config_app.json", config)
+        return config
+
+    def guardar_configuracion(self, config):
+        """Guarda la configuración en config_app.json"""
+        guardar_json("config_app.json", config)
+
+    def setup_settings_tab(self):
+        """Setup the Settings tab content"""
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        
+        frame_ajustes_content = tk.Frame(self.tab_ajustes, bg="#f1f3f4")
+        frame_ajustes_content.pack(pady=50, padx=50, fill='both', expand=True)
+        
+        ttk.Label(frame_ajustes_content, text="⚙️ Configuración de Filtros de Cuotas", font=('Segoe UI', 14, 'bold')).pack(pady=(0, 30))
+        
+        config_actual = self.cargar_configuracion()
+        
+        frame_min_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_min_tab.pack(pady=15, fill='x')
+        
+        ttk.Label(frame_min_tab, text="Cuota mínima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+        self.entry_min_tab = tk.Entry(frame_min_tab, font=('Segoe UI', 12), width=15)
+        self.entry_min_tab.pack(side=tk.RIGHT)
+        self.entry_min_tab.insert(0, str(config_actual.get("odds_min", 1.30)))
+        
+        frame_max_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_max_tab.pack(pady=15, fill='x')
+        
+        ttk.Label(frame_max_tab, text="Cuota máxima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+        self.entry_max_tab = tk.Entry(frame_max_tab, font=('Segoe UI', 12), width=15)
+        self.entry_max_tab.pack(side=tk.RIGHT)
+        self.entry_max_tab.insert(0, str(config_actual.get("odds_max", 1.60)))
+        
+        frame_info_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_info_tab.pack(pady=30, fill='x')
+        
+        info_text_tab = "ℹ️ Formato: Decimal EU\n📊 Límite mínimo técnico: 1.01\n🎯 Solo se mostrarán apuestas en el rango seleccionado"
+        ttk.Label(frame_info_tab, text=info_text_tab, font=('Segoe UI', 10), foreground='#666666').pack()
+        
+        frame_boton_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_boton_tab.pack(pady=30)
+        
+        ttk.Button(frame_boton_tab, text="💾 Guardar", command=self.guardar_ajustes_tab).pack()
+
+    def guardar_ajustes_tab(self):
+        """Guardar configuración desde la pestaña de ajustes"""
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        try:
+            odds_min = float(self.entry_min_tab.get())
+            odds_max = float(self.entry_max_tab.get())
+            
+            if odds_min < 1.01:
+                messagebox.showerror("Error", "La cuota mínima debe ser al menos 1.01")
+                return
+            
+            if odds_max < odds_min:
+                messagebox.showerror("Error", "La cuota máxima debe ser mayor o igual a la mínima")
+                return
+            
+            nueva_config = {"odds_min": odds_min, "odds_max": odds_max}
+            self.guardar_configuracion(nueva_config)
+            
+            messagebox.showinfo("Éxito", "Configuración guardada correctamente")
+            
+        except ValueError:
+            messagebox.showerror("Error", "Por favor ingresa valores numéricos válidos")
     
     def cargar_partidos_reales(self, fecha):
         """Cargar partidos reales de la API - solo para la fecha exacta solicitada"""
@@ -425,7 +512,18 @@ class SergioBetsUnified:
                             "casa": "FootyStats",
                             "local": str(partido.get("odds_ft_1", "2.00")),
                             "empate": str(partido.get("odds_ft_x", "3.00")),
-                            "visitante": str(partido.get("odds_ft_2", "4.00"))
+                            "visitante": str(partido.get("odds_ft_2", "4.00")),
+                            "btts_si": str(partido.get("odds_btts_yes", "0")),
+                            "btts_no": str(partido.get("odds_btts_no", "0")),
+                            "over_15": str(partido.get("odds_ft_over15", "0")),
+                            "under_15": str(partido.get("odds_ft_under15", "0")),
+                            "over_25": str(partido.get("odds_ft_over25", "0")),
+                            "under_25": str(partido.get("odds_ft_under25", "0")),
+                            "corners_over_85": str(partido.get("odds_corners_over_85", "0")),
+                            "corners_over_95": str(partido.get("odds_corners_over_95", "0")),
+                            "corners_over_105": str(partido.get("odds_corners_over_105", "0")),
+                            "1h_over_05": str(partido.get("odds_1st_half_over05", "0")),
+                            "1h_over_15": str(partido.get("odds_1st_half_over15", "0"))
                         }
                     })
                 except Exception as partido_error:
@@ -490,6 +588,13 @@ class SergioBetsUnified:
                 partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
             
             predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
+            
+            config = self.cargar_configuracion()
+            odds_min = config.get("odds_min", 1.30)
+            odds_max = config.get("odds_max", 1.60)
+            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n")
+            self.output.insert(tk.END, f"📊 Sistema de cuotas reales: ACTIVO\n")
+            self.output.insert(tk.END, f"🔍 Consultando mercados reales de FootyStats API\n\n")
             
             titulo_extra = ""
             if opcion_numero == 2:
@@ -846,7 +951,7 @@ class SergioBetsUnified:
             tracker = TrackRecordManager(api_key)
             
             ventana_track = tk.Toplevel(self.root)
-            ventana_track.title("📊 Track Record Mejorado - SergioBets IA")
+            ventana_track.title("📊 Track Record Mejorado - BetGeniuX IA")
             ventana_track.geometry("1400x800")
             ventana_track.configure(bg="#2c3e50")
             
@@ -944,6 +1049,55 @@ class SergioBetsUnified:
                                        bg="#2c3e50", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
                 titulo_label.pack(pady=(10, 20))
                 
+                def cambiar_estado_prediccion(bet_to_change, nuevo_acierto):
+                    """Cambiar manualmente el estado de una predicción"""
+                    estado_texto = "GANADA" if nuevo_acierto else "PERDIDA"
+                    respuesta = messagebox.askyesno("Confirmar cambio de estado", 
+                        f"¿Estás seguro de que quieres marcar esta predicción como {estado_texto}?\n\n" +
+                        f"Partido: {bet_to_change.get('partido', 'N/A')}\n" +
+                        f"Predicción: {bet_to_change.get('prediccion', 'N/A')}\n" +
+                        f"Cuota: {bet_to_change.get('cuota', 'N/A')}")
+                    
+                    if respuesta:
+                        try:
+                            from datetime import datetime
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            bet_updated = False
+                            
+                            for p in historial_actual:
+                                if (p.get('partido') == bet_to_change.get('partido') and
+                                    p.get('prediccion') == bet_to_change.get('prediccion') and
+                                    p.get('fecha') == bet_to_change.get('fecha') and
+                                    p.get('cuota') == bet_to_change.get('cuota') and
+                                    not bet_updated):
+                                    
+                                    p["acierto"] = nuevo_acierto
+                                    
+                                    stake = p.get('stake', 10)
+                                    cuota = p.get('cuota', 1.0)
+                                    if nuevo_acierto:
+                                        p["ganancia"] = stake * (cuota - 1)
+                                    else:
+                                        p["ganancia"] = -stake
+                                    
+                                    p["fecha_actualizacion"] = datetime.now().isoformat()
+                                    p["actualizacion_manual"] = True
+                                    
+                                    bet_updated = True
+                                    break
+                            
+                            if bet_updated:
+                                with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                    json.dump(historial_actual, f, indent=2, ensure_ascii=False)
+                                
+                                messagebox.showinfo("Éxito", f"Predicción marcada como {estado_texto} correctamente")
+                                mostrar_bets_por_categoria(categoria)
+                            else:
+                                messagebox.showerror("Error", "No se pudo encontrar la predicción para actualizar")
+                                
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error cambiando estado de predicción: {e}")
+
                 def eliminar_prediccion_individual(bet_to_delete):
                     """Eliminar una predicción individual del historial"""
                     respuesta = messagebox.askyesno("Confirmar eliminación", 
@@ -998,11 +1152,28 @@ class SergioBetsUnified:
                                                font=('Segoe UI', 11, 'bold'), anchor='w')
                         partido_label.pack(side='left', fill='x', expand=True)
                         
-                        delete_btn = tk.Button(header_frame, text="🗑️", 
+                        buttons_frame = tk.Frame(header_frame, bg="white")
+                        buttons_frame.pack(side='right')
+                        
+                        if bet.get("acierto") != True:
+                            win_btn = tk.Button(buttons_frame, text="✅", 
+                                              command=lambda b=bet: cambiar_estado_prediccion(b, True),
+                                              bg="#27ae60", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                              padx=5, pady=2)
+                            win_btn.pack(side='left', padx=(0, 2))
+                        
+                        if bet.get("acierto") != False:
+                            loss_btn = tk.Button(buttons_frame, text="❌", 
+                                               command=lambda b=bet: cambiar_estado_prediccion(b, False),
+                                               bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                               padx=5, pady=2)
+                            loss_btn.pack(side='left', padx=(0, 2))
+                        
+                        delete_btn = tk.Button(buttons_frame, text="🗑️", 
                                              command=lambda b=bet: eliminar_prediccion_individual(b),
-                                             bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                             bg="#95a5a6", fg="white", font=('Segoe UI', 8, 'bold'), 
                                              padx=5, pady=2)
-                        delete_btn.pack(side='right', padx=(5, 0))
+                        delete_btn.pack(side='left')
                         
                         prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
                         prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 
@@ -1488,7 +1659,7 @@ class SergioBetsUnified:
 
     def run(self):
         """Ejecutar aplicación principal con GUI y servicios backend"""
-        print("🎯 SergioBets - Sistema Completo con GUI y Pagos")
+        print("🎯 BetGeniuX - Sistema Completo con GUI y Pagos")
         print("=" * 60)
         
         if not self.check_dependencies():
@@ -1511,7 +1682,7 @@ class SergioBetsUnified:
             return False
         
         print("\n" + "=" * 60)
-        print("🎉 ¡SergioBets iniciado correctamente!")
+        print("🎉 ¡BetGeniuX iniciado correctamente!")
         if ngrok_success and self.ngrok_url and "ngrok" in self.ngrok_url:
             print(f"🌐 URL pública: {self.ngrok_url}")
             print(f"📡 Webhook: {self.ngrok_url}/webhook/nowpayments")
@@ -1538,7 +1709,7 @@ class SergioBetsUnified:
             print("🔗 El túnel ngrok está conectado")
         else:
             print("⚠️ El túnel ngrok no está disponible")
-        print("\n🎉 Iniciando GUI de SergioBets...")
+        print("\n🎉 Iniciando GUI de BetGeniuX...")
         
         try:
             self.setup_gui()
@@ -1563,11 +1734,11 @@ def main():
     """Función principal"""
     try:
         logger.info("=== Starting main function ===")
-        print("🎯 SergioBets - Sistema Unificado de Pagos")
+        print("🎯 BetGeniuX - Sistema Unificado de Pagos")
         print("=" * 60)
         
-        logger.debug("Creating SergioBetsUnified instance...")
-        app = SergioBetsUnified()
+        logger.debug("Creating BetGeniuXUnified instance...")
+        app = BetGeniuXUnified()
         
         logger.debug("Setting up signal handlers...")
         signal.signal(signal.SIGINT, app.signal_handler)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for the unified SergioBets system
+Test script for the unified BetGeniuX system
 """
 
 import json
@@ -10,19 +10,19 @@ from datetime import datetime
 def test_unified_system():
     """Test the unified system functionality"""
     print("=" * 60)
-    print("TESTING SERGIOBETS UNIFIED SYSTEM")
+    print("TESTING BETGENIUX UNIFIED SYSTEM")
     print("=" * 60)
     print(f"Test run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
     print()
     
     print("1. Checking unified file...")
-    if os.path.exists('sergiobets_unified.py'):
-        stat = os.stat('sergiobets_unified.py')
+    if os.path.exists('betgeniux_unified.py'):
+        stat = os.stat('betgeniux_unified.py')
         size = stat.st_size
         modified = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M')
-        print(f"   ✅ sergiobets_unified.py: {size:,} bytes (modified: {modified})")
+        print(f"   ✅ betgeniux_unified.py: {size:,} bytes (modified: {modified})")
     else:
-        print("   ❌ sergiobets_unified.py: NOT FOUND")
+        print("   ❌ betgeniux_unified.py: NOT FOUND")
         return
     
     print("\n2. Testing bet categorization logic...")

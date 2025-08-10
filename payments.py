@@ -124,7 +124,7 @@ class NOWPaymentsAPI:
         return None
 
 class PaymentManager:
-    """Gestor de pagos para SergioBets"""
+    """Gestor de pagos para BetGeniuX"""
     
     def __init__(self):
         self.nowpayments = NOWPaymentsAPI()
@@ -155,8 +155,8 @@ class PaymentManager:
         """Crear pago para membresía"""
         
         price_usd = self.nowpayments.MEMBERSHIP_PRICE_USD
-        order_id = f"sergiobets_{user_id}_{int(datetime.now().timestamp())}"
-        description = f"SergioBets 7-Day VIP Access - User {username}"
+        order_id = f"betgeniux_{user_id}_{int(datetime.now().timestamp())}"
+        description = f"BetGeniuX 7-Day VIP Access - User {username}"
         
         payment_data = self.nowpayments.create_payment(
             price_amount=price_usd,

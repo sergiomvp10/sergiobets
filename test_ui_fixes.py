@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to verify UI fixes in sergiobets_unified.py
+Test script to verify UI fixes in betgeniux_unified.py
 """
 
 import sys
@@ -8,14 +8,14 @@ import os
 
 def test_ui_fixes():
     """Test that the UI fixes work without crashing"""
-    print("Testing SergioBets Unified UI fixes...")
+    print("Testing BetGeniuX Unified UI fixes...")
     
     try:
         print("1. Testing syntax validation...")
-        with open('sergiobets_unified.py', 'r', encoding='utf-8') as f:
+        with open('betgeniux_unified.py', 'r', encoding='utf-8') as f:
             code = f.read()
         
-        compile(code, 'sergiobets_unified.py', 'exec')
+        compile(code, 'betgeniux_unified.py', 'exec')
         print("   ✅ Syntax validation successful - no syntax errors")
         
         print("\n2. Testing imports...")

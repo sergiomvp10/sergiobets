@@ -1,4 +1,4 @@
-# SergioBets - Guía de Instalación para Windows
+# BetGeniuX - Guía de Instalación para Windows
 
 ## 📋 Requisitos Previos
 
@@ -46,7 +46,7 @@ compile_windows.bat
 
 Para versión con consola (debugging):
 ```bash
-pyinstaller --onefile --console --name SergioBets-Console ^
+pyinstaller --onefile --console --name BetGeniuX-Console ^
     --hidden-import=flask ^
     --hidden-import=telegram ^
     --hidden-import=telegram.ext ^
@@ -59,12 +59,12 @@ pyinstaller --onefile --console --name SergioBets-Console ^
     --hidden-import=traceback ^
     --add-data ".env;." ^
     --add-data "pagos;pagos" ^
-    sergiobets_unified.py
+    betgeniux_unified.py
 ```
 
 Para versión sin consola:
 ```bash
-pyinstaller --onefile --windowed --name SergioBets ^
+pyinstaller --onefile --windowed --name BetGeniuX ^
     --hidden-import=flask ^
     --hidden-import=telegram ^
     --hidden-import=telegram.ext ^
@@ -77,7 +77,7 @@ pyinstaller --onefile --windowed --name SergioBets ^
     --hidden-import=traceback ^
     --add-data ".env;." ^
     --add-data "pagos;pagos" ^
-    sergiobets_unified.py
+    betgeniux_unified.py
 ```
 
 ## 🧪 Pruebas
@@ -85,7 +85,7 @@ pyinstaller --onefile --windowed --name SergioBets ^
 ### 1. Probar Versión Console (Recomendado primero)
 
 ```bash
-dist\SergioBets-Console.exe
+dist\BetGeniuX-Console.exe
 ```
 
 Esta versión muestra la consola y todos los mensajes de error. Úsala para:
@@ -97,7 +97,7 @@ Esta versión muestra la consola y todos los mensajes de error. Úsala para:
 ### 2. Probar Versión Windowed
 
 ```bash
-dist\SergioBets.exe
+dist\BetGeniuX.exe
 ```
 
 Esta versión no muestra consola. Úsala solo después de confirmar que la versión console funciona.
@@ -124,7 +124,7 @@ Esta versión no muestra consola. Úsala solo después de confirmar que la versi
 
 ### El .exe no hace nada al hacer doble clic
 
-1. **SIEMPRE ejecuta primero `SergioBets-Console.exe`** para ver errores
+1. **SIEMPRE ejecuta primero `BetGeniuX-Console.exe`** para ver errores
 2. Revisa el archivo `sergiobets_debug.log` que se crea automáticamente
 3. Verifica que todos los archivos estén en la misma carpeta que el .exe
 4. Comprueba que ngrok esté configurado con el authtoken correcto
@@ -143,8 +143,8 @@ Esta versión no muestra consola. Úsala solo después de confirmar que la versi
 ## 📁 Estructura de Archivos Requerida
 
 ```
-SergioBets/
-├── SergioBets.exe (o SergioBets-Console.exe)
+BetGeniuX/
+├── BetGeniuX.exe (o BetGeniuX-Console.exe)
 ├── .env
 ├── sergiobets_debug.log (se crea automáticamente)
 ├── pagos/
@@ -169,7 +169,7 @@ Este archivo se crea automáticamente y contiene:
 
 Si tienes problemas, sigue este orden:
 
-1. **Ejecuta `SergioBets-Console.exe`** para ver errores en tiempo real
+1. **Ejecuta `BetGeniuX-Console.exe`** para ver errores en tiempo real
 2. **Revisa `sergiobets_debug.log`** para detalles específicos
 3. Verifica que ngrok esté configurado correctamente: `ngrok version`
 4. Confirma que todas las dependencias estén instaladas: `pip list`
@@ -179,7 +179,7 @@ Si tienes problemas, sigue este orden:
 
 Una vez que todo funcione:
 
-1. Ejecuta `SergioBets.exe` (versión sin consola)
+1. Ejecuta `BetGeniuX.exe` (versión sin consola)
 2. El sistema iniciará automáticamente:
    - Servidor webhook en puerto 5000
    - Túnel ngrok con URL pública

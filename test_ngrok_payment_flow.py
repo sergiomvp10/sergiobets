@@ -83,8 +83,8 @@ def test_ngrok_ipn_webhook(payment_id):
         "price_currency": "usd",
         "pay_amount": 12.0,
         "pay_currency": "usdterc20",
-        "order_id": f"sergiobets_ngrok_test_456_{int(time.time())}",
-        "order_description": "SergioBets VIP Membership - 7 days",
+        "order_id": f"betgeniux_ngrok_test_456_{int(time.time())}",
+        "order_description": "BetGeniuX VIP Membership - 7 days",
         "purchase_id": f"purchase_{payment_id}",
         "outcome_amount": 12.0,
         "outcome_currency": "usdterc20"
@@ -145,7 +145,7 @@ def test_ngrok_vip_verification():
 
 def main():
     """Ejecutar test completo via ngrok"""
-    print("🌐 SergioBets - Test Completo via Ngrok URL Pública")
+    print("🌐 BetGeniuX - Test Completo via Ngrok URL Pública")
     print("=" * 70)
     
     if not test_ngrok_health():

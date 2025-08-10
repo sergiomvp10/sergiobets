@@ -123,7 +123,7 @@ def create_payment_api():
             <!DOCTYPE html>
             <html>
             <head>
-                <title>SergioBets - Crear Pago</title>
+                <title>BetGeniuX - Crear Pago</title>
                 <meta charset="utf-8">
                 <style>
                     body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
@@ -138,7 +138,7 @@ def create_payment_api():
                 </style>
             </head>
             <body>
-                <h1>🎯 SergioBets - Crear Pago VIP</h1>
+                <h1>🎯 BetGeniuX - Crear Pago VIP</h1>
                 <p>Crea un pago para membresía VIP de 7 días por $12 USD</p>
                 
                 <form id="paymentForm">
@@ -275,11 +275,11 @@ def get_payment_history():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "service": "SergioBets Payment Server"}), 200
+    return jsonify({"status": "healthy", "service": "BetGeniuX Payment Server"}), 200
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    print("🚀 Iniciando servidor de pagos SergioBets...")
+    print("🚀 Iniciando servidor de pagos BetGeniuX...")
     print("📡 Webhook endpoint: /webhook/nowpayments")
     print("🔧 API endpoint: /api/create_payment")
     print("💳 Servidor listo para recibir pagos...")
