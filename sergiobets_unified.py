@@ -1049,6 +1049,55 @@ class SergioBetsUnified:
                                        bg="#2c3e50", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
                 titulo_label.pack(pady=(10, 20))
                 
+                def cambiar_estado_prediccion(bet_to_change, nuevo_acierto):
+                    """Cambiar manualmente el estado de una predicción"""
+                    estado_texto = "GANADA" if nuevo_acierto else "PERDIDA"
+                    respuesta = messagebox.askyesno("Confirmar cambio de estado", 
+                        f"¿Estás seguro de que quieres marcar esta predicción como {estado_texto}?\n\n" +
+                        f"Partido: {bet_to_change.get('partido', 'N/A')}\n" +
+                        f"Predicción: {bet_to_change.get('prediccion', 'N/A')}\n" +
+                        f"Cuota: {bet_to_change.get('cuota', 'N/A')}")
+                    
+                    if respuesta:
+                        try:
+                            from datetime import datetime
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            bet_updated = False
+                            
+                            for p in historial_actual:
+                                if (p.get('partido') == bet_to_change.get('partido') and
+                                    p.get('prediccion') == bet_to_change.get('prediccion') and
+                                    p.get('fecha') == bet_to_change.get('fecha') and
+                                    p.get('cuota') == bet_to_change.get('cuota') and
+                                    not bet_updated):
+                                    
+                                    p["acierto"] = nuevo_acierto
+                                    
+                                    stake = p.get('stake', 10)
+                                    cuota = p.get('cuota', 1.0)
+                                    if nuevo_acierto:
+                                        p["ganancia"] = stake * (cuota - 1)
+                                    else:
+                                        p["ganancia"] = -stake
+                                    
+                                    p["fecha_actualizacion"] = datetime.now().isoformat()
+                                    p["actualizacion_manual"] = True
+                                    
+                                    bet_updated = True
+                                    break
+                            
+                            if bet_updated:
+                                with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                    json.dump(historial_actual, f, indent=2, ensure_ascii=False)
+                                
+                                messagebox.showinfo("Éxito", f"Predicción marcada como {estado_texto} correctamente")
+                                mostrar_bets_por_categoria(categoria)
+                            else:
+                                messagebox.showerror("Error", "No se pudo encontrar la predicción para actualizar")
+                                
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error cambiando estado de predicción: {e}")
+
                 def eliminar_prediccion_individual(bet_to_delete):
                     """Eliminar una predicción individual del historial"""
                     respuesta = messagebox.askyesno("Confirmar eliminación", 
@@ -1103,11 +1152,28 @@ class SergioBetsUnified:
                                                font=('Segoe UI', 11, 'bold'), anchor='w')
                         partido_label.pack(side='left', fill='x', expand=True)
                         
-                        delete_btn = tk.Button(header_frame, text="🗑️", 
+                        buttons_frame = tk.Frame(header_frame, bg="white")
+                        buttons_frame.pack(side='right')
+                        
+                        if bet.get("acierto") != True:
+                            win_btn = tk.Button(buttons_frame, text="✅", 
+                                              command=lambda b=bet: cambiar_estado_prediccion(b, True),
+                                              bg="#27ae60", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                              padx=5, pady=2)
+                            win_btn.pack(side='left', padx=(0, 2))
+                        
+                        if bet.get("acierto") != False:
+                            loss_btn = tk.Button(buttons_frame, text="❌", 
+                                               command=lambda b=bet: cambiar_estado_prediccion(b, False),
+                                               bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                               padx=5, pady=2)
+                            loss_btn.pack(side='left', padx=(0, 2))
+                        
+                        delete_btn = tk.Button(buttons_frame, text="🗑️", 
                                              command=lambda b=bet: eliminar_prediccion_individual(b),
-                                             bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                             bg="#95a5a6", fg="white", font=('Segoe UI', 8, 'bold'), 
                                              padx=5, pady=2)
-                        delete_btn.pack(side='right', padx=(5, 0))
+                        delete_btn.pack(side='left')
                         
                         prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
                         prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 
