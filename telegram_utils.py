@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
 TELEGRAM_CHAT_ID = '7659029315'
 USUARIOS_FILE = 'usuarios.txt'
 

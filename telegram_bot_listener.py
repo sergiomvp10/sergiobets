@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
 USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
@@ -379,7 +379,7 @@ def iniciar_bot_listener():
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
         
-        logger.info("Bot listener iniciado - Registrando usuarios automáticamente")
+        logger.info("BetGeniuXBot listener iniciado - Registrando usuarios automáticamente")
         
         application.run_polling(stop_signals=None)
         
@@ -571,7 +571,7 @@ def iniciar_bot_en_hilo():
     
     hilo_bot = threading.Thread(target=ejecutar_bot, daemon=True)
     hilo_bot.start()
-    logger.info("Bot listener iniciado en hilo separado")
+    logger.info("BetGeniuXBot listener iniciado en hilo separado")
     return hilo_bot
 
 if __name__ == "__main__":

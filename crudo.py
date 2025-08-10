@@ -16,7 +16,7 @@ from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_d
 from league_utils import detectar_liga_por_imagen
 
 # CONFIG TELEGRAM
-TELEGRAM_TOKEN = '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A'
+TELEGRAM_TOKEN = '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c'
 TELEGRAM_CHAT_ID = '7659029315'
 
 
