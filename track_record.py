@@ -658,6 +658,11 @@ class TrackRecordManager:
             
             predicciones_pendientes = total_predicciones - predicciones_resueltas
             
+            predicciones_con_ve = [p for p in historial if "valor_esperado" in p]
+            valor_esperado_promedio = 0
+            if predicciones_con_ve:
+                valor_esperado_promedio = sum(p["valor_esperado"] for p in predicciones_con_ve) / len(predicciones_con_ve)
+            
             return {
                 "total_predicciones": total_predicciones,
                 "predicciones_resueltas": predicciones_resueltas,
@@ -667,7 +672,7 @@ class TrackRecordManager:
                 "total_apostado": total_apostado,
                 "total_ganancia": total_ganancia,
                 "roi": roi,
-                "valor_esperado_promedio": sum(p["valor_esperado"] for p in historial) / total_predicciones,
+                "valor_esperado_promedio": valor_esperado_promedio,
                 "tipos_apuesta": tipos_apuesta,
                 "fecha_calculo": datetime.now().isoformat()
             }
