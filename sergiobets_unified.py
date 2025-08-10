@@ -360,7 +360,16 @@ class SergioBetsUnified:
         self.mensaje_telegram = ""
         self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
-        frame_top = tk.Frame(self.root, bg="#f1f3f4")
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        self.tab_principal = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.notebook.add(self.tab_principal, text="🏠 Principal")
+        
+        self.tab_ajustes = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.notebook.add(self.tab_ajustes, text="⚙️ Ajustes")
+        
+        frame_top = tk.Frame(self.tab_principal, bg="#f1f3f4")
         frame_top.pack(pady=15)
         
         ttk.Label(frame_top, text="📅 Fecha:").pack(side=tk.LEFT)
@@ -381,16 +390,94 @@ class SergioBetsUnified:
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
         
-        self.frame_predicciones = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_predicciones = tk.Frame(self.tab_principal, bg="#f1f3f4")
         self.frame_predicciones.pack(pady=5, padx=10, fill='x')
         
-        self.frame_partidos = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_partidos = tk.Frame(self.tab_principal, bg="#f1f3f4")
         self.frame_partidos.pack(pady=5, padx=10, fill='x')
         
-        self.output = ScrolledText(self.root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
+        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
         self.output.pack(pady=10, padx=10, expand=True, fill='both')
         
+        self.setup_settings_tab()
+        
         print("✅ GUI setup completed")
+    
+    def cargar_configuracion(self):
+        """Carga la configuración desde config_app.json"""
+        config = cargar_json("config_app.json")
+        if config is None:
+            config = {"odds_min": 1.30, "odds_max": 1.60}
+            guardar_json("config_app.json", config)
+        return config
+
+    def guardar_configuracion(self, config):
+        """Guarda la configuración en config_app.json"""
+        guardar_json("config_app.json", config)
+
+    def setup_settings_tab(self):
+        """Setup the Settings tab content"""
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        
+        frame_ajustes_content = tk.Frame(self.tab_ajustes, bg="#f1f3f4")
+        frame_ajustes_content.pack(pady=50, padx=50, fill='both', expand=True)
+        
+        ttk.Label(frame_ajustes_content, text="⚙️ Configuración de Filtros de Cuotas", font=('Segoe UI', 14, 'bold')).pack(pady=(0, 30))
+        
+        config_actual = self.cargar_configuracion()
+        
+        frame_min_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_min_tab.pack(pady=15, fill='x')
+        
+        ttk.Label(frame_min_tab, text="Cuota mínima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+        self.entry_min_tab = tk.Entry(frame_min_tab, font=('Segoe UI', 12), width=15)
+        self.entry_min_tab.pack(side=tk.RIGHT)
+        self.entry_min_tab.insert(0, str(config_actual.get("odds_min", 1.30)))
+        
+        frame_max_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_max_tab.pack(pady=15, fill='x')
+        
+        ttk.Label(frame_max_tab, text="Cuota máxima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+        self.entry_max_tab = tk.Entry(frame_max_tab, font=('Segoe UI', 12), width=15)
+        self.entry_max_tab.pack(side=tk.RIGHT)
+        self.entry_max_tab.insert(0, str(config_actual.get("odds_max", 1.60)))
+        
+        frame_info_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_info_tab.pack(pady=30, fill='x')
+        
+        info_text_tab = "ℹ️ Formato: Decimal EU\n📊 Límite mínimo técnico: 1.01\n🎯 Solo se mostrarán apuestas en el rango seleccionado"
+        ttk.Label(frame_info_tab, text=info_text_tab, font=('Segoe UI', 10), foreground='#666666').pack()
+        
+        frame_boton_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_boton_tab.pack(pady=30)
+        
+        ttk.Button(frame_boton_tab, text="💾 Guardar", command=self.guardar_ajustes_tab).pack()
+
+    def guardar_ajustes_tab(self):
+        """Guardar configuración desde la pestaña de ajustes"""
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        try:
+            odds_min = float(self.entry_min_tab.get())
+            odds_max = float(self.entry_max_tab.get())
+            
+            if odds_min < 1.01:
+                messagebox.showerror("Error", "La cuota mínima debe ser al menos 1.01")
+                return
+            
+            if odds_max < odds_min:
+                messagebox.showerror("Error", "La cuota máxima debe ser mayor o igual a la mínima")
+                return
+            
+            nueva_config = {"odds_min": odds_min, "odds_max": odds_max}
+            self.guardar_configuracion(nueva_config)
+            
+            messagebox.showinfo("Éxito", "Configuración guardada correctamente")
+            
+        except ValueError:
+            messagebox.showerror("Error", "Por favor ingresa valores numéricos válidos")
     
     def cargar_partidos_reales(self, fecha):
         """Cargar partidos reales de la API - solo para la fecha exacta solicitada"""
@@ -490,6 +577,11 @@ class SergioBetsUnified:
                 partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
             
             predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
+            
+            config = self.cargar_configuracion()
+            odds_min = config.get("odds_min", 1.30)
+            odds_max = config.get("odds_max", 1.60)
+            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n\n")
             
             titulo_extra = ""
             if opcion_numero == 2:
