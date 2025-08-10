@@ -196,6 +196,12 @@ class TrackRecordManager:
             if "más de" in tipo_prediccion and "goles" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" goles")[0])
                 acierto = resultado["total_goals"] > umbral
+                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
+                
+            elif "menos de" in tipo_prediccion and "goles" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" goles")[0])
+                acierto = resultado["total_goals"] < umbral
+                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
@@ -215,34 +221,59 @@ class TrackRecordManager:
                 
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
-                acierto = resultado["total_cards"] > umbral
+                total_cards = resultado.get("total_cards", 0)
+                acierto = total_cards > umbral
+                print(f"    🟨 Cards bet validation: {total_cards} cards vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
+                
+            elif "menos de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" tarjetas")[0])
+                total_cards = resultado.get("total_cards", 0)
+                acierto = total_cards < umbral
+                print(f"    🟨 Cards bet validation: {total_cards} cards vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "btts" in tipo_prediccion or "ambos equipos marcan" in tipo_prediccion:
-                acierto = resultado["home_score"] > 0 and resultado["away_score"] > 0
+                both_scored = resultado["home_score"] > 0 and resultado["away_score"] > 0
+                if "sí" in tipo_prediccion or "si" in tipo_prediccion or ("btts" in tipo_prediccion and "no" not in tipo_prediccion):
+                    acierto = both_scored
+                elif "no" in tipo_prediccion:
+                    acierto = not both_scored
+                else:
+                    acierto = both_scored
+                print(f"    🎯 BTTS bet validation: Home {resultado['home_score']}-{resultado['away_score']} Away = {'WIN' if acierto else 'LOSS'}")
                 
-            elif "+0.5" in tipo_prediccion or "-0.5" in tipo_prediccion:
-                if "+0.5" in tipo_prediccion:
-                    team_name = tipo_prediccion.split(" +0.5")[0].strip()
+            elif any(hcp in tipo_prediccion for hcp in ["+0.5", "-0.5", "+1.5", "-1.5", "+2.5", "-2.5"]):
+                handicap_value = None
+                team_name = None
+                
+                for hcp in ["+2.5", "-2.5", "+1.5", "-1.5", "+0.5", "-0.5"]:  # Orden importante para evitar conflictos
+                    if hcp in tipo_prediccion:
+                        handicap_value = float(hcp)
+                        team_name = tipo_prediccion.split(f" {hcp}")[0].strip()
+                        break
+                
+                if handicap_value is not None and team_name:
                     partido_parts = prediccion.get("partido", "").split(" vs ")
                     if len(partido_parts) == 2:
+                        home_team = partido_parts[0].strip()
                         away_team = partido_parts[1].strip()
-                        if team_name.lower() in away_team.lower():
-                            acierto = resultado["resultado_1x2"] in ["X", "2"]
+                        
+                        is_away_team = team_name.lower() in away_team.lower()
+                        is_home_team = team_name.lower() in home_team.lower()
+                        
+                        if is_home_team:
+                            adjusted_score = resultado["home_score"] + handicap_value
+                            acierto = adjusted_score > resultado["away_score"]
+                        elif is_away_team:
+                            adjusted_score = resultado["away_score"] + handicap_value
+                            acierto = adjusted_score > resultado["home_score"]
                         else:
-                            acierto = resultado["resultado_1x2"] in ["1", "X"]
+                            acierto = False
+                            
+                        print(f"    🎲 Handicap bet validation: {team_name} {handicap_value:+.1f} = {'WIN' if acierto else 'LOSS'}")
                     else:
                         acierto = False
-                elif "-0.5" in tipo_prediccion:
-                    team_name = tipo_prediccion.split(" -0.5")[0].strip()
-                    partido_parts = prediccion.get("partido", "").split(" vs ")
-                    if len(partido_parts) == 2:
-                        away_team = partido_parts[1].strip()
-                        if team_name.lower() in away_team.lower():
-                            acierto = resultado["resultado_1x2"] == "2"
-                        else:
-                            acierto = resultado["resultado_1x2"] == "1"
-                    else:
-                        acierto = False
+                else:
+                    acierto = False
                         
             elif any(x in tipo_prediccion for x in ["1", "x", "2", "local", "empate", "visitante"]):
                 if "local" in tipo_prediccion or "1" in tipo_prediccion:
@@ -610,12 +641,18 @@ class TrackRecordManager:
     def calcular_metricas_rendimiento(self) -> Dict[str, Any]:
         """
         Calcula métricas de rendimiento del sistema de predicciones
+        Filtra solo predicciones enviadas a Telegram para mostrar track record actual
         """
         try:
             historial = cargar_json(self.historial_file) or []
             
             if not historial:
                 return {"error": "No hay historial disponible"}
+            
+            historial = [p for p in historial if p.get('sent_to_telegram', False)]
+            
+            if not historial:
+                return {"error": "No hay predicciones enviadas a Telegram"}
             
             con_resultado = [p for p in historial if p.get("resultado_real") is not None]
             
@@ -653,12 +690,13 @@ class TrackRecordManager:
             return {
                 "total_predicciones": total_predicciones,
                 "predicciones_resueltas": predicciones_resueltas,
+                "predicciones_pendientes": total_predicciones - predicciones_resueltas,
                 "aciertos": len(aciertos),
-                "tasa_acierto": len(aciertos) / predicciones_resueltas * 100,
+                "tasa_acierto": len(aciertos) / predicciones_resueltas * 100 if predicciones_resueltas > 0 else 0,
                 "total_apostado": total_apostado,
                 "total_ganancia": total_ganancia,
                 "roi": roi,
-                "valor_esperado_promedio": sum(p["valor_esperado"] for p in historial) / total_predicciones,
+                "valor_esperado_promedio": sum(p.get("valor_esperado", 0) for p in historial) / total_predicciones if total_predicciones > 0 else 0,
                 "tipos_apuesta": tipos_apuesta,
                 "fecha_calculo": datetime.now().isoformat()
             }

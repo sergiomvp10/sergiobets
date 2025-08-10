@@ -1,0 +1,22 @@
+{
+    "fecha": "2025-08-08",
+    "predicciones": [
+        {
+            "partido": "Tigre vs Huracán",
+            "liga": "Liga Argentina",
+            "hora": "15:00",
+            "prediccion": "Tigre marca al menos un gol",
+            "cuota": 1.5,
+            "stake_recomendado": 8,
+            "confianza": 81.8,
+            "valor_esperado": 0.227,
+            "razon": "Value bet identificada: 22.7% valor esperado con 81.8% confianza basada en análisis contextual.",
+            "opcion_numero": 1,
+            "total_opciones": 2,
+            "sent_to_telegram": true,
+            "fecha_envio_telegram": "2025-08-08T11:27:24.923335",
+            "tipo_envio": "PREMIUM"
+        }
+    ],
+    "tipo": "PREMIUM"
+}

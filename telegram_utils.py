@@ -9,46 +9,60 @@ TELEGRAM_CHAT_ID = '7659029315'
 USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
-    """Cargar lista de usuarios registrados desde usuarios.txt"""
-    usuarios = []
+    """Cargar lista de usuarios registrados desde usuarios.json"""
     try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        partes = linea.strip().split(' - ')
-                        if len(partes) >= 3:
-                            usuarios.append({
-                                'user_id': partes[0],
-                                'username': partes[1],
-                                'first_name': partes[2]
-                            })
+        from access_manager import access_manager
+        usuarios_json = access_manager.listar_usuarios_premium()
+        
+        usuarios = []
+        for usuario in usuarios_json:
+            usuarios.append({
+                'user_id': usuario['user_id'],
+                'username': usuario.get('username', 'sin_username'),
+                'first_name': usuario.get('first_name', 'Usuario')
+            })
+        
+        return usuarios
     except Exception as e:
         print(f"Error cargando usuarios registrados: {e}")
-    return usuarios
+        usuarios = []
+        try:
+            if os.path.exists(USUARIOS_FILE):
+                with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
+                    for linea in f:
+                        if linea.strip() and ' - ' in linea:
+                            partes = linea.strip().split(' - ')
+                            if len(partes) >= 3:
+                                usuarios.append({
+                                    'user_id': partes[0],
+                                    'username': partes[1],
+                                    'first_name': partes[2]
+                                })
+        except Exception as e2:
+            print(f"Error con fallback legacy: {e2}")
+        return usuarios
 
-def enviar_telegram_masivo(mensaje, token=None):
-    """Enviar mensaje a todos los usuarios registrados"""
-    if mensaje is None:
-        return {"exito": False, "error": "Mensaje vacío"}
-    
-    if token is None:
-        token = TELEGRAM_TOKEN
-    
-    usuarios = cargar_usuarios_registrados()
-    
-    if not usuarios:
-        print("⚠️ No hay usuarios registrados. Enviando a chat_id por defecto.")
-        exito = enviar_telegram(token, TELEGRAM_CHAT_ID, mensaje)
-        return {
-            "exito": exito,
-            "total_usuarios": 0,
-            "enviados_exitosos": 1 if exito else 0,
-            "errores": 0 if exito else 1,
-            "usuarios_bloqueados": 0,
-            "detalles_errores": [] if exito else ["Error enviando a chat_id por defecto"]
-        }
-    
+def cargar_usuarios_gratuitos():
+    """Cargar lista de todos los usuarios registrados (gratuitos y premium)"""
+    try:
+        from access_manager import access_manager
+        usuarios_json = access_manager.listar_usuarios()
+        
+        usuarios = []
+        for usuario in usuarios_json:
+            usuarios.append({
+                'user_id': usuario['user_id'],
+                'username': usuario.get('username', 'sin_username'),
+                'first_name': usuario.get('first_name', 'Usuario')
+            })
+        
+        return usuarios
+    except Exception as e:
+        print(f"Error cargando usuarios gratuitos: {e}")
+        return []
+
+def _enviar_a_lista_usuarios(usuarios, mensaje, token):
+    """Función helper para enviar mensaje a una lista específica de usuarios"""
     resultados = {
         "total_usuarios": len(usuarios),
         "enviados_exitosos": 0,
@@ -57,7 +71,7 @@ def enviar_telegram_masivo(mensaje, token=None):
         "detalles_errores": []
     }
     
-    print(f"📤 Enviando mensaje a {len(usuarios)} usuarios registrados...")
+    print(f"📤 Enviando mensaje a {len(usuarios)} usuarios...")
     
     for usuario in usuarios:
         try:
@@ -103,6 +117,77 @@ def enviar_telegram_masivo(mensaje, token=None):
     
     resultados["exito"] = resultados["enviados_exitosos"] > 0
     return resultados
+
+def enviar_telegram_masivo(mensaje, token=None):
+    """Enviar mensaje a todos los usuarios registrados"""
+    if mensaje is None:
+        return {"exito": False, "error": "Mensaje vacío"}
+    
+    if token is None:
+        token = TELEGRAM_TOKEN
+    
+    usuarios = cargar_usuarios_registrados()
+    
+    if not usuarios:
+        print("⚠️ No hay usuarios registrados. Enviando a chat_id por defecto.")
+        exito = enviar_telegram(token, TELEGRAM_CHAT_ID, mensaje)
+        return {
+            "exito": exito,
+            "total_usuarios": 0,
+            "enviados_exitosos": 1 if exito else 0,
+            "errores": 0 if exito else 1,
+            "usuarios_bloqueados": 0,
+            "detalles_errores": [] if exito else ["Error enviando a chat_id por defecto"]
+        }
+    
+    return _enviar_a_lista_usuarios(usuarios, mensaje, token)
+
+def enviar_telegram_gratuito(mensaje, token=None):
+    """Enviar mensaje a todos los usuarios registrados (gratuitos y premium)"""
+    if mensaje is None:
+        return {"exito": False, "error": "Mensaje vacío"}
+    
+    if token is None:
+        token = TELEGRAM_TOKEN
+    
+    usuarios = cargar_usuarios_gratuitos()
+    
+    if not usuarios:
+        print("⚠️ No hay usuarios registrados. Enviando a chat_id por defecto.")
+        exito = enviar_telegram(token, TELEGRAM_CHAT_ID, mensaje)
+        return {
+            "exito": exito,
+            "total_usuarios": 0,
+            "enviados_exitosos": 1 if exito else 0,
+            "errores": 0 if exito else 1,
+            "usuarios_bloqueados": 0,
+            "detalles_errores": [] if exito else ["Error enviando a chat_id por defecto"]
+        }
+    
+    return _enviar_a_lista_usuarios(usuarios, mensaje, token)
+
+def enviar_telegram_premium(mensaje, token=None):
+    """Enviar mensaje solo a usuarios premium activos"""
+    if mensaje is None:
+        return {"exito": False, "error": "Mensaje vacío"}
+    
+    if token is None:
+        token = TELEGRAM_TOKEN
+    
+    usuarios = cargar_usuarios_registrados()
+    
+    if not usuarios:
+        print("⚠️ No hay usuarios premium registrados.")
+        return {
+            "exito": False,
+            "total_usuarios": 0,
+            "enviados_exitosos": 0,
+            "errores": 0,
+            "usuarios_bloqueados": 0,
+            "detalles_errores": ["No hay usuarios premium"]
+        }
+    
+    return _enviar_a_lista_usuarios(usuarios, mensaje, token)
 
 def enviar_telegram(token=None, chat_id=None, mensaje=None):
     """Función original para compatibilidad - envía a un chat_id específico"""

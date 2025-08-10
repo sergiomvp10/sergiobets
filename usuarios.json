@@ -27,8 +27,8 @@
     "user_id": "7173680564",
     "username": "jhgocho2",
     "first_name": "Jh",
-    "premium": true,
-    "fecha_expiracion": "2025-08-06T21:37:26.838205",
+    "premium": false,
+    "fecha_expiracion": null,
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
@@ -43,16 +43,16 @@
     "user_id": "7356807202",
     "username": "sin_username",
     "first_name": "Catalina",
-    "premium": true,
-    "fecha_expiracion": "2025-08-06T21:29:39.788298",
+    "premium": false,
+    "fecha_expiracion": null,
     "fecha_registro": "2025-08-04T17:07:53.343651"
   },
   {
     "user_id": "7755596745",
     "username": null,
     "first_name": "Miguel",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-08-13T00:01:05.393125",
     "fecha_registro": "2025-08-04T18:21:51.354306"
   }
 ]
