@@ -512,7 +512,18 @@ class SergioBetsUnified:
                             "casa": "FootyStats",
                             "local": str(partido.get("odds_ft_1", "2.00")),
                             "empate": str(partido.get("odds_ft_x", "3.00")),
-                            "visitante": str(partido.get("odds_ft_2", "4.00"))
+                            "visitante": str(partido.get("odds_ft_2", "4.00")),
+                            "btts_si": str(partido.get("odds_btts_yes", "0")),
+                            "btts_no": str(partido.get("odds_btts_no", "0")),
+                            "over_15": str(partido.get("odds_ft_over15", "0")),
+                            "under_15": str(partido.get("odds_ft_under15", "0")),
+                            "over_25": str(partido.get("odds_ft_over25", "0")),
+                            "under_25": str(partido.get("odds_ft_under25", "0")),
+                            "corners_over_85": str(partido.get("odds_corners_over_85", "0")),
+                            "corners_over_95": str(partido.get("odds_corners_over_95", "0")),
+                            "corners_over_105": str(partido.get("odds_corners_over_105", "0")),
+                            "1h_over_05": str(partido.get("odds_1st_half_over05", "0")),
+                            "1h_over_15": str(partido.get("odds_1st_half_over15", "0"))
                         }
                     })
                 except Exception as partido_error:
@@ -582,8 +593,8 @@ class SergioBetsUnified:
             odds_min = config.get("odds_min", 1.30)
             odds_max = config.get("odds_max", 1.60)
             self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n")
-            self.output.insert(tk.END, f"⚙️ Sistema de ajuste dinámico: ACTIVO\n")
-            self.output.insert(tk.END, f"📊 Buscando opciones directas y ajustando mercados automáticamente\n\n")
+            self.output.insert(tk.END, f"📊 Sistema de cuotas reales: ACTIVO\n")
+            self.output.insert(tk.END, f"🔍 Consultando mercados reales de FootyStats API\n\n")
             
             titulo_extra = ""
             if opcion_numero == 2:
@@ -685,16 +696,7 @@ class SergioBetsUnified:
             checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
             checkbox.pack(side=tk.LEFT)
             
-            ajuste_info = ""
-            if 'ajuste' in pred and pred['ajuste'] != 'ninguno':
-                if pred['ajuste'] == 'ajustada_arriba':
-                    ajuste_info = f" 📈 (ajustada desde {pred.get('cuota_original', 'N/A')})"
-                elif pred['ajuste'] == 'ajustada_abajo':
-                    ajuste_info = f" 📉 (ajustada desde {pred.get('cuota_original', 'N/A')})"
-                else:
-                    ajuste_info = f" ⚙️ (ajustada)"
-            
-            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']}{ajuste_info} | ⏰ {pred['hora']}"
+            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
             pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
                                  font=('Segoe UI', 9), anchor='w')
             pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
