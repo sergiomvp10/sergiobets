@@ -623,6 +623,12 @@ class TrackRecordManager:
                 return {
                     "total_predicciones": len(historial),
                     "predicciones_resueltas": 0,
+                    "predicciones_pendientes": len(historial),
+                    "aciertos": 0,
+                    "tasa_acierto": 0,
+                    "total_apostado": 0,
+                    "total_ganancia": 0,
+                    "roi": 0,
                     "mensaje": "No hay predicciones resueltas aún"
                 }
             
@@ -650,9 +656,12 @@ class TrackRecordManager:
                 aciertos_tipo = tipos_apuesta[tipo]["aciertos"]
                 tipos_apuesta[tipo]["win_rate"] = (aciertos_tipo / total * 100) if total > 0 else 0
             
+            predicciones_pendientes = total_predicciones - predicciones_resueltas
+            
             return {
                 "total_predicciones": total_predicciones,
                 "predicciones_resueltas": predicciones_resueltas,
+                "predicciones_pendientes": predicciones_pendientes,
                 "aciertos": len(aciertos),
                 "tasa_acierto": len(aciertos) / predicciones_resueltas * 100,
                 "total_apostado": total_apostado,
