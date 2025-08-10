@@ -16,8 +16,17 @@ LIGAS_CONOCIDAS = {
     "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana"
 }
 
-CUOTA_MIN = 1.30
-CUOTA_MAX = 1.60
+def cargar_configuracion_cuotas():
+    """Carga la configuración de cuotas desde config_app.json"""
+    from json_storage import cargar_json
+    config = cargar_json("config_app.json")
+    if config is None:
+        return 1.30, 1.60
+    return config.get("odds_min", 1.30), config.get("odds_max", 1.60)
+
+def obtener_cuotas_configuradas():
+    """Obtiene las cuotas configuradas (función helper para usar en el código)"""
+    return cargar_configuracion_cuotas()
 
 _cache_predicciones = {}
 
@@ -267,7 +276,8 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             cuota = float(cuotas.get(resultado, "1.00"))
             if cuota > 1.0:
                 ve, es_value = calcular_value_bet(probabilidad, cuota)
-                if es_value and CUOTA_MIN <= cuota <= CUOTA_MAX:
+                cuota_min, cuota_max = obtener_cuotas_configuradas()
+                if es_value and cuota_min <= cuota <= cuota_max:
                     mejores_apuestas.append({
                         "tipo": "1X2",
                         "mercado": resultado,
@@ -291,7 +301,8 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
     ve_btts_si, es_value_si = calcular_value_bet(prob_btts["btts_si"], cuota_btts_si)
     ve_btts_no, es_value_no = calcular_value_bet(prob_btts["btts_no"], cuota_btts_no)
     
-    if es_value_si and CUOTA_MIN <= cuota_btts_si <= CUOTA_MAX:
+    cuota_min, cuota_max = obtener_cuotas_configuradas()
+    if es_value_si and cuota_min <= cuota_btts_si <= cuota_max:
         mejores_apuestas.append({
             "tipo": "BTTS",
             "mercado": "btts_si",
@@ -302,7 +313,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             "confianza": prob_btts["btts_si"] * 100
         })
     
-    if es_value_no and CUOTA_MIN <= cuota_btts_no <= CUOTA_MAX:
+    if es_value_no and cuota_min <= cuota_btts_no <= cuota_max:
         mejores_apuestas.append({
             "tipo": "BTTS",
             "mercado": "btts_no",
@@ -321,7 +332,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
     ve_over_15, es_value_over_15 = calcular_value_bet(prob_ou["over_15"], cuota_over_15)
     ve_under_15, es_value_under_15 = calcular_value_bet(prob_ou["under_15"], cuota_under_15)
     
-    if es_value_over_15 and CUOTA_MIN <= cuota_over_15 <= CUOTA_MAX:
+    if es_value_over_15 and cuota_min <= cuota_over_15 <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Over/Under",
             "mercado": "over_15",
@@ -332,7 +343,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             "confianza": prob_ou["over_15"] * 100
         })
     
-    if es_value_under_15 and CUOTA_MIN <= cuota_under_15 <= CUOTA_MAX:
+    if es_value_under_15 and cuota_min <= cuota_under_15 <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Over/Under",
             "mercado": "under_15",
@@ -349,7 +360,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
     ve_over_25, es_value_over_25 = calcular_value_bet(prob_ou["over_25"], cuota_over_25)
     ve_under_25, es_value_under_25 = calcular_value_bet(prob_ou["under_25"], cuota_under_25)
     
-    if es_value_over_25 and CUOTA_MIN <= cuota_over_25 <= CUOTA_MAX:
+    if es_value_over_25 and cuota_min <= cuota_over_25 <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Over/Under",
             "mercado": "over_25",
@@ -360,7 +371,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             "confianza": prob_ou["over_25"] * 100
         })
     
-    if es_value_under_25 and CUOTA_MIN <= cuota_under_25 <= CUOTA_MAX:
+    if es_value_under_25 and cuota_min <= cuota_under_25 <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Over/Under",
             "mercado": "under_25",
@@ -379,7 +390,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
     ve_h_local, es_value_h_local = calcular_value_bet(prob_handicap["handicap_local_05"], cuota_handicap_local_05)
     ve_h_visitante, es_value_h_visitante = calcular_value_bet(prob_handicap["handicap_visitante_05"], cuota_handicap_visitante_05)
     
-    if es_value_h_local and CUOTA_MIN <= cuota_handicap_local_05 <= CUOTA_MAX:
+    if es_value_h_local and cuota_min <= cuota_handicap_local_05 <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Hándicap",
             "mercado": "handicap_local_05",
@@ -390,7 +401,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             "confianza": prob_handicap["handicap_local_05"] * 100
         })
     
-    if es_value_h_visitante and CUOTA_MIN <= cuota_handicap_visitante_05 <= CUOTA_MAX:
+    if es_value_h_visitante and cuota_min <= cuota_handicap_visitante_05 <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Hándicap",
             "mercado": "handicap_visitante_05",
@@ -409,7 +420,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
     ve_corners_85, es_value_corners_85 = calcular_value_bet(prob_corners["over_85_corners"], cuota_over_85_corners)
     ve_corners_105, es_value_corners_105 = calcular_value_bet(prob_corners["over_105_corners"], cuota_over_105_corners)
     
-    if es_value_corners_85 and CUOTA_MIN <= cuota_over_85_corners <= CUOTA_MAX:
+    if es_value_corners_85 and cuota_min <= cuota_over_85_corners <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Corners",
             "mercado": "over_85_corners",
@@ -420,7 +431,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             "confianza": prob_corners["over_85_corners"] * 100
         })
     
-    if es_value_corners_105 and CUOTA_MIN <= cuota_over_105_corners <= CUOTA_MAX:
+    if es_value_corners_105 and cuota_min <= cuota_over_105_corners <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Corners",
             "mercado": "over_105_corners",
@@ -439,7 +450,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
     ve_cards_35, es_value_cards_35 = calcular_value_bet(prob_tarjetas["over_35_cards"], cuota_over_35_cards)
     ve_cards_55, es_value_cards_55 = calcular_value_bet(prob_tarjetas["over_55_cards"], cuota_over_55_cards)
     
-    if es_value_cards_35 and CUOTA_MIN <= cuota_over_35_cards <= CUOTA_MAX:
+    if es_value_cards_35 and cuota_min <= cuota_over_35_cards <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Tarjetas",
             "mercado": "over_35_cards",
@@ -450,7 +461,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
             "confianza": prob_tarjetas["over_35_cards"] * 100
         })
     
-    if es_value_cards_55 and CUOTA_MIN <= cuota_over_55_cards <= CUOTA_MAX:
+    if es_value_cards_55 and cuota_min <= cuota_over_55_cards <= cuota_max:
         mejores_apuestas.append({
             "tipo": "Tarjetas",
             "mercado": "over_55_cards",
