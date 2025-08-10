@@ -57,11 +57,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
-        [InlineKeyboardButton("💲 Estadísticas", callback_data="estadisticas")],
-        [InlineKeyboardButton("💰 Novedades", callback_data="novedades")],
         [
-            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
-            InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
+            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
+            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
+        ],
+        [
+            InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
+        ],
+        [
+            InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
+            InlineKeyboardButton("❓ AYUDA", callback_data="ayuda")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -84,7 +90,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if query.data == "estadisticas":
+    if query.data == "gratis":
+        await mostrar_gratis(update, context)
+    elif query.data == "premium":
+        await mostrar_premium(update, context)
+    elif query.data == "estadisticas":
         await mostrar_estadisticas(update, context)
     elif query.data == "novedades":
         await mostrar_novedades(update, context)
@@ -98,6 +108,68 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await procesar_pago(update, context, "ltc")
     elif query.data == "pago_nequi":
         await procesar_pago_nequi(update, context)
+    elif query.data == "menu_principal":
+        await volver_menu_principal(update, context)
+
+async def mostrar_gratis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar contenido gratuito"""
+    query = update.callback_query
+    
+    mensaje = """💲 CONTENIDO GRATUITO SERGIOBETS
+
+🎯 PREDICCIONES BÁSICAS:
+• Análisis de partidos principales
+• Tips básicos de apuestas
+• Estadísticas generales
+
+📊 ACCESO INCLUYE:
+• Predicciones diarias seleccionadas
+• Análisis de cuotas básico
+• Tips de gestión de bankroll
+
+🔄 Para acceder a predicciones premium y análisis avanzado, consulta nuestra membresía.
+
+¿Te gustaría ver las predicciones gratuitas de hoy?"""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+
+async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar contenido premium"""
+    query = update.callback_query
+    
+    mensaje = """💰 CONTENIDO PREMIUM SERGIOBETS
+
+🏆 PREDICCIONES VIP:
+• Análisis profesional completo
+• Predicciones de alta confianza
+• Estrategias avanzadas de apuestas
+
+💎 ACCESO PREMIUM INCLUYE:
+• Predicciones diarias premium
+• Análisis detallado de mercados
+• Gestión avanzada de bankroll
+• Soporte personalizado
+• Estadísticas en tiempo real
+
+📈 RESULTADOS COMPROBADOS:
+• ROI superior al 15%
+• Más de 70% de aciertos
+• Seguimiento detallado
+
+¿Quieres acceder al contenido premium?"""
+    
+    keyboard = [
+        [InlineKeyboardButton("💳 Ver Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar estadísticas del sistema"""
@@ -275,11 +347,17 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
     
     keyboard = [
-        [InlineKeyboardButton("💲 Estadísticas", callback_data="estadisticas")],
-        [InlineKeyboardButton("💰 Novedades", callback_data="novedades")],
         [
-            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
-            InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
+            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
+            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
+        ],
+        [
+            InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
+        ],
+        [
+            InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
+            InlineKeyboardButton("❓ AYUDA", callback_data="ayuda")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
