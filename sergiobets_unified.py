@@ -581,7 +581,9 @@ class SergioBetsUnified:
             config = self.cargar_configuracion()
             odds_min = config.get("odds_min", 1.30)
             odds_max = config.get("odds_max", 1.60)
-            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n\n")
+            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n")
+            self.output.insert(tk.END, f"⚙️ Sistema de ajuste dinámico: ACTIVO\n")
+            self.output.insert(tk.END, f"📊 Buscando opciones directas y ajustando mercados automáticamente\n\n")
             
             titulo_extra = ""
             if opcion_numero == 2:
@@ -683,7 +685,16 @@ class SergioBetsUnified:
             checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
             checkbox.pack(side=tk.LEFT)
             
-            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+            ajuste_info = ""
+            if 'ajuste' in pred and pred['ajuste'] != 'ninguno':
+                if pred['ajuste'] == 'ajustada_arriba':
+                    ajuste_info = f" 📈 (ajustada desde {pred.get('cuota_original', 'N/A')})"
+                elif pred['ajuste'] == 'ajustada_abajo':
+                    ajuste_info = f" 📉 (ajustada desde {pred.get('cuota_original', 'N/A')})"
+                else:
+                    ajuste_info = f" ⚙️ (ajustada)"
+            
+            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']}{ajuste_info} | ⏰ {pred['hora']}"
             pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
                                  font=('Segoe UI', 9), anchor='w')
             pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
