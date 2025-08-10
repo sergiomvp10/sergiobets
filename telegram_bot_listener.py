@@ -57,8 +57,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
-        [InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas")],
-        [InlineKeyboardButton("📢 Novedades", callback_data="novedades")],
+        [InlineKeyboardButton("💲 Estadísticas", callback_data="estadisticas")],
+        [InlineKeyboardButton("💰 Novedades", callback_data="novedades")],
         [
             InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
             InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
@@ -275,8 +275,8 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
     
     keyboard = [
-        [InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas")],
-        [InlineKeyboardButton("📢 Novedades", callback_data="novedades")],
+        [InlineKeyboardButton("💲 Estadísticas", callback_data="estadisticas")],
+        [InlineKeyboardButton("💰 Novedades", callback_data="novedades")],
         [
             InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
             InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
