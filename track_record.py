@@ -617,6 +617,11 @@ class TrackRecordManager:
             if not historial:
                 return {"error": "No hay historial disponible"}
             
+            historial = [p for p in historial if p.get('sent_to_telegram', False)]
+            
+            if not historial:
+                return {"error": "No hay predicciones enviadas a Telegram"}
+            
             con_resultado = [p for p in historial if p.get("resultado_real") is not None]
             
             if not con_resultado:
