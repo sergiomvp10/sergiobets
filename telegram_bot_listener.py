@@ -246,19 +246,20 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ngrok_url = get_current_ngrok_url()
     
     if ngrok_url:
-        mensaje = f"""💳 MEMBRESÍA VIP BETGENIUX
+        mensaje = f"""MEMBRESÍA VIP BETGENIUX
 
-🌟 ACCESO VIP (7 DÍAS):
-• Predicciones exclusivas de alta confianza
-• Acceso a estadísticas avanzadas
+⭐ ACCESO VIP 7 DÍAS ⭐
+
+• Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
 • Soporte prioritario
-• Análisis detallado de mercados
 
-💰 PRECIO:
+
+💰 PRECIO
 • 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
+
 • USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
@@ -268,19 +269,20 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 💳 También puedes pagar directamente aquí:
 👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
     else:
-        mensaje = """💳 MEMBRESÍA VIP BETGENIUX
+        mensaje = """MEMBRESÍA VIP BETGENIUX
 
-🌟 ACCESO VIP (7 DÍAS):
-• Predicciones exclusivas de alta confianza
-• Acceso a estadísticas avanzadas
+⭐ ACCESO VIP 7 DÍAS ⭐
+
+• Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
 • Soporte prioritario
-• Análisis detallado de mercados
 
-💰 PRECIO:
+
+💰 PRECIO
 • 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
+
 • USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
