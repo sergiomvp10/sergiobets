@@ -2,6 +2,8 @@
 
 **SergioBets** es un bot de apuestas deportivas desarrollado en Python con interfaz gráfica (Tkinter), que muestra partidos, cuotas, envía pronósticos por Telegram y gestiona el progreso del usuario.
 
+> 🔧 **Verificación de funcionalidad**: Este cambio es parte de una verificación del sistema de desarrollo.
+
 ---
 
 ## 🚀 Características principales
