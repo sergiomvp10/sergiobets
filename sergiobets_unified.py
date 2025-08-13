@@ -75,6 +75,21 @@ class SergioBetsUnified:
             self.ngrok_process = None
             self.ngrok_url = None
             self.running = True
+            
+            self.root = None
+            self.entry_fecha = None
+            self.combo_ligas = None
+            self.frame_predicciones = None
+            self.frame_partidos = None
+            self.output = None
+            self.ligas_disponibles = set()
+            self.checkboxes_predicciones = []
+            self.checkboxes_partidos = []
+            self.predicciones_actuales = []
+            self.partidos_actuales = []
+            self.mensaje_telegram = ""
+            self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
+            
             logger.info("✅ SergioBetsUnified initialized successfully")
         except Exception as e:
             logger.error(f"❌ Error initializing SergioBetsUnified: {e}")
@@ -347,18 +362,6 @@ class SergioBetsUnified:
         style.configure('TButton', font=('Segoe UI', 10, 'bold'))
         style.configure('TCombobox', font=('Segoe UI', 10))
         
-        self.entry_fecha = None
-        self.combo_ligas = None
-        self.frame_predicciones = None
-        self.frame_partidos = None
-        self.output = None
-        self.ligas_disponibles = set()
-        self.checkboxes_predicciones = []
-        self.checkboxes_partidos = []
-        self.predicciones_actuales = []
-        self.partidos_actuales = []
-        self.mensaje_telegram = ""
-        self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
@@ -539,6 +542,9 @@ class SergioBetsUnified:
 
     def buscar(self, opcion_numero=1):
         """Buscar partidos y predicciones"""
+        if not self.entry_fecha or not self.output:
+            print("⚠️ GUI not initialized yet")
+            return
         try:
             fecha = self.entry_fecha.get()
             self.output.delete('1.0', tk.END)
@@ -566,10 +572,13 @@ class SergioBetsUnified:
 
             self.actualizar_ligas()
 
-            liga_filtrada = self.combo_ligas.get()
-            if liga_filtrada not in ['Todas'] + sorted(list(self.ligas_disponibles)):
-                self.combo_ligas.set('Todas')
+            if not self.combo_ligas:
                 liga_filtrada = 'Todas'
+            else:
+                liga_filtrada = self.combo_ligas.get()
+                if liga_filtrada not in ['Todas'] + sorted(list(self.ligas_disponibles)):
+                    self.combo_ligas.set('Todas')
+                    liga_filtrada = 'Todas'
 
             if liga_filtrada == 'Todas':
                 partidos_filtrados = partidos
@@ -620,6 +629,8 @@ class SergioBetsUnified:
 
     def actualizar_ligas(self):
         """Actualizar lista de ligas disponibles"""
+        if not self.combo_ligas:
+            return
         ligas = sorted(self.ligas_disponibles)
         self.combo_ligas['values'] = ['Todas'] + ligas
         if self.combo_ligas.get() not in self.combo_ligas['values']:
@@ -637,6 +648,8 @@ class SergioBetsUnified:
     
     def limpiar_frame_predicciones(self):
         """Limpiar el frame de predicciones y checkboxes"""
+        if not self.frame_predicciones:
+            return
         for widget in self.frame_predicciones.winfo_children():
             widget.destroy()
         self.checkboxes_predicciones.clear()
@@ -644,6 +657,8 @@ class SergioBetsUnified:
 
     def limpiar_frame_partidos(self):
         """Limpiar el frame de partidos y checkboxes"""
+        if not self.frame_partidos:
+            return
         for widget in self.frame_partidos.winfo_children():
             widget.destroy()
         self.checkboxes_partidos.clear()
@@ -651,6 +666,8 @@ class SergioBetsUnified:
 
     def mostrar_predicciones_con_checkboxes(self, predicciones, liga_filtrada, titulo_extra=""):
         """Mostrar predicciones con checkboxes para selección"""
+        if not self.frame_predicciones:
+            return
         self.limpiar_frame_predicciones()
         
         if not predicciones:
@@ -694,6 +711,8 @@ class SergioBetsUnified:
 
     def mostrar_partidos_con_checkboxes(self, partidos_filtrados, liga_filtrada, fecha):
         """Mostrar partidos con checkboxes para selección"""
+        if not self.frame_partidos:
+            return
         self.limpiar_frame_partidos()
         
         if not partidos_filtrados:
@@ -769,6 +788,9 @@ class SergioBetsUnified:
             messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico o partido para enviar.")
             return
         
+        if not self.entry_fecha:
+            messagebox.showwarning("Error", "GUI no inicializada correctamente")
+            return
         fecha = self.entry_fecha.get()
         mensaje_completo = ""
         
@@ -887,7 +909,8 @@ class SergioBetsUnified:
                 self.progreso_data["saldo_actual"] = saldo
 
                 actualizar_barra()
-                self.guardar_datos_json(self.entry_fecha.get())
+                if self.entry_fecha:
+                    self.guardar_datos_json(self.entry_fecha.get())
             except ValueError:
                 messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
 
@@ -1639,7 +1662,10 @@ class SergioBetsUnified:
             monitor_thread = threading.Thread(target=self.monitor_services, daemon=True)
             monitor_thread.start()
             
-            self.root.mainloop()
+            if self.root:
+                self.root.mainloop()
+            else:
+                print("❌ GUI root not initialized")
             
         except Exception as e:
             print(f"❌ Error en GUI: {e}")
