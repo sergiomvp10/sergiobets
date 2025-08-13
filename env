@@ -1,12 +1,3 @@
-TELEGRAM_BOT_TOKEN=7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A
+TELEGRAM_BOT_TOKEN=8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c
 NOWPAYMENTS_API_KEY=S8G1SYG-0QT4ADE-KM01W2R-3CND6KS
-ADMIN_TELEGRAM_ID=6712715589
-
-# Configuración de ngrok (opcional)
-# NGROK_AUTHTOKEN=tu_token_aqui
-
-# Configuración de NOWPayments Webhook
-# Una vez que tengas ngrok corriendo, configura en tu dashboard de NOWPayments:
-# Webhook URL: https://tu-ngrok-url.ngrok.io/webhook/nowpayments
-# Método: POST
-# Eventos: payment.finished, payment.confirmed
+ADMIN_TELEGRAM_ID=7659029315

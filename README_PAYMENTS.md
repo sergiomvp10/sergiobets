@@ -1,11 +1,11 @@
-# SergioBets - Sistema de Pagos NOWPayments
+# BetGeniuX - Sistema de Pagos NOWPayments
 
 ## Configuración del Sistema de Pagos
 
 ### Variables de Entorno Requeridas (.env)
 ```
 NOWPAYMENTS_API_KEY=S8G1SYG-0QT4ADE-KM01W2R-3CND6KS
-TELEGRAM_BOT_TOKEN=7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A
+TELEGRAM_BOT_TOKEN=8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c
 ADMIN_TELEGRAM_ID=6712715589
 ```
 

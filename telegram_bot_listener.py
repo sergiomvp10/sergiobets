@@ -14,8 +14,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A')
-USUARIOS_FILE = 'usuarios.json'  # Migrated to JSON format
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
+USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados():
     """Cargar usuarios ya registrados desde el archivo"""
@@ -52,22 +52,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mensaje_acceso = ""
     
     if es_nuevo:
-        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a SergioBets 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
+        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a BetGeniuX 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
     else:
-        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
+        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
     
     keyboard = [
         [
-            InlineKeyboardButton("🆓 Predicciones Gratuitas", callback_data="predicciones_gratuitas"),
-            InlineKeyboardButton("💎 Predicciones Premium", callback_data="predicciones_premium")
+            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
+            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
         ],
         [
-            InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 Novedades", callback_data="novedades")
+            InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
         ],
         [
-            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
-            InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
+            InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
+            InlineKeyboardButton("❓ AYUDA", callback_data="ayuda")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -90,7 +90,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if query.data == "estadisticas":
+    if query.data == "gratis":
+        await mostrar_gratis(update, context)
+    elif query.data == "premium":
+        await mostrar_premium(update, context)
+    elif query.data == "estadisticas":
         await mostrar_estadisticas(update, context)
     elif query.data == "novedades":
         await mostrar_novedades(update, context)
@@ -98,225 +102,117 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mostrar_membresia(update, context)
     elif query.data == "ayuda":
         await mostrar_ayuda(update, context)
-    elif query.data == "predicciones_premium":
-        await enviar_predicciones_premium_bot(update, context)
-    elif query.data == "predicciones_gratuitas":
-        await enviar_predicciones_gratuitas_bot(update, context)
-    elif query.data == "menu_principal":
-        await volver_menu_principal(update, context)
     elif query.data == "pay_usdt":
         await procesar_pago(update, context, "usdttrc20")
     elif query.data == "pay_ltc":
         await procesar_pago(update, context, "ltc")
     elif query.data == "pago_nequi":
         await procesar_pago_nequi(update, context)
+    elif query.data == "menu_principal":
+        await volver_menu_principal(update, context)
 
-async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar estadísticas del sistema con métricas claras"""
-    import asyncio
-    import traceback
-    
+async def mostrar_gratis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar contenido gratuito"""
     query = update.callback_query
     
-    print(f"🔍 [DEBUG] mostrar_estadisticas iniciado para usuario {query.from_user.id}")
-    logger.info(f"🔍 mostrar_estadisticas iniciado para usuario {query.from_user.id}")
+    mensaje = """💲 CONTENIDO GRATUITO BETGENIUX
+
+🎯 PREDICCIONES BÁSICAS:
+• Análisis de partidos principales
+• Tips básicos de apuestas
+• Estadísticas generales
+
+📊 ACCESO INCLUYE:
+• Predicciones diarias seleccionadas
+• Análisis de cuotas básico
+• Tips de gestión de bankroll
+
+🔄 Para acceder a predicciones premium y análisis avanzado, consulta nuestra membresía.
+
+¿Te gustaría ver las predicciones gratuitas de hoy?"""
     
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+
+async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar contenido premium"""
+    query = update.callback_query
+    
+    mensaje = """💰 CONTENIDO PREMIUM BETGENIUX
+
+🏆 PREDICCIONES VIP:
+• Análisis profesional completo
+• Predicciones de alta confianza
+• Estrategias avanzadas de apuestas
+
+💎 ACCESO PREMIUM INCLUYE:
+• Predicciones diarias premium
+• Análisis detallado de mercados
+• Gestión avanzada de bankroll
+• Soporte personalizado
+• Estadísticas en tiempo real
+
+📈 RESULTADOS COMPROBADOS:
+• ROI superior al 15%
+• Más de 70% de aciertos
+• Seguimiento detallado
+
+¿Quieres acceder al contenido premium?"""
+    
+    keyboard = [
+        [InlineKeyboardButton("💳 Ver Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+
+async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar estadísticas del sistema"""
+    query = update.callback_query
     try:
-        print("📊 [DEBUG] Paso 1: Importando TrackRecordManager...")
-        logger.info("📊 Importando TrackRecordManager...")
         from track_record import TrackRecordManager
-        print("✅ [DEBUG] TrackRecordManager importado exitosamente")
         
         api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
-        print(f"🔧 [DEBUG] Paso 2: Creando instancia de TrackRecordManager con API key: {api_key[:20]}...")
-        logger.info("🔧 Creando instancia de TrackRecordManager...")
         tracker = TrackRecordManager(api_key)
-        print("✅ [DEBUG] Instancia de TrackRecordManager creada exitosamente")
-        
-        print("📈 [DEBUG] Paso 3: Calculando métricas de rendimiento...")
-        logger.info("📈 Calculando métricas de rendimiento...")
         metricas = tracker.calcular_metricas_rendimiento()
-        print(f"✅ [DEBUG] Métricas calculadas: {list(metricas.keys())}")
-        print(f"📋 [DEBUG] Contenido de métricas: {metricas}")
-        logger.info(f"✅ Métricas calculadas: {list(metricas.keys())}")
         
         if "error" in metricas:
-            error_msg = metricas.get('error', 'Error desconocido')
-            print(f"⚠️ [DEBUG] Error en métricas detectado: {error_msg}")
-            logger.warning(f"⚠️ Error en métricas: {error_msg}")
-            
-            if "No hay predicciones enviadas a Telegram" in error_msg or "No hay historial disponible" in error_msg:
-                print("🎯 [DEBUG] Generando mensaje amigable para sin pronósticos...")
-                mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
-
-🎯 ¡Bienvenido al sistema de estadísticas!
-
-📈 Estado: Sistema activo y funcionando
-🔄 Pronósticos: No hay pronósticos registrados aún
-
-💡 Las estadísticas aparecerán aquí una vez que:
-• Se generen predicciones con la IA
-• Se envíen pronósticos a través del bot
-• Se resuelvan los resultados de los partidos
-
-¡Mantente atento a las próximas predicciones!"""
-            else:
-                print("⚠️ [DEBUG] Generando mensaje de error genérico...")
-                mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 📈 Sistema: Activo y funcionando
-⚠️ Datos de predicciones: {error_msg}
+⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
 
 🔄 El sistema está recopilando datos..."""
         else:
-            print("📊 [DEBUG] Paso 4: Formateando mensaje de estadísticas con datos válidos...")
-            logger.info("📊 Formateando mensaje de estadísticas...")
-            
-            print(f"🔢 [DEBUG] Calculando fallos: {metricas['predicciones_resueltas']} - {metricas['aciertos']}")
-            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
-            porcentaje_acertividad = metricas['tasa_acierto']
-            print(f"📊 [DEBUG] Fallos calculados: {fallos}, Porcentaje: {porcentaje_acertividad:.1f}%")
-            
-            mensaje = f"""📊 ESTADÍSTICAS SERGIOBETS
+            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-🎯 RENDIMIENTO GENERAL:
-✅ Aciertos: {metricas['aciertos']}
-❌ Fallos: {fallos}
-📈 Porcentaje de Acertividad: {porcentaje_acertividad:.1f}%
+🎯 PREDICCIONES:
+• Total: {metricas['total_predicciones']}
+• Resueltas: {metricas['predicciones_resueltas']}
+• Pendientes: {metricas['predicciones_pendientes']}
+• Aciertos: {metricas['aciertos']}
+• Tasa de éxito: {metricas['tasa_acierto']:.1f}%
+
+💰 RENDIMIENTO:
+• Total apostado: ${metricas['total_apostado']:.2f}
+• Ganancia: ${metricas['total_ganancia']:.2f}
+• ROI: {metricas['roi']:.2f}%
+
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
-            
-            print(f"📝 [DEBUG] Mensaje formateado exitosamente: {len(mensaje)} caracteres")
-            logger.info(f"📝 Mensaje formateado: {len(mensaje)} caracteres")
         
-        print("⌨️ [DEBUG] Paso 5: Creando keyboard markup...")
-        logger.info("⌨️ Creando keyboard markup...")
         keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        print("✅ [DEBUG] Keyboard markup creado exitosamente")
         
-        print("📤 [DEBUG] Paso 6: Enviando mensaje a Telegram...")
-        print(f"📤 [DEBUG] Mensaje a enviar (primeros 200 chars): {mensaje[:200]}...")
-        logger.info("📤 Enviando mensaje a Telegram...")
-        
-        max_retries = 3
-        retry_delay = 1
-        message_sent_successfully = False
-        
-        for attempt in range(max_retries):
-            try:
-                print(f"🔄 [DEBUG] Intento {attempt + 1} de {max_retries} enviando a Telegram...")
-                await query.edit_message_text(mensaje, reply_markup=reply_markup)
-                print("✅ [DEBUG] Mensaje enviado exitosamente a Telegram")
-                logger.info("✅ Mensaje enviado exitosamente a Telegram")
-                message_sent_successfully = True
-                break
-                
-            except Exception as telegram_error:
-                print(f"⚠️ [DEBUG] Error en intento {attempt + 1}: {type(telegram_error).__name__}")
-                error_message = str(telegram_error)
-                
-                if "Message is not modified" in error_message or "not modified" in error_message:
-                    print("✅ [DEBUG] Mensaje ya fue enviado exitosamente (detectado por 'not modified')")
-                    logger.info("✅ Mensaje ya fue enviado exitosamente (detectado por 'not modified')")
-                    message_sent_successfully = True
-                    break
-                
-                elif "TimedOut" in str(type(telegram_error)) and attempt < max_retries - 1:
-                    print(f"🕐 [DEBUG] Timeout detectado, reintentando en {retry_delay} segundos...")
-                    await asyncio.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                
-                elif "TimedOut" in str(type(telegram_error)) and attempt == max_retries - 1:
-                    print("🚨 [DEBUG] Timeout persistente, enviando mensaje corto como fallback...")
-                    mensaje_corto = f"""📊 ESTADÍSTICAS SERGIOBETS
-
-🎯 Aciertos: {metricas.get('aciertos', 0)} | Fallos: {metricas.get('predicciones_resueltas', 0) - metricas.get('aciertos', 0)}
-📈 Tasa de acierto: {metricas.get('tasa_acierto', 0):.1f}%
-💰 ROI: {metricas.get('roi', 0):.1f}%
-
-📊 Total predicciones: {metricas.get('total_predicciones', 0)}"""
-                    
-                    try:
-                        await query.edit_message_text(mensaje_corto, reply_markup=reply_markup)
-                        print("✅ [DEBUG] Mensaje corto enviado exitosamente tras timeout")
-                        logger.info("✅ Mensaje corto enviado exitosamente tras timeout")
-                        message_sent_successfully = True
-                        break
-                    except Exception as short_msg_error:
-                        print(f"❌ [DEBUG] Error enviando mensaje corto: {short_msg_error}")
-                        if "Message is not modified" in str(short_msg_error):
-                            print("✅ [DEBUG] Mensaje corto ya fue enviado (detectado por 'not modified')")
-                            logger.info("✅ Mensaje corto ya fue enviado (detectado por 'not modified')")
-                            message_sent_successfully = True
-                            break
-                        raise telegram_error
-                
-                else:
-                    print(f"❌ [DEBUG] Error no-timeout: {telegram_error}")
-                    raise telegram_error
-        
-        if message_sent_successfully:
-            print("🎯 [DEBUG] mostrar_estadisticas completado exitosamente - mensaje enviado")
-            logger.info("🎯 mostrar_estadisticas completado exitosamente - mensaje enviado")
-            return
-        
-        print("🎯 [DEBUG] mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
-        logger.info("🎯 mostrar_estadisticas completado exitosamente - RETORNANDO INMEDIATAMENTE")
-        return
+        await query.edit_message_text(mensaje, reply_markup=reply_markup)
         
     except Exception as e:
-        print(f"❌ [DEBUG] Excepción capturada en mostrar_estadisticas: {e}")
-        print(f"❌ [DEBUG] Tipo de excepción: {type(e).__name__}")
-        logger.error(f"❌ Error mostrando estadísticas: {e}")
-        logger.error(f"📋 Tipo de excepción: {type(e).__name__}")
-        logger.error(f"📋 Módulo de excepción: {type(e).__module__}")
-        logger.error(f"📋 Args de excepción: {e.args}")
-        
-        is_timeout_error = False
-        is_message_already_sent = False
-        
-        if isinstance(e, asyncio.TimeoutError):
-            logger.error("🕐 TIMEOUT ERROR: Problema de tiempo de espera en Telegram API")
-            is_timeout_error = True
-        elif "TimedOut" in str(type(e)):
-            logger.error("🕐 TELEGRAM TIMEOUT ERROR: API de Telegram tardó demasiado en responder")
-            is_timeout_error = True
-        elif "Message is not modified" in str(e) or "not modified" in str(e):
-            logger.error("✅ MESSAGE ALREADY SENT: El mensaje ya fue enviado exitosamente")
-            is_message_already_sent = True
-        elif isinstance(e, ConnectionError):
-            logger.error("🌐 CONNECTION ERROR: Problema de conexión con Telegram")
-        elif isinstance(e, AttributeError):
-            logger.error("🔧 ATTRIBUTE ERROR: Problema de atributo - posible objeto None")
-        elif "telegram" in str(type(e)).lower():
-            logger.error("📱 TELEGRAM API ERROR: Error específico de la API de Telegram")
-        
-        logger.error(f"📋 Traceback completo: {traceback.format_exc()}")
-        
-        if is_timeout_error or is_message_already_sent:
-            if is_timeout_error:
-                print("🚨 [DEBUG] Timeout detectado - NO enviando mensaje de error porque datos están correctos")
-                logger.error("🚨 TIMEOUT MANEJADO: No enviando mensaje de error - datos calculados correctamente")
-            else:
-                print("✅ [DEBUG] Mensaje ya enviado - NO enviando mensaje de error")
-                logger.error("✅ MENSAJE YA ENVIADO: No enviando mensaje de error - estadísticas ya mostradas")
-            return
-        
-        logger.error("🔍 Verificando si el error ocurrió después del envío exitoso...")
-        
-        error_location = traceback.format_exc()
-        if "✅ Mensaje enviado exitosamente a Telegram" not in str(e) and "edit_message_text" in error_location:
-            try:
-                print("⚠️ [DEBUG] Enviando mensaje de error como fallback...")
-                await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
-                logger.error("⚠️ Mensaje de error enviado como fallback")
-            except Exception as edit_error:
-                print(f"💥 [DEBUG] Error adicional al editar mensaje: {edit_error}")
-                logger.error(f"💥 Error adicional al editar mensaje: {edit_error}")
-        else:
-            print("🚫 [DEBUG] NO enviando mensaje de error - estadísticas ya fueron enviadas exitosamente")
-            logger.error("🚫 NO enviando mensaje de error - estadísticas ya fueron enviadas exitosamente")
+        logger.error(f"Error mostrando estadísticas: {e}")
+        await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
 
 async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar novedades desde archivo"""
@@ -326,7 +222,7 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
                 contenido = f.read()
         else:
-            contenido = """📢 NOVEDADES SERGIOBETS
+            contenido = """📢 NOVEDADES BETGENIUX
 
 🎯 Sistema activo y funcionando
 📊 Estadísticas disponibles en tiempo real
@@ -350,41 +246,40 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ngrok_url = get_current_ngrok_url()
     
     if ngrok_url:
-        mensaje = f"""💳 MEMBRESÍA VIP SERGIOBETS
+        mensaje = f"""MEMBRESÍA VIP BETGENIUX
 
-🌟 ACCESO VIP (7 DÍAS):
-• Predicciones exclusivas de alta confianza
-• Acceso a estadísticas avanzadas
+⭐ ACCESO VIP 7 DÍAS ⭐
+
+• Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
 • Soporte prioritario
-• Análisis detallado de mercados
 
-💰 PRECIO:
+
+💰 PRECIO
 • 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
+
 • USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
 
-🚀 ¡Selecciona tu método de pago preferido!
-
-💳 También puedes pagar directamente aquí:
-👉 [Pagar ahora]({ngrok_url}/api/create_payment)"""
+🚀 ¡Selecciona tu método de pago preferido!"""
     else:
-        mensaje = """💳 MEMBRESÍA VIP SERGIOBETS
+        mensaje = """MEMBRESÍA VIP BETGENIUX
 
-🌟 ACCESO VIP (7 DÍAS):
-• Predicciones exclusivas de alta confianza
-• Acceso a estadísticas avanzadas
+⭐ ACCESO VIP 7 DÍAS ⭐
+
+• Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
 • Soporte prioritario
-• Análisis detallado de mercados
 
-💰 PRECIO:
+
+💰 PRECIO
 • 7 días de acceso VIP: 12$ / 50.000 COP
 
 🔐 MÉTODOS DE PAGO DISPONIBLES:
+
 • USDT (TRC20)
 • Litecoin (LTC)
 • NEQUI (Colombia)
@@ -406,7 +301,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
     query = update.callback_query
-    mensaje = """❓ AYUDA - SERGIOBETS
+    mensaje = """❓ AYUDA - BETGENIUX
 
 🤖 COMANDOS DISPONIBLES:
 • /start - Mostrar menú principal
@@ -448,20 +343,20 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     user = query.from_user
     first_name = user.first_name
     
-    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en SergioBets 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
+    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
     
     keyboard = [
         [
-            InlineKeyboardButton("🆓 Predicciones Gratuitas", callback_data="predicciones_gratuitas"),
-            InlineKeyboardButton("💎 Predicciones Premium", callback_data="predicciones_premium")
+            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
+            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
         ],
         [
-            InlineKeyboardButton("📊 Estadísticas", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 Novedades", callback_data="novedades")
+            InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
         ],
         [
-            InlineKeyboardButton("💳 Membresia", callback_data="membresia"),
-            InlineKeyboardButton("❓ Ayuda", callback_data="ayuda")
+            InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
+            InlineKeyboardButton("❓ AYUDA", callback_data="ayuda")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -484,7 +379,7 @@ def iniciar_bot_listener():
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
         
-        logger.info("Bot listener iniciado - Registrando usuarios automáticamente")
+        logger.info("BetGeniuXBot listener iniciado - Registrando usuarios automáticamente")
         
         application.run_polling(stop_signals=None)
         
@@ -658,84 +553,6 @@ _Verificaremos y activaremos tu acceso manualmente._
         [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
         [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
     ]
-async def enviar_predicciones_premium_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Enviar predicciones premium solo a usuarios con suscripción activa"""
-    query = update.callback_query
-    user_id = query.from_user.id
-    
-    from access_manager import verificar_acceso
-    
-    if not verificar_acceso(str(user_id)):
-        await query.edit_message_text(
-            "❌ Acceso denegado\n\nEsta función es exclusiva para usuarios premium.\n\n💳 Adquiere tu membresía para acceder a predicciones exclusivas.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Obtener Premium", callback_data="membresia")]])
-        )
-        return
-    
-    try:
-        from footystats_api import obtener_partidos_del_dia
-        from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia
-        from datetime import datetime
-        
-        fecha = datetime.now().strftime('%Y-%m-%d')
-        partidos = obtener_partidos_del_dia(fecha)
-        predicciones = filtrar_apuestas_inteligentes(partidos)
-        
-        if predicciones:
-            mensaje = generar_mensaje_ia(predicciones[:3], fecha)
-            mensaje += f"\n\n💎 Predicciones PREMIUM exclusivas\n📅 {fecha}"
-            
-            keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await query.edit_message_text(mensaje, reply_markup=reply_markup)
-        else:
-            await query.edit_message_text(
-                f"📊 No hay predicciones premium disponibles para hoy ({fecha})\n\nIntenta más tarde o contacta soporte.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
-            )
-    except Exception as e:
-        await query.edit_message_text(
-            f"❌ Error obteniendo predicciones premium: {e}",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
-        )
-
-async def enviar_predicciones_gratuitas_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Enviar predicciones gratuitas a todos los usuarios"""
-    query = update.callback_query
-    
-    try:
-        from footystats_api import obtener_partidos_del_dia
-        from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia
-        from datetime import datetime
-        
-        fecha = datetime.now().strftime('%Y-%m-%d')
-        partidos = obtener_partidos_del_dia(fecha)
-        predicciones = filtrar_apuestas_inteligentes(partidos)
-        
-        if predicciones:
-            mensaje = generar_mensaje_ia(predicciones[:1], fecha)
-            mensaje += f"\n\n🆓 Predicción GRATUITA del día\n📅 {fecha}\n\n💎 ¿Quieres más predicciones? Obtén acceso premium"
-            
-            keyboard = [
-                [InlineKeyboardButton("💳 Obtener Premium", callback_data="membresia")],
-                [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await query.edit_message_text(mensaje, reply_markup=reply_markup)
-        else:
-            await query.edit_message_text(
-                f"📊 No hay predicciones disponibles para hoy ({fecha})\n\nIntenta más tarde.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
-            )
-    except Exception as e:
-        await query.edit_message_text(
-            f"❌ Error obteniendo predicciones: {e}",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="menu_principal")]])
-        )
-
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
@@ -754,11 +571,11 @@ def iniciar_bot_en_hilo():
     
     hilo_bot = threading.Thread(target=ejecutar_bot, daemon=True)
     hilo_bot.start()
-    logger.info("Bot listener iniciado en hilo separado")
+    logger.info("BetGeniuXBot listener iniciado en hilo separado")
     return hilo_bot
 
 if __name__ == "__main__":
-    print("🤖 Iniciando SergioBets Bot Listener...")
+    print("🤖 Iniciando BetGeniuX Bot Listener...")
     print("📝 Registrando usuarios automáticamente...")
     print("💬 Los usuarios pueden usar /start o enviar cualquier mensaje")
     print("📁 Usuarios se guardan en usuarios.txt")

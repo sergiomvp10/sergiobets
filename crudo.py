@@ -16,7 +16,7 @@ from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_d
 from league_utils import detectar_liga_por_imagen
 
 # CONFIG TELEGRAM
-TELEGRAM_TOKEN = '7069280342:AAEeDTrSpvZliMXlqcwUv16O5_KkfCqzZ8A'
+TELEGRAM_TOKEN = '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c'
 TELEGRAM_CHAT_ID = '7659029315'
 
 
@@ -105,6 +105,11 @@ def buscar(opcion_numero=1):
             partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
         
         predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
+        
+        config = cargar_configuracion()
+        odds_min = config.get("odds_min", 1.30)
+        odds_max = config.get("odds_max", 1.60)
+        output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n\n")
         
         titulo_extra = ""
         if opcion_numero == 2:
@@ -455,7 +460,7 @@ def abrir_track_record():
         tracker = TrackRecordManager(api_key)
         
         ventana_track = tk.Toplevel(root)
-        ventana_track.title("📊 Track Record - SergioBets IA")
+        ventana_track.title("📊 Track Record - BetGeniuX IA")
         ventana_track.geometry("900x700")
         ventana_track.configure(bg="#2c3e50")
         
@@ -746,7 +751,7 @@ def abrir_track_record():
 def abrir_usuarios():
     """Abrir ventana para mostrar usuarios registrados de Telegram"""
     ventana_usuarios = tk.Toplevel(root)
-    ventana_usuarios.title("👥 Usuarios Registrados - SergioBets")
+    ventana_usuarios.title("👥 Usuarios Registrados - BetGeniuX")
     ventana_usuarios.geometry("700x500")
     ventana_usuarios.configure(bg="#f1f3f4")
     
@@ -953,9 +958,86 @@ def abrir_pronostico():
     ttk.Button(ventana, text="📤 Enviar Pronóstico", command=enviar_pick).pack(pady=15)
 
 
+def cargar_configuracion():
+    """Carga la configuración desde config_app.json"""
+    config = cargar_json("config_app.json")
+    if config is None:
+        config = {"odds_min": 1.30, "odds_max": 1.60}
+        guardar_json("config_app.json", config)
+    return config
+
+def guardar_configuracion(config):
+    """Guarda la configuración en config_app.json"""
+    guardar_json("config_app.json", config)
+
+def abrir_ajustes():
+    """Abrir ventana de ajustes"""
+    ventana_ajustes = tk.Toplevel(root)
+    ventana_ajustes.title("⚙️ Ajustes - Filtros de Cuotas")
+    ventana_ajustes.geometry("400x300")
+    ventana_ajustes.configure(bg="#f1f3f4")
+    ventana_ajustes.resizable(False, False)
+    
+    config = cargar_configuracion()
+    
+    frame_main = tk.Frame(ventana_ajustes, bg="#f1f3f4")
+    frame_main.pack(pady=20, padx=20, fill='both', expand=True)
+    
+    ttk.Label(frame_main, text="⚙️ Configuración de Filtros de Cuotas", font=('Segoe UI', 12, 'bold')).pack(pady=(0, 20))
+    
+    frame_min = tk.Frame(frame_main, bg="#f1f3f4")
+    frame_min.pack(pady=10, fill='x')
+    
+    ttk.Label(frame_min, text="Cuota mínima:", font=('Segoe UI', 10)).pack(side=tk.LEFT)
+    entry_min = tk.Entry(frame_min, font=('Segoe UI', 10), width=10)
+    entry_min.pack(side=tk.RIGHT)
+    entry_min.insert(0, str(config.get("odds_min", 1.30)))
+    
+    frame_max = tk.Frame(frame_main, bg="#f1f3f4")
+    frame_max.pack(pady=10, fill='x')
+    
+    ttk.Label(frame_max, text="Cuota máxima:", font=('Segoe UI', 10)).pack(side=tk.LEFT)
+    entry_max = tk.Entry(frame_max, font=('Segoe UI', 10), width=10)
+    entry_max.pack(side=tk.RIGHT)
+    entry_max.insert(0, str(config.get("odds_max", 1.60)))
+    
+    frame_info = tk.Frame(frame_main, bg="#f1f3f4")
+    frame_info.pack(pady=20, fill='x')
+    
+    info_text = "ℹ️ Formato: Decimal EU\n📊 Límite mínimo técnico: 1.01\n🎯 Solo se mostrarán apuestas en el rango seleccionado"
+    ttk.Label(frame_info, text=info_text, font=('Segoe UI', 9), foreground='#666666').pack()
+    
+    def guardar_ajustes():
+        try:
+            odds_min = float(entry_min.get())
+            odds_max = float(entry_max.get())
+            
+            if odds_min < 1.01:
+                messagebox.showerror("Error", "La cuota mínima debe ser al menos 1.01")
+                return
+            
+            if odds_max < odds_min:
+                messagebox.showerror("Error", "La cuota máxima debe ser mayor o igual a la mínima")
+                return
+            
+            nueva_config = {"odds_min": odds_min, "odds_max": odds_max}
+            guardar_configuracion(nueva_config)
+            
+            messagebox.showinfo("Éxito", "Configuración guardada correctamente")
+            ventana_ajustes.destroy()
+            
+        except ValueError:
+            messagebox.showerror("Error", "Por favor ingresa valores numéricos válidos")
+    
+    frame_botones = tk.Frame(frame_main, bg="#f1f3f4")
+    frame_botones.pack(pady=20)
+    
+    ttk.Button(frame_botones, text="💾 Guardar", command=guardar_ajustes).pack(side=tk.LEFT, padx=5)
+    ttk.Button(frame_botones, text="❌ Cancelar", command=ventana_ajustes.destroy).pack(side=tk.LEFT, padx=5)
+
 # --- Interfaz ---
 root = tk.Tk()
-root.title("🧐 SergioBets v.1 – Cuotas de Partidos (Reales)")
+root.title("🧐 BetGeniuX v.1 – Cuotas de Partidos (Reales)")
 root.geometry("800x600")
 root.minsize(800, 600)
 root.state('zoomed')  # Maximizar ventana en Windows
@@ -966,7 +1048,16 @@ style.configure('TLabel', font=('Segoe UI', 10))
 style.configure('TButton', font=('Segoe UI', 10, 'bold'))
 style.configure('TCombobox', font=('Segoe UI', 10))
 
-frame_top = tk.Frame(root, bg="#f1f3f4")
+notebook = ttk.Notebook(root)
+notebook.pack(fill='both', expand=True, padx=10, pady=10)
+
+tab_principal = tk.Frame(notebook, bg="#f1f3f4")
+notebook.add(tab_principal, text="🏠 Principal")
+
+tab_ajustes = tk.Frame(notebook, bg="#f1f3f4")
+notebook.add(tab_ajustes, text="⚙️ Ajustes")
+
+frame_top = tk.Frame(tab_principal, bg="#f1f3f4")
 frame_top.pack(pady=15)
 
 label_fecha = ttk.Label(frame_top, text="📅 Fecha:")
@@ -1007,14 +1098,69 @@ btn_track_record.pack(side=tk.LEFT, padx=5)
 btn_usuarios = ttk.Button(frame_top, text="👥 Users", command=abrir_usuarios)
 btn_usuarios.pack(side=tk.LEFT, padx=5)
 
-frame_predicciones = tk.Frame(root, bg="#f1f3f4")
+frame_predicciones = tk.Frame(tab_principal, bg="#f1f3f4")
 frame_predicciones.pack(pady=5, padx=10, fill='x')
 
-frame_partidos = tk.Frame(root, bg="#f1f3f4")
+frame_partidos = tk.Frame(tab_principal, bg="#f1f3f4")
 frame_partidos.pack(pady=5, padx=10, fill='x')
 
-output = ScrolledText(root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
+output = ScrolledText(tab_principal, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
 output.pack(pady=10, padx=10, expand=True, fill='both')
+
+frame_ajustes_content = tk.Frame(tab_ajustes, bg="#f1f3f4")
+frame_ajustes_content.pack(pady=50, padx=50, fill='both', expand=True)
+
+ttk.Label(frame_ajustes_content, text="⚙️ Configuración de Filtros de Cuotas", font=('Segoe UI', 14, 'bold')).pack(pady=(0, 30))
+
+config_actual = cargar_configuracion()
+
+frame_min_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+frame_min_tab.pack(pady=15, fill='x')
+
+ttk.Label(frame_min_tab, text="Cuota mínima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+entry_min_tab = tk.Entry(frame_min_tab, font=('Segoe UI', 12), width=15)
+entry_min_tab.pack(side=tk.RIGHT)
+entry_min_tab.insert(0, str(config_actual.get("odds_min", 1.30)))
+
+frame_max_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+frame_max_tab.pack(pady=15, fill='x')
+
+ttk.Label(frame_max_tab, text="Cuota máxima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+entry_max_tab = tk.Entry(frame_max_tab, font=('Segoe UI', 12), width=15)
+entry_max_tab.pack(side=tk.RIGHT)
+entry_max_tab.insert(0, str(config_actual.get("odds_max", 1.60)))
+
+frame_info_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+frame_info_tab.pack(pady=30, fill='x')
+
+info_text_tab = "ℹ️ Formato: Decimal EU\n📊 Límite mínimo técnico: 1.01\n🎯 Solo se mostrarán apuestas en el rango seleccionado"
+ttk.Label(frame_info_tab, text=info_text_tab, font=('Segoe UI', 10), foreground='#666666').pack()
+
+def guardar_ajustes_tab():
+    try:
+        odds_min = float(entry_min_tab.get())
+        odds_max = float(entry_max_tab.get())
+        
+        if odds_min < 1.01:
+            messagebox.showerror("Error", "La cuota mínima debe ser al menos 1.01")
+            return
+        
+        if odds_max < odds_min:
+            messagebox.showerror("Error", "La cuota máxima debe ser mayor o igual a la mínima")
+            return
+        
+        nueva_config = {"odds_min": odds_min, "odds_max": odds_max}
+        guardar_configuracion(nueva_config)
+        
+        messagebox.showinfo("Éxito", "Configuración guardada correctamente")
+        
+    except ValueError:
+        messagebox.showerror("Error", "Por favor ingresa valores numéricos válidos")
+
+frame_boton_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+frame_boton_tab.pack(pady=30)
+
+ttk.Button(frame_boton_tab, text="💾 Guardar", command=guardar_ajustes_tab).pack()
 
 ligas_disponibles = set()
 

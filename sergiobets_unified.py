@@ -23,7 +23,7 @@ import pygame
 from datetime import date, timedelta, datetime
 from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
-from telegram_utils import enviar_telegram, enviar_telegram_masivo, enviar_telegram_gratuito, enviar_telegram_premium
+from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
 from league_utils import detectar_liga_por_imagen
 from track_record import TrackRecordManager
@@ -360,7 +360,16 @@ class SergioBetsUnified:
         self.mensaje_telegram = ""
         self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
-        frame_top = tk.Frame(self.root, bg="#f1f3f4")
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        self.tab_principal = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.notebook.add(self.tab_principal, text="🏠 Principal")
+        
+        self.tab_ajustes = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.notebook.add(self.tab_ajustes, text="⚙️ Ajustes")
+        
+        frame_top = tk.Frame(self.tab_principal, bg="#f1f3f4")
         frame_top.pack(pady=15)
         
         ttk.Label(frame_top, text="📅 Fecha:").pack(side=tk.LEFT)
@@ -377,21 +386,98 @@ class SergioBetsUnified:
         ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
         ttk.Button(frame_top, text="📊 Progreso", command=self.abrir_progreso).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📢 Enviar a Telegram", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="📤 Enviar Gratuitas", command=self.enviar_predicciones_gratuitas).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="💎 Enviar Premium", command=self.enviar_predicciones_premium).pack(side=tk.LEFT, padx=2)
+        ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
         
-        self.frame_predicciones = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_predicciones = tk.Frame(self.tab_principal, bg="#f1f3f4")
         self.frame_predicciones.pack(pady=5, padx=10, fill='x')
         
-        self.frame_partidos = tk.Frame(self.root, bg="#f1f3f4")
+        self.frame_partidos = tk.Frame(self.tab_principal, bg="#f1f3f4")
         self.frame_partidos.pack(pady=5, padx=10, fill='x')
         
-        self.output = ScrolledText(self.root, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
+        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
         self.output.pack(pady=10, padx=10, expand=True, fill='both')
         
+        self.setup_settings_tab()
+        
         print("✅ GUI setup completed")
+    
+    def cargar_configuracion(self):
+        """Carga la configuración desde config_app.json"""
+        config = cargar_json("config_app.json")
+        if config is None:
+            config = {"odds_min": 1.30, "odds_max": 1.60}
+            guardar_json("config_app.json", config)
+        return config
+
+    def guardar_configuracion(self, config):
+        """Guarda la configuración en config_app.json"""
+        guardar_json("config_app.json", config)
+
+    def setup_settings_tab(self):
+        """Setup the Settings tab content"""
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        
+        frame_ajustes_content = tk.Frame(self.tab_ajustes, bg="#f1f3f4")
+        frame_ajustes_content.pack(pady=50, padx=50, fill='both', expand=True)
+        
+        ttk.Label(frame_ajustes_content, text="⚙️ Configuración de Filtros de Cuotas", font=('Segoe UI', 14, 'bold')).pack(pady=(0, 30))
+        
+        config_actual = self.cargar_configuracion()
+        
+        frame_min_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_min_tab.pack(pady=15, fill='x')
+        
+        ttk.Label(frame_min_tab, text="Cuota mínima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+        self.entry_min_tab = tk.Entry(frame_min_tab, font=('Segoe UI', 12), width=15)
+        self.entry_min_tab.pack(side=tk.RIGHT)
+        self.entry_min_tab.insert(0, str(config_actual.get("odds_min", 1.30)))
+        
+        frame_max_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_max_tab.pack(pady=15, fill='x')
+        
+        ttk.Label(frame_max_tab, text="Cuota máxima:", font=('Segoe UI', 12)).pack(side=tk.LEFT)
+        self.entry_max_tab = tk.Entry(frame_max_tab, font=('Segoe UI', 12), width=15)
+        self.entry_max_tab.pack(side=tk.RIGHT)
+        self.entry_max_tab.insert(0, str(config_actual.get("odds_max", 1.60)))
+        
+        frame_info_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_info_tab.pack(pady=30, fill='x')
+        
+        info_text_tab = "ℹ️ Formato: Decimal EU\n📊 Límite mínimo técnico: 1.01\n🎯 Solo se mostrarán apuestas en el rango seleccionado"
+        ttk.Label(frame_info_tab, text=info_text_tab, font=('Segoe UI', 10), foreground='#666666').pack()
+        
+        frame_boton_tab = tk.Frame(frame_ajustes_content, bg="#f1f3f4")
+        frame_boton_tab.pack(pady=30)
+        
+        ttk.Button(frame_boton_tab, text="💾 Guardar", command=self.guardar_ajustes_tab).pack()
+
+    def guardar_ajustes_tab(self):
+        """Guardar configuración desde la pestaña de ajustes"""
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        try:
+            odds_min = float(self.entry_min_tab.get())
+            odds_max = float(self.entry_max_tab.get())
+            
+            if odds_min < 1.01:
+                messagebox.showerror("Error", "La cuota mínima debe ser al menos 1.01")
+                return
+            
+            if odds_max < odds_min:
+                messagebox.showerror("Error", "La cuota máxima debe ser mayor o igual a la mínima")
+                return
+            
+            nueva_config = {"odds_min": odds_min, "odds_max": odds_max}
+            self.guardar_configuracion(nueva_config)
+            
+            messagebox.showinfo("Éxito", "Configuración guardada correctamente")
+            
+        except ValueError:
+            messagebox.showerror("Error", "Por favor ingresa valores numéricos válidos")
     
     def cargar_partidos_reales(self, fecha):
         """Cargar partidos reales de la API - solo para la fecha exacta solicitada"""
@@ -404,27 +490,11 @@ class SergioBetsUnified:
                 print(f"ℹ️ No hay partidos disponibles para {fecha}")
                 print(f"   Tipo de respuesta: {type(datos_api)}")
                 print(f"   Contenido: {datos_api}")
-                datos_api = self.agregar_copa_colombia_si_necesario(fecha)
-                if not datos_api:
-                    return []  # Retornar lista vacía cuando no hay partidos reales
+                return []  # Retornar lista vacía cuando no hay partidos reales
 
             print(f"✅ API devolvió {len(datos_api)} partidos para {fecha}")
             
-            partidos_unicos = {}
             for partido in datos_api:
-                home_name = partido.get("home_name", "")
-                away_name = partido.get("away_name", "")
-                date_unix = partido.get("date_unix", 0)
-                
-                match_key = f"{home_name}|{away_name}|{date_unix}"
-                
-                if match_key not in partidos_unicos:
-                    partidos_unicos[match_key] = partido
-            
-            datos_api_deduplicados = list(partidos_unicos.values())
-            print(f"🔧 Después de deduplicación: {len(datos_api_deduplicados)} partidos únicos")
-            
-            for partido in datos_api_deduplicados:
                 try:
                     liga_detectada = detectar_liga_por_imagen(
                         partido.get("home_image", ""), 
@@ -458,44 +528,6 @@ class SergioBetsUnified:
             print(f"Traceback completo: {traceback.format_exc()}")
             print("ℹ️ Retornando lista vacía debido al error")
             return []  # Retornar lista vacía en caso de error
-
-    def agregar_copa_colombia_si_necesario(self, fecha):
-        """Agregar partidos de Copa Colombia si no están en la API principal"""
-        from datetime import datetime
-        
-        hoy = datetime.now().strftime('%Y-%m-%d')
-        if fecha != hoy:
-            return []
-        
-        copa_colombia_matches = [
-            {
-                "home_name": "Tigres",
-                "away_name": "América de Cali", 
-                "home_image": "teams/colombia-tigres.png",
-                "away_image": "teams/colombia-america-de-cali.png",
-                "date_unix": 1754499600,  # 3:00 PM
-                "odds_ft_1": "2.10",
-                "odds_ft_x": "3.20", 
-                "odds_ft_2": "3.40",
-                "homeID": "copa_col_1",
-                "awayID": "copa_col_2"
-            },
-            {
-                "home_name": "Atlético Huila",
-                "away_name": "Junior",
-                "home_image": "teams/colombia-atletico-huila.png", 
-                "away_image": "teams/colombia-junior.png",
-                "date_unix": 1754506800,  # 5:30 PM
-                "odds_ft_1": "2.80",
-                "odds_ft_x": "3.10",
-                "odds_ft_2": "2.50",
-                "homeID": "copa_col_3", 
-                "awayID": "copa_col_4"
-            }
-        ]
-        
-        print(f"🇨🇴 Agregando {len(copa_colombia_matches)} partidos de Copa Colombia")
-        return copa_colombia_matches
 
     def buscar_en_hilo(self):
         """Buscar en hilo separado"""
@@ -546,6 +578,11 @@ class SergioBetsUnified:
             
             predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
             
+            config = self.cargar_configuracion()
+            odds_min = config.get("odds_min", 1.30)
+            odds_max = config.get("odds_max", 1.60)
+            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n\n")
+            
             titulo_extra = ""
             if opcion_numero == 2:
                 titulo_extra = " - ALTERNATIVAS (2das OPCIONES)"
@@ -568,6 +605,10 @@ class SergioBetsUnified:
                 for partido in liga_partidos:
                     self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                     self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
+
+            self.output.insert(tk.END, f"✅ Búsqueda completada para {fecha}\n")
+            self.output.insert(tk.END, f"📊 {len(partidos_filtrados)} partidos encontrados\n")
+            self.output.insert(tk.END, f"🎯 {len(predicciones_ia)} predicciones generadas\n")
 
             self.guardar_datos_json(fecha)
             
@@ -807,118 +848,6 @@ class SergioBetsUnified:
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
-
-    def enviar_predicciones_gratuitas(self):
-        """Enviar predicciones y/o partidos seleccionados a todos los usuarios (gratuitos y premium)"""
-        return self._enviar_predicciones_base(enviar_telegram_gratuito, "GRATUITAS", "todos los usuarios")
-
-    def enviar_predicciones_premium(self):
-        """Enviar predicciones y/o partidos seleccionados solo a usuarios premium"""
-        return self._enviar_predicciones_base(enviar_telegram_premium, "PREMIUM", "usuarios premium")
-
-    def _enviar_predicciones_base(self, enviar_funcion, tipo_envio, descripcion_usuarios):
-        """Función base para enviar predicciones con diferentes funciones de envío"""
-        import json
-        from datetime import datetime
-        
-        predicciones_seleccionadas = []
-        partidos_seleccionados = []
-        
-        for i, var_checkbox in enumerate(self.checkboxes_predicciones):
-            if var_checkbox.get():
-                predicciones_seleccionadas.append(self.predicciones_actuales[i])
-        
-        for i, var_checkbox in enumerate(self.checkboxes_partidos):
-            if var_checkbox.get():
-                partidos_seleccionados.append(self.partidos_actuales[i])
-        
-        if not predicciones_seleccionadas and not partidos_seleccionados:
-            messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico o partido para enviar.")
-            return
-        
-        fecha = self.entry_fecha.get()
-        mensaje_completo = ""
-        
-        try:
-            if predicciones_seleccionadas:
-                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
-                mensaje_completo += mensaje_predicciones
-                
-                for pred in predicciones_seleccionadas:
-                    pred['sent_to_telegram'] = True
-                    pred['fecha_envio_telegram'] = datetime.now().isoformat()
-                    pred['tipo_envio'] = tipo_envio
-                    guardar_prediccion_historica(pred, fecha)
-                
-                filename_prefix = "gratuitas" if tipo_envio == "GRATUITAS" else "premium"
-                with open(f"picks_seleccionados_{filename_prefix}.json", "w", encoding="utf-8") as f:
-                    json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas, "tipo": tipo_envio}, f, ensure_ascii=False, indent=4)
-                
-                with open(f"picks_seleccionados_{filename_prefix}.txt", "a", encoding="utf-8") as f:
-                    f.write(f"\n=== PICKS {tipo_envio} {fecha} ===\n")
-                    for pred in predicciones_seleccionadas:
-                        f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
-                    f.write("\n")
-            
-            if partidos_seleccionados:
-                if mensaje_completo:
-                    mensaje_completo += "\n\n"
-                
-                mensaje_partidos = f"⚽ PARTIDOS SELECCIONADOS {tipo_envio} ({fecha})\n\n"
-                
-                partidos_por_liga = {}
-                for partido in partidos_seleccionados:
-                    liga = partido["liga"]
-                    if liga not in partidos_por_liga:
-                        partidos_por_liga[liga] = []
-                    
-                    info = f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
-                    info += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
-                    partidos_por_liga[liga].append(info)
-                
-                for liga in sorted(partidos_por_liga.keys()):
-                    mensaje_partidos += f"🔷 {liga}\n"
-                    for info in partidos_por_liga[liga]:
-                        mensaje_partidos += info
-                
-                mensaje_completo += mensaje_partidos
-                
-                filename_prefix = "gratuitos" if tipo_envio == "GRATUITAS" else "premium"
-                with open(f'partidos_seleccionados_{filename_prefix}.json', 'w', encoding='utf-8') as f:
-                    json.dump({"partidos": partidos_seleccionados, "tipo": tipo_envio}, f, indent=2, ensure_ascii=False)
-                
-                with open(f'partidos_seleccionados_{filename_prefix}.txt', 'w', encoding='utf-8') as f:
-                    f.write(mensaje_partidos)
-            
-            resultado = enviar_funcion(mensaje_completo)
-            if resultado["exito"]:
-                self.reproducir_sonido_exito()
-                
-                total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
-                mensaje_resultado = f"✅ Se han enviado {total_items} elemento(s) seleccionado(s) a {descripcion_usuarios}.\n\n"
-                mensaje_resultado += f"📊 Estadísticas de envío {tipo_envio}:\n"
-                mensaje_resultado += f"• Usuarios contactados: {resultado['total_usuarios']}\n"
-                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
-                if resultado.get('usuarios_bloqueados', 0) > 0:
-                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
-                if resultado.get('errores', 0) > 0:
-                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
-                
-                messagebox.showinfo(f"Enviado {tipo_envio}", mensaje_resultado)
-                
-                for var_checkbox in self.checkboxes_predicciones:
-                    var_checkbox.set(False)
-                for var_checkbox in self.checkboxes_partidos:
-                    var_checkbox.set(False)
-            else:
-                error_msg = f"No se pudieron enviar los elementos a {descripcion_usuarios}."
-                if resultado.get('detalles_errores'):
-                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
-                messagebox.showerror("Error", error_msg)
-                
-        except Exception as e:
-            messagebox.showerror("Error", f"Error enviando elementos seleccionados a {descripcion_usuarios}: {e}")
-
 
     def enviar_alerta(self):
         """Enviar alerta general a Telegram"""
@@ -1512,25 +1441,14 @@ class SergioBetsUnified:
                     print(f"Error en actualizar_estadisticas: {e}")
             
             def refrescar_usuarios():
-                if hasattr(refrescar_usuarios, 'executing') and refrescar_usuarios.executing:
-                    print('⚠️ refrescar_usuarios ya está ejecutándose, ignorando llamada')
-                    return
-                
-                refrescar_usuarios.executing = True
-                
                 try:
-                    refresh_button.config(state='disabled', text='🔄 Actualizando...')
-                except:
-                    pass
-                
-                try:
+                    usuarios = access_manager.listar_usuarios()
+                    
                     text_area.delete('1.0', tk.END)
                     text_area.config(state='normal')
                     
-                    usuarios = access_manager.listar_usuarios()
-                    
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
-                        text_area.insert(tk.END, f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
+                        text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
                         text_area.insert(tk.END, "="*90 + "\n")
                         
                         for usuario in usuarios:
@@ -1552,29 +1470,33 @@ class SergioBetsUnified:
                                 linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
                                 text_area.insert(tk.END, linea)
                     else:
-                        text_area.insert(tk.END, "No hay usuarios registrados o datos no disponibles.")
+                        text_area.insert('1.0', "No hay usuarios registrados o datos no disponibles.")
                     
+                    text_area.config(state='disabled')
+                    actualizar_estadisticas()
+                except AttributeError as e:
+                    messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error: Módulo access_manager no configurado - {e}")
+                    text_area.config(state='disabled')
+                    print(f"AttributeError en refrescar_usuarios: {e}")
+                except TypeError as e:
+                    messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error: Datos de usuarios inválidos - {e}")
+                    text_area.config(state='disabled')
+                    print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
-                    text_area.insert(tk.END, f"\nError cargando usuarios: {e}")
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
+                    text_area.delete('1.0', tk.END)
+                    text_area.config(state='normal')
+                    text_area.insert('1.0', f"Error cargando usuarios: {e}")
+                    text_area.config(state='disabled')
                     print(f"Error en refrescar_usuarios: {e}")
                     import traceback
                     print(f"Traceback: {traceback.format_exc()}")
-                
-                finally:
-                    text_area.config(state='disabled')
-                    
-                    try:
-                        actualizar_estadisticas()
-                    except Exception as e:
-                        print(f"Error en actualizar_estadisticas: {e}")
-                    
-                    try:
-                        refresh_button.config(state='normal', text='🔄 Refrescar')
-                    except:
-                        pass
-                    
-                    refrescar_usuarios.executing = False
             
             def otorgar_acceso():
                 user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
@@ -1633,10 +1555,9 @@ class SergioBetsUnified:
                 except Exception as e:
                     messagebox.showerror("Error", f"Error limpiando usuarios: {e}")
             
-            refresh_button = tk.Button(frame_botones, text="🔄 Refrescar", command=refrescar_usuarios,
+            tk.Button(frame_botones, text="🔄 Refrescar", command=refrescar_usuarios,
                      bg="#3498db", fg="white", font=('Segoe UI', 10, 'bold'),
-                     padx=15, pady=5)
-            refresh_button.pack(side='left', padx=(0, 5))
+                     padx=15, pady=5).pack(side='left', padx=(0, 5))
             
             tk.Button(frame_botones, text="👑 OTORGAR ACCESO", command=otorgar_acceso,
                      bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'),

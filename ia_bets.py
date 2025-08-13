@@ -16,8 +16,19 @@ LIGAS_CONOCIDAS = {
     "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana"
 }
 
-CUOTA_MIN = 1.45
-CUOTA_MAX = 1.75
+def cargar_configuracion_cuotas():
+    """Carga la configuración de cuotas desde config_app.json"""
+    from json_storage import cargar_json
+    config = cargar_json("config_app.json")
+    if config is None:
+        return 1.30, 1.60
+    return config.get("odds_min", 1.30), config.get("odds_max", 1.60)
+
+def obtener_cuotas_configuradas():
+    """Obtiene las cuotas configuradas (función helper para usar en el código)"""
+    return cargar_configuracion_cuotas()
+
+
 
 _cache_predicciones = {}
 
@@ -59,19 +70,10 @@ def calcular_probabilidades_1x2(cuotas: Dict[str, str]) -> Dict[str, float]:
     except (ValueError, TypeError):
         return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
 
-def calcular_probabilidades_btts(semilla: int, rendimiento_equipos: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
-    """Calcula probabilidades de Both Teams To Score basado en estadísticas de equipos"""
-    if rendimiento_equipos:
-        goles_local = rendimiento_equipos.get("goles_promedio_local", 1.3)
-        goles_visitante = rendimiento_equipos.get("goles_promedio_visitante", 1.3)
-        
-        prob_local_score = min(0.85, max(0.15, goles_local / 2.0))
-        prob_visitante_score = min(0.85, max(0.15, goles_visitante / 2.0))
-        prob_btts_si = prob_local_score * prob_visitante_score
-    else:
-        np.random.seed(semilla + 1)
-        prob_btts_si = np.random.normal(0.52, 0.12)
-    
+def calcular_probabilidades_btts(semilla: int) -> Dict[str, float]:
+    """Calcula probabilidades de Both Teams To Score basado en estadísticas determinísticas"""
+    np.random.seed(semilla + 1)
+    prob_btts_si = np.random.normal(0.52, 0.15)
     prob_btts_si = max(0.25, min(0.75, prob_btts_si))
     
     return {
@@ -79,28 +81,14 @@ def calcular_probabilidades_btts(semilla: int, rendimiento_equipos: Optional[Dic
         "btts_no": 1 - prob_btts_si
     }
 
-def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0, liga: str = "") -> Dict[str, float]:
-    """Calcula probabilidades de Over/Under con análisis contextual mejorado"""
-    
-    league_averages = {
-        "Premier League": 2.8,
-        "La Liga": 2.6,
-        "Serie A": 2.4,
-        "Bundesliga": 3.1,
-        "Champions League": 2.9,
-        "Copa Colombia": 2.3,
-        "Liga Colombiana": 2.3,
-        "Brasileirão": 2.5
-    }
-    
-    base_goals = league_averages.get(liga, 2.7)
+def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
+    """Calcula probabilidades de Over/Under con análisis contextual"""
+    np.random.seed(semilla + 2)
+    goles_esperados = float(np.random.normal(2.7, 0.8))
     
     if rendimiento_equipos:
         factor_ofensivo = rendimiento_equipos.get("goles_promedio_local", 1.3) + rendimiento_equipos.get("goles_promedio_visitante", 1.3)
-        goles_esperados = base_goals * (factor_ofensivo / 2.6)
-    else:
-        np.random.seed(semilla + 2)
-        goles_esperados = float(np.random.normal(base_goals, 0.6))
+        goles_esperados = goles_esperados * (factor_ofensivo / 2.6)
     
     goles_esperados = max(1.5, min(4.5, goles_esperados))
     
@@ -115,59 +103,29 @@ def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, A
         "goles_esperados": goles_esperados
     }
 
-def calcular_probabilidades_primera_mitad(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0, liga: str = "") -> Dict[str, float]:
-    """Calcula probabilidades de eventos en la primera mitad con análisis mejorado"""
+def calcular_probabilidades_primera_mitad(semilla: int) -> Dict[str, float]:
+    """Calcula probabilidades de goles en primera mitad"""
+    np.random.seed(semilla + 3)
+    goles_primera_mitad = float(np.random.normal(1.2, 0.5))
+    goles_primera_mitad = max(0.5, min(2.5, goles_primera_mitad))
     
-    league_first_half_averages = {
-        "Premier League": 0.68,
-        "La Liga": 0.62,
-        "Serie A": 0.58,
-        "Bundesliga": 0.72,
-        "Champions League": 0.65,
-        "Copa Colombia": 0.60,
-        "Liga Colombiana": 0.58
-    }
-    
-    base_prob = league_first_half_averages.get(liga, 0.65)
-    
-    if rendimiento_equipos:
-        factor_ofensivo = (rendimiento_equipos.get("goles_promedio_local", 1.3) + 
-                          rendimiento_equipos.get("goles_promedio_visitante", 1.3)) / 2.6
-        prob_gol_primera_mitad = base_prob * factor_ofensivo
-    else:
-        np.random.seed(semilla + 3)
-        prob_gol_primera_mitad = float(np.random.normal(base_prob, 0.12))
-    
-    prob_gol_primera_mitad = max(0.35, min(0.85, prob_gol_primera_mitad))
+    prob_over_05_1h = float(1 - stats.poisson.pmf(0, goles_primera_mitad))
+    prob_over_15_1h = float(1 - stats.poisson.cdf(1, goles_primera_mitad))
     
     return {
-        "gol_primera_mitad_si": prob_gol_primera_mitad,
-        "gol_primera_mitad_no": 1 - prob_gol_primera_mitad,
-        "over_05_1h": prob_gol_primera_mitad,
-        "over_15_1h": prob_gol_primera_mitad * 0.7,
-        "goles_esperados_1h": prob_gol_primera_mitad * 1.8
+        "over_05_1h": prob_over_05_1h,
+        "over_15_1h": prob_over_15_1h,
+        "goles_esperados_1h": goles_primera_mitad
     }
 
-def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0, liga: str = "") -> Dict[str, float]:
-    """Calcula probabilidades de tarjetas con análisis contextual mejorado"""
-    
-    league_card_averages = {
-        "Premier League": 4.2,
-        "La Liga": 5.1,
-        "Serie A": 4.8,
-        "Champions League": 4.5,
-        "Copa Colombia": 5.2,
-        "Liga Colombiana": 5.0
-    }
-    
-    base_cards = league_card_averages.get(liga, 4.8)
+def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
+    """Calcula probabilidades de tarjetas con análisis contextual"""
+    np.random.seed(semilla + 4)
+    tarjetas_esperadas = float(np.random.normal(4.8, 1.2))
     
     if rendimiento_equipos:
         factor_disciplina = rendimiento_equipos.get("tarjetas_promedio", 1.0)
-        tarjetas_esperadas = base_cards * factor_disciplina
-    else:
-        np.random.seed(semilla + 4)
-        tarjetas_esperadas = float(np.random.normal(base_cards, 1.0))
+        tarjetas_esperadas = tarjetas_esperadas * factor_disciplina
     
     tarjetas_esperadas = max(2.0, min(8.0, tarjetas_esperadas))
     
@@ -180,27 +138,14 @@ def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any
         "tarjetas_esperadas": tarjetas_esperadas
     }
 
-def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0, liga: str = "") -> Dict[str, float]:
-    """Calcula probabilidades de corners con análisis de estilo de juego"""
-    
-    league_corner_averages = {
-        "Premier League": 11.2,
-        "La Liga": 9.8,
-        "Serie A": 9.5,
-        "Bundesliga": 11.8,
-        "Champions League": 10.5,
-        "Copa Colombia": 9.2,
-        "Liga Colombiana": 9.0
-    }
-    
-    base_corners = league_corner_averages.get(liga, 10.5)
+def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
+    """Calcula probabilidades de corners totales"""
+    np.random.seed(semilla + 5)
+    corners_esperados = float(np.random.normal(10.5, 2.5))
     
     if rendimiento_equipos:
         factor_corners = rendimiento_equipos.get("corners_promedio", 1.0)
-        corners_esperados = base_corners * factor_corners
-    else:
-        np.random.seed(semilla + 5)
-        corners_esperados = float(np.random.normal(base_corners, 2.0))
+        corners_esperados = corners_esperados * factor_corners
     
     corners_esperados = max(6.0, min(16.0, corners_esperados))
     
@@ -282,37 +227,26 @@ def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Di
 
 def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     """Análisis completo de un partido con múltiples mercados y contexto determinístico"""
-    from league_utils import detectar_liga_por_imagen
-    
     cuotas = partido.get("cuotas", {})
     local = partido.get('local', 'Local')
     visitante = partido.get('visitante', 'Visitante')
     fecha = partido.get('fecha', datetime.now().strftime('%Y-%m-%d'))
-    
-    liga = partido.get("liga")
-    if not liga or liga == "Desconocida":
-        home_image = partido.get('home_image', '')
-        away_image = partido.get('away_image', '')
-        liga_detectada = detectar_liga_por_imagen(home_image, away_image)
-        liga = liga_detectada if liga_detectada != "Liga Internacional" else "Desconocida"
     
     semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
     
     rendimiento = analizar_rendimiento_equipos(local, visitante, semilla)
     
     prob_1x2 = calcular_probabilidades_1x2(cuotas)
-    prob_btts = calcular_probabilidades_btts(semilla, rendimiento)
-    prob_over_under = calcular_probabilidades_over_under(rendimiento, semilla, liga)
-    prob_primera_mitad = calcular_probabilidades_primera_mitad(rendimiento, semilla, liga)
-    prob_tarjetas = calcular_probabilidades_tarjetas(rendimiento, semilla, liga)
-    prob_corners = calcular_probabilidades_corners(rendimiento, semilla, liga)
+    prob_btts = calcular_probabilidades_btts(semilla)
+    prob_over_under = calcular_probabilidades_over_under(rendimiento, semilla)
+    prob_primera_mitad = calcular_probabilidades_primera_mitad(semilla)
+    prob_tarjetas = calcular_probabilidades_tarjetas(rendimiento, semilla)
+    prob_corners = calcular_probabilidades_corners(rendimiento, semilla)
     prob_handicap = calcular_probabilidades_handicap(cuotas, rendimiento)
-    
-    prob_equipo_gol = calcular_probabilidades_equipo_gol(rendimiento, semilla, liga)
     
     return {
         "partido": f"{local} vs {visitante}",
-        "liga": liga,
+        "liga": partido.get("liga", "Desconocida"),
         "hora": partido.get("hora", "00:00"),
         "probabilidades_1x2": prob_1x2,
         "probabilidades_btts": prob_btts,
@@ -321,582 +255,85 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
         "probabilidades_tarjetas": prob_tarjetas,
         "probabilidades_corners": prob_corners,
         "probabilidades_handicap": prob_handicap,
-        "probabilidades_equipo_gol": prob_equipo_gol,
         "rendimiento_equipos": rendimiento,
         "cuotas_disponibles": cuotas
-    }
-
-def calcular_probabilidades_equipo_gol(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0, liga: str = "") -> Dict[str, float]:
-    """Calcula probabilidades de que cada equipo marque al menos un gol"""
-    
-    if rendimiento_equipos:
-        goles_local = rendimiento_equipos.get("goles_promedio_local", 1.3)
-        goles_visitante = rendimiento_equipos.get("goles_promedio_visitante", 1.3)
-        
-        prob_local_gol = min(0.90, max(0.20, 1 - np.exp(-goles_local)))
-        prob_visitante_gol = min(0.90, max(0.20, 1 - np.exp(-goles_visitante)))
-    else:
-        np.random.seed(semilla + 7)
-        prob_local_gol = float(np.random.normal(0.70, 0.15))
-        prob_visitante_gol = float(np.random.normal(0.65, 0.15))
-    
-    prob_local_gol = max(0.20, min(0.90, prob_local_gol))
-    prob_visitante_gol = max(0.20, min(0.90, prob_visitante_gol))
-    
-    return {
-        "equipo_local_gol": prob_local_gol,
-        "equipo_local_no_gol": 1 - prob_local_gol,
-        "equipo_visitante_gol": prob_visitante_gol,
-        "equipo_visitante_no_gol": 1 - prob_visitante_gol
     }
 
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > 0.12  # Mínimo 12% de valor esperado
+    es_value_bet = valor_esperado > 0.05  # Mínimo 5% de valor esperado
     
     return valor_esperado, es_value_bet
 
-def calcular_puntuacion_compuesta(apuesta: Dict[str, Any], liga: str) -> float:
-    """
-    Calcula puntuación compuesta basada en probabilidad, rentabilidad y seguridad
-    """
-    valor_esperado = apuesta["valor_esperado"]
-    score_ve = min(valor_esperado * 2.5, 1.0)  # Normalizar a 0-1, máximo en 40% VE
-    
-    confianza = apuesta["confianza"] / 100.0
-    score_confianza = confianza
-    
-    ligas_premium = {"Premier League", "La Liga", "Serie A", "Bundesliga", "Champions League"}
-    ligas_buenas = {"Ligue 1", "Eredivisie", "Primeira Liga", "Liga MX"}
-    
-    if liga in ligas_premium:
-        score_liga = 1.0
-    elif liga in ligas_buenas:
-        score_liga = 0.8
-    else:
-        score_liga = 0.6
-    
-    tipo_apuesta = apuesta["tipo"]
-    volatilidad_tipos = {
-        "BTTS": 0.9,        # Más estable
-        "Over/Under": 0.85,  # Bastante estable
-        "Corners": 0.7,      # Moderadamente volátil
-        "Cards": 0.6,        # Más volátil
-        "Handicap": 0.8,     # Estable con datos
-        "1X2": 0.75,         # Moderado
-        "Equipo_Gol": 0.8    # Bastante estable
-    }
-    score_volatilidad = volatilidad_tipos.get(tipo_apuesta, 0.7)
-    
-    puntuacion_final = (
-        score_ve * 0.40 +           # 40% Valor Esperado
-        score_confianza * 0.30 +    # 30% Confianza
-        score_liga * 0.20 +         # 20% Seguridad Liga
-        score_volatilidad * 0.10    # 10% Estabilidad Tipo
-    )
-    
-    return puntuacion_final
-
-def aplicar_filtros_seguridad(apuesta: Dict[str, Any], liga: str) -> bool:
-    """
-    Aplica filtros de seguridad para prevenir apuestas de alto riesgo
-    """
-    ligas_premium = {"Premier League", "La Liga", "Serie A", "Bundesliga", "Champions League"}
-    ve_minimo = 0.12 if liga in ligas_premium else 0.18
-    
-    if apuesta["valor_esperado"] < ve_minimo:
-        return False
-    
-    if apuesta["confianza"] < 65:
-        return False
-    
-    cuota = apuesta["cuota"]
-    if cuota < 1.45 or cuota > 1.75:
-        return False
-    
-    if apuesta["valor_esperado"] < 0.15 and apuesta["confianza"] < 75:
-        return False
-    
-    return True
-
 def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) -> List[Dict[str, Any]]:
-    """
-    Encuentra las mejores apuestas usando algoritmo avanzado de selección
-    Optimiza por probabilidad, rentabilidad y seguridad
-    """
-    local = analisis["partido"].split(" vs ")[0]
-    visitante = analisis["partido"].split(" vs ")[1]
-    liga = analisis.get("liga", "Liga Internacional")
+    """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado"""
+    mejores_apuestas = []
+    cuota_min, cuota_max = obtener_cuotas_configuradas()
     
-    candidatas = []
+    cuotas_reales = analisis["cuotas_disponibles"]
     
-    prob_1x2 = analisis["probabilidades_1x2"]
-    cuotas = analisis["cuotas_disponibles"]
+    mercados_disponibles = [
+        ("1X2", "local", analisis["probabilidades_1x2"]["local"], cuotas_reales.get("local", "0"), f"Victoria {analisis['partido'].split(' vs ')[0]}"),
+        ("1X2", "empate", analisis["probabilidades_1x2"]["empate"], cuotas_reales.get("empate", "0"), "Empate"),
+        ("1X2", "visitante", analisis["probabilidades_1x2"]["visitante"], cuotas_reales.get("visitante", "0"), f"Victoria {analisis['partido'].split(' vs ')[1]}"),
+        
+        ("BTTS", "btts_si", analisis.get("probabilidades_btts", {}).get("btts_si", 0.5), cuotas_reales.get("btts_si", "0"), "Ambos equipos marcan - SÍ"),
+        ("BTTS", "btts_no", analisis.get("probabilidades_btts", {}).get("btts_no", 0.5), cuotas_reales.get("btts_no", "0"), "Ambos equipos marcan - NO"),
+        
+        ("Over/Under", "over_15", analisis.get("probabilidades_over_under", {}).get("over_15", 0.8), cuotas_reales.get("over_15", "0"), "Más de 1.5 goles"),
+        ("Over/Under", "under_15", analisis.get("probabilidades_over_under", {}).get("under_15", 0.2), cuotas_reales.get("under_15", "0"), "Menos de 1.5 goles"),
+        ("Over/Under", "over_25", analisis.get("probabilidades_over_under", {}).get("over_25", 0.6), cuotas_reales.get("over_25", "0"), "Más de 2.5 goles"),
+        ("Over/Under", "under_25", analisis.get("probabilidades_over_under", {}).get("under_25", 0.4), cuotas_reales.get("under_25", "0"), "Menos de 2.5 goles"),
+        
+        ("Corners", "over_85", analisis.get("probabilidades_corners", {}).get("over_85_corners", 0.6), cuotas_reales.get("corners_over_85", "0"), "Más de 8.5 corners"),
+        ("Corners", "over_95", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.5), cuotas_reales.get("corners_over_95", "0"), "Más de 9.5 corners"),
+        ("Corners", "over_105", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.4), cuotas_reales.get("corners_over_105", "0"), "Más de 10.5 corners"),
+        
+        ("1H", "over_05", analisis.get("probabilidades_primera_mitad", {}).get("over_05_1h", 0.6), cuotas_reales.get("1h_over_05", "0"), "Más de 0.5 goles 1H"),
+        ("1H", "over_15", analisis.get("probabilidades_primera_mitad", {}).get("over_15_1h", 0.3), cuotas_reales.get("1h_over_15", "0"), "Más de 1.5 goles 1H"),
+    ]
     
-    for resultado, probabilidad in prob_1x2.items():
+    for tipo_mercado, mercado, probabilidad, cuota_str, descripcion in mercados_disponibles:
         try:
-            cuota = float(cuotas.get(resultado, "1.00"))
-            if cuota > 1.0:
-                ve, es_value = calcular_value_bet(probabilidad, cuota)
-                if es_value and CUOTA_MIN <= cuota <= CUOTA_MAX:
-                    apuesta = {
-                        "tipo": "1X2",
-                        "mercado": resultado,
-                        "descripcion": {
-                            "local": f"Victoria {local}",
-                            "empate": "Empate",
-                            "visitante": f"Victoria {visitante}"
-                        }.get(resultado, resultado),
-                        "probabilidad": probabilidad,
-                        "cuota": cuota,
-                        "valor_esperado": ve,
-                        "confianza": probabilidad * 100
-                    }
-                    
-                    if aplicar_filtros_seguridad(apuesta, liga):
-                        apuesta["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta, liga)
-                        candidatas.append(apuesta)
+            cuota_real = float(cuota_str)
+            
+            if cuota_real <= 1.0:
+                continue
+                
+            if not (cuota_min <= cuota_real <= cuota_max):
+                continue
+                
+            ve, es_value = calcular_value_bet(probabilidad, cuota_real)
+            
+            if es_value:
+                mejores_apuestas.append({
+                    "tipo": tipo_mercado,
+                    "mercado": mercado,
+                    "descripcion": descripcion,
+                    "probabilidad": probabilidad,
+                    "cuota": cuota_real,
+                    "valor_esperado": ve,
+                    "confianza": probabilidad * 100,
+                    "ajuste": "ninguno"
+                })
+                
         except (ValueError, TypeError):
             continue
     
-    prob_btts = analisis["probabilidades_btts"]
-    cuota_btts_si = 1.45  # Cuota ajustada al nuevo rango
-    cuota_btts_no = 1.55  # Cuota ajustada al nuevo rango
-    
-    ve_btts_si, es_value_si = calcular_value_bet(prob_btts["btts_si"], cuota_btts_si)
-    ve_btts_no, es_value_no = calcular_value_bet(prob_btts["btts_no"], cuota_btts_no)
-    
-    if es_value_si and CUOTA_MIN <= cuota_btts_si <= CUOTA_MAX:
-        apuesta_btts_si = {
-            "tipo": "BTTS",
-            "mercado": "btts_si",
-            "descripcion": "Ambos equipos marcan - SÍ",
-            "probabilidad": prob_btts["btts_si"],
-            "cuota": cuota_btts_si,
-            "valor_esperado": ve_btts_si,
-            "confianza": prob_btts["btts_si"] * 100
-        }
+    if mejores_apuestas:
+        mejores_apuestas.sort(key=lambda x: x["valor_esperado"], reverse=True)
         
-        if aplicar_filtros_seguridad(apuesta_btts_si, liga):
-            apuesta_btts_si["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_btts_si, liga)
-            candidatas.append(apuesta_btts_si)
-    
-    if es_value_no and CUOTA_MIN <= cuota_btts_no <= CUOTA_MAX:
-        apuesta_btts_no = {
-            "tipo": "BTTS",
-            "mercado": "btts_no",
-            "descripcion": "Ambos equipos marcan - NO",
-            "probabilidad": prob_btts["btts_no"],
-            "cuota": cuota_btts_no,
-            "valor_esperado": ve_btts_no,
-            "confianza": prob_btts["btts_no"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_btts_no, liga):
-            apuesta_btts_no["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_btts_no, liga)
-            candidatas.append(apuesta_btts_no)
-    
-    prob_ou = analisis["probabilidades_over_under"]
-    
-    cuota_over_15 = 1.50
-    cuota_under_15 = 1.50
-    
-    ve_over_15, es_value_over_15 = calcular_value_bet(prob_ou["over_15"], cuota_over_15)
-    ve_under_15, es_value_under_15 = calcular_value_bet(prob_ou["under_15"], cuota_under_15)
-    
-    if es_value_over_15 and CUOTA_MIN <= cuota_over_15 <= CUOTA_MAX:
-        apuesta_over_15 = {
-            "tipo": "Over/Under",
-            "mercado": "over_15",
-            "descripcion": "Más de 1.5 goles",
-            "probabilidad": prob_ou["over_15"],
-            "cuota": cuota_over_15,
-            "valor_esperado": ve_over_15,
-            "confianza": prob_ou["over_15"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_over_15, liga):
-            apuesta_over_15["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_over_15, liga)
-            candidatas.append(apuesta_over_15)
-    
-    if es_value_under_15 and CUOTA_MIN <= cuota_under_15 <= CUOTA_MAX:
-        apuesta_under_15 = {
-            "tipo": "Over/Under",
-            "mercado": "under_15",
-            "descripcion": "Menos de 1.5 goles",
-            "probabilidad": prob_ou["under_15"],
-            "cuota": cuota_under_15,
-            "valor_esperado": ve_under_15,
-            "confianza": prob_ou["under_15"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_under_15, liga):
-            apuesta_under_15["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_under_15, liga)
-            candidatas.append(apuesta_under_15)
-    
-    cuota_over_25 = 1.55
-    cuota_under_25 = 1.45
-    
-    ve_over_25, es_value_over_25 = calcular_value_bet(prob_ou["over_25"], cuota_over_25)
-    ve_under_25, es_value_under_25 = calcular_value_bet(prob_ou["under_25"], cuota_under_25)
-    
-    if es_value_over_25 and CUOTA_MIN <= cuota_over_25 <= CUOTA_MAX:
-        apuesta_over_25 = {
-            "tipo": "Over/Under",
-            "mercado": "over_25",
-            "descripcion": "Más de 2.5 goles",
-            "probabilidad": prob_ou["over_25"],
-            "cuota": cuota_over_25,
-            "valor_esperado": ve_over_25,
-            "confianza": prob_ou["over_25"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_over_25, liga):
-            apuesta_over_25["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_over_25, liga)
-            candidatas.append(apuesta_over_25)
-    
-    if es_value_under_25 and CUOTA_MIN <= cuota_under_25 <= CUOTA_MAX:
-        apuesta_under_25 = {
-            "tipo": "Over/Under",
-            "mercado": "under_25",
-            "descripcion": "Menos de 2.5 goles",
-            "probabilidad": prob_ou["under_25"],
-            "cuota": cuota_under_25,
-            "valor_esperado": ve_under_25,
-            "confianza": prob_ou["under_25"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_under_25, liga):
-            apuesta_under_25["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_under_25, liga)
-            candidatas.append(apuesta_under_25)
-    
-    prob_handicap = analisis["probabilidades_handicap"]
-    
-    cuota_handicap_local_05 = 1.45
-    cuota_handicap_visitante_05 = 1.50
-    
-    ve_h_local, es_value_h_local = calcular_value_bet(prob_handicap["handicap_local_05"], cuota_handicap_local_05)
-    ve_h_visitante, es_value_h_visitante = calcular_value_bet(prob_handicap["handicap_visitante_05"], cuota_handicap_visitante_05)
-    
-    if es_value_h_local and CUOTA_MIN <= cuota_handicap_local_05 <= CUOTA_MAX:
-        apuesta_h_local = {
-            "tipo": "Handicap",
-            "mercado": "handicap_local_05",
-            "descripcion": f"{local} -0.5",
-            "probabilidad": prob_handicap["handicap_local_05"],
-            "cuota": cuota_handicap_local_05,
-            "valor_esperado": ve_h_local,
-            "confianza": prob_handicap["handicap_local_05"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_h_local, liga):
-            apuesta_h_local["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_h_local, liga)
-            candidatas.append(apuesta_h_local)
-    
-    if es_value_h_visitante and CUOTA_MIN <= cuota_handicap_visitante_05 <= CUOTA_MAX:
-        apuesta_h_visitante = {
-            "tipo": "Handicap",
-            "mercado": "handicap_visitante_05",
-            "descripcion": f"{visitante} +0.5",
-            "probabilidad": prob_handicap["handicap_visitante_05"],
-            "cuota": cuota_handicap_visitante_05,
-            "valor_esperado": ve_h_visitante,
-            "confianza": prob_handicap["handicap_visitante_05"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_h_visitante, liga):
-            apuesta_h_visitante["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_h_visitante, liga)
-            candidatas.append(apuesta_h_visitante)
-    
-    prob_corners = analisis["probabilidades_corners"]
-    
-    cuota_over_85_corners = 1.45
-    cuota_over_105_corners = 1.55
-    
-    ve_corners_85, es_value_corners_85 = calcular_value_bet(prob_corners["over_85_corners"], cuota_over_85_corners)
-    ve_corners_105, es_value_corners_105 = calcular_value_bet(prob_corners["over_105_corners"], cuota_over_105_corners)
-    
-    if es_value_corners_85 and CUOTA_MIN <= cuota_over_85_corners <= CUOTA_MAX:
-        apuesta_corners_85 = {
-            "tipo": "Corners",
-            "mercado": "over_85_corners",
-            "descripcion": "Más de 8.5 corners",
-            "probabilidad": prob_corners["over_85_corners"],
-            "cuota": cuota_over_85_corners,
-            "valor_esperado": ve_corners_85,
-            "confianza": prob_corners["over_85_corners"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_corners_85, liga):
-            apuesta_corners_85["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_corners_85, liga)
-            candidatas.append(apuesta_corners_85)
-    
-    if es_value_corners_105 and CUOTA_MIN <= cuota_over_105_corners <= CUOTA_MAX:
-        apuesta_corners_105 = {
-            "tipo": "Corners",
-            "mercado": "over_105_corners",
-            "descripcion": "Más de 9.5 corners",
-            "probabilidad": prob_corners["over_105_corners"],
-            "cuota": cuota_over_105_corners,
-            "valor_esperado": ve_corners_105,
-            "confianza": prob_corners["over_105_corners"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_corners_105, liga):
-            apuesta_corners_105["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_corners_105, liga)
-            candidatas.append(apuesta_corners_105)
-    
-    prob_tarjetas = analisis["probabilidades_tarjetas"]
-    
-    cuota_over_35_cards = 1.50
-    cuota_over_55_cards = 1.45
-    
-    ve_cards_35, es_value_cards_35 = calcular_value_bet(prob_tarjetas["over_35_cards"], cuota_over_35_cards)
-    ve_cards_55, es_value_cards_55 = calcular_value_bet(prob_tarjetas["over_55_cards"], cuota_over_55_cards)
-    
-    if es_value_cards_35 and CUOTA_MIN <= cuota_over_35_cards <= CUOTA_MAX:
-        apuesta_cards_35 = {
-            "tipo": "Cards",
-            "mercado": "over_35_cards",
-            "descripcion": "Más de 3.5 tarjetas",
-            "probabilidad": prob_tarjetas["over_35_cards"],
-            "cuota": cuota_over_35_cards,
-            "valor_esperado": ve_cards_35,
-            "confianza": prob_tarjetas["over_35_cards"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_cards_35, liga):
-            apuesta_cards_35["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_cards_35, liga)
-            candidatas.append(apuesta_cards_35)
-    
-    if es_value_cards_55 and CUOTA_MIN <= cuota_over_55_cards <= CUOTA_MAX:
-        apuesta_cards_55 = {
-            "tipo": "Cards",
-            "mercado": "over_55_cards",
-            "descripcion": "Más de 4.5 tarjetas",
-            "probabilidad": prob_tarjetas["over_55_cards"],
-            "cuota": cuota_over_55_cards,
-            "valor_esperado": ve_cards_55,
-            "confianza": prob_tarjetas["over_55_cards"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_cards_55, liga):
-            apuesta_cards_55["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_cards_55, liga)
-            candidatas.append(apuesta_cards_55)
-    
-    prob_primera_mitad = analisis["probabilidades_primera_mitad"]
-    
-    cuota_gol_primera_mitad_si = 1.60
-    cuota_gol_primera_mitad_no = 1.55
-    
-    ve_gol_1h_si, es_value_gol_1h_si = calcular_value_bet(prob_primera_mitad["gol_primera_mitad_si"], cuota_gol_primera_mitad_si)
-    ve_gol_1h_no, es_value_gol_1h_no = calcular_value_bet(prob_primera_mitad["gol_primera_mitad_no"], cuota_gol_primera_mitad_no)
-    
-    if es_value_gol_1h_si and CUOTA_MIN <= cuota_gol_primera_mitad_si <= CUOTA_MAX:
-        apuesta_gol_1h_si = {
-            "tipo": "Equipo_Gol",
-            "mercado": "gol_primera_mitad_si",
-            "descripcion": "Gol en primer tiempo - Sí",
-            "probabilidad": prob_primera_mitad["gol_primera_mitad_si"],
-            "cuota": cuota_gol_primera_mitad_si,
-            "valor_esperado": ve_gol_1h_si,
-            "confianza": prob_primera_mitad["gol_primera_mitad_si"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_gol_1h_si, liga):
-            apuesta_gol_1h_si["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_gol_1h_si, liga)
-            candidatas.append(apuesta_gol_1h_si)
-    
-    if es_value_gol_1h_no and CUOTA_MIN <= cuota_gol_primera_mitad_no <= CUOTA_MAX:
-        apuesta_gol_1h_no = {
-            "tipo": "Equipo_Gol",
-            "mercado": "gol_primera_mitad_no",
-            "descripcion": "Gol en primer tiempo - No",
-            "probabilidad": prob_primera_mitad["gol_primera_mitad_no"],
-            "cuota": cuota_gol_primera_mitad_no,
-            "valor_esperado": ve_gol_1h_no,
-            "confianza": prob_primera_mitad["gol_primera_mitad_no"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_gol_1h_no, liga):
-            apuesta_gol_1h_no["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_gol_1h_no, liga)
-            candidatas.append(apuesta_gol_1h_no)
-    
-    prob_equipo_gol = analisis["probabilidades_equipo_gol"]
-    
-    cuota_local_gol = 1.50
-    cuota_visitante_gol = 1.55
-    
-    ve_local_gol, es_value_local_gol = calcular_value_bet(prob_equipo_gol["equipo_local_gol"], cuota_local_gol)
-    ve_visitante_gol, es_value_visitante_gol = calcular_value_bet(prob_equipo_gol["equipo_visitante_gol"], cuota_visitante_gol)
-    
-    if es_value_local_gol and CUOTA_MIN <= cuota_local_gol <= CUOTA_MAX:
-        apuesta_local_gol = {
-            "tipo": "Equipo_Gol",
-            "mercado": "equipo_local_gol",
-            "descripcion": f"{local} marca al menos un gol",
-            "probabilidad": prob_equipo_gol["equipo_local_gol"],
-            "cuota": cuota_local_gol,
-            "valor_esperado": ve_local_gol,
-            "confianza": prob_equipo_gol["equipo_local_gol"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_local_gol, liga):
-            apuesta_local_gol["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_local_gol, liga)
-            candidatas.append(apuesta_local_gol)
-    
-    if es_value_visitante_gol and CUOTA_MIN <= cuota_visitante_gol <= CUOTA_MAX:
-        apuesta_visitante_gol = {
-            "tipo": "Equipo_Gol",
-            "mercado": "equipo_visitante_gol",
-            "descripcion": f"{visitante} marca al menos un gol",
-            "probabilidad": prob_equipo_gol["equipo_visitante_gol"],
-            "cuota": cuota_visitante_gol,
-            "valor_esperado": ve_visitante_gol,
-            "confianza": prob_equipo_gol["equipo_visitante_gol"] * 100
-        }
-        
-        if aplicar_filtros_seguridad(apuesta_visitante_gol, liga):
-            apuesta_visitante_gol["puntuacion_compuesta"] = calcular_puntuacion_compuesta(apuesta_visitante_gol, liga)
-            candidatas.append(apuesta_visitante_gol)
-    
-    # Aplicar algoritmo avanzado de selección
-    if candidatas:
-        candidatas.sort(key=lambda x: x["puntuacion_compuesta"], reverse=True)
-        
-        opciones_finales = candidatas[:num_opciones]
+        opciones_finales = mejores_apuestas[:num_opciones]
         
         for opcion in opciones_finales:
             kelly_fraction = opcion["valor_esperado"] / (opcion["cuota"] - 1)
-            stake_recomendado = min(8, max(1, int(kelly_fraction * 50)))
+            stake_recomendado = min(10, max(1, int(kelly_fraction * 100)))
             
             opcion["stake_recomendado"] = stake_recomendado
             opcion["justificacion"] = generar_justificacion(opcion, analisis)
         
         return opciones_finales
-        
-    prob_primera_mitad = analisis["probabilidades_primera_mitad"]
-    
-    cuota_gol_primera_mitad_si = 1.60
-    cuota_gol_primera_mitad_no = 1.55
-    
-    ve_gol_1h_si, es_value_gol_1h_si = calcular_value_bet(prob_primera_mitad["gol_primera_mitad_si"], cuota_gol_primera_mitad_si)
-    ve_gol_1h_no, es_value_gol_1h_no = calcular_value_bet(prob_primera_mitad["gol_primera_mitad_no"], cuota_gol_primera_mitad_no)
-    
-    if es_value_gol_1h_si and CUOTA_MIN <= cuota_gol_primera_mitad_si <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "gol_primera_mitad",
-            "prediccion": "Gol en primer tiempo - Sí",
-            "cuota": cuota_gol_primera_mitad_si,
-            "probabilidad": prob_primera_mitad["gol_primera_mitad_si"],
-            "valor_esperado": ve_gol_1h_si,
-            "confianza": prob_primera_mitad["gol_primera_mitad_si"] * 100
-        })
-    
-    if es_value_gol_1h_no and CUOTA_MIN <= cuota_gol_primera_mitad_no <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "gol_primera_mitad",
-            "prediccion": "Gol en primer tiempo - No",
-            "cuota": cuota_gol_primera_mitad_no,
-            "probabilidad": prob_primera_mitad["gol_primera_mitad_no"],
-            "valor_esperado": ve_gol_1h_no,
-            "confianza": prob_primera_mitad["gol_primera_mitad_no"] * 100
-        })
-    
-    prob_equipo_gol = analisis["probabilidades_equipo_gol"]
-    
-    cuota_local_gol = 1.50
-    cuota_visitante_gol = 1.55
-    
-    ve_local_gol, es_value_local_gol = calcular_value_bet(prob_equipo_gol["equipo_local_gol"], cuota_local_gol)
-    ve_visitante_gol, es_value_visitante_gol = calcular_value_bet(prob_equipo_gol["equipo_visitante_gol"], cuota_visitante_gol)
-    
-    if es_value_local_gol and CUOTA_MIN <= cuota_local_gol <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "equipo_gol",
-            "prediccion": f"{local} marca al menos un gol",
-            "cuota": cuota_local_gol,
-            "probabilidad": prob_equipo_gol["equipo_local_gol"],
-            "valor_esperado": ve_local_gol,
-            "confianza": prob_equipo_gol["equipo_local_gol"] * 100
-        })
-    
-    if es_value_visitante_gol and CUOTA_MIN <= cuota_visitante_gol <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "equipo_gol",
-            "prediccion": f"{visitante} marca al menos un gol",
-            "cuota": cuota_visitante_gol,
-            "probabilidad": prob_equipo_gol["equipo_visitante_gol"],
-            "valor_esperado": ve_visitante_gol,
-            "confianza": prob_equipo_gol["equipo_visitante_gol"] * 100
-        })
-    
-    prob_corners = analisis["probabilidades_corners"]
-    corners_esperados = prob_corners.get("corners_esperados", 10.5)
-    
-    prob_over_95_corners = float(1 - stats.poisson.cdf(9, corners_esperados))
-    prob_under_95_corners = 1 - prob_over_95_corners
-    
-    cuota_over_95_corners = 1.65
-    cuota_under_95_corners = 1.50
-    
-    ve_corners_95_over, es_value_corners_95_over = calcular_value_bet(prob_over_95_corners, cuota_over_95_corners)
-    ve_corners_95_under, es_value_corners_95_under = calcular_value_bet(prob_under_95_corners, cuota_under_95_corners)
-    
-    if es_value_corners_95_over and CUOTA_MIN <= cuota_over_95_corners <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "corners",
-            "prediccion": "Más de 9.5 corners",
-            "cuota": cuota_over_95_corners,
-            "probabilidad": prob_over_95_corners,
-            "valor_esperado": ve_corners_95_over,
-            "confianza": prob_over_95_corners * 100
-        })
-    
-    if es_value_corners_95_under and CUOTA_MIN <= cuota_under_95_corners <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "corners",
-            "prediccion": "Menos de 9.5 corners",
-            "cuota": cuota_under_95_corners,
-            "probabilidad": prob_under_95_corners,
-            "valor_esperado": ve_corners_95_under,
-            "confianza": prob_under_95_corners * 100
-        })
-    
-    prob_tarjetas = analisis["probabilidades_tarjetas"]
-    tarjetas_esperadas = prob_tarjetas.get("tarjetas_esperadas", 4.8)
-    
-    prob_over_45_cards = float(1 - stats.poisson.cdf(4, tarjetas_esperadas))
-    prob_under_45_cards = 1 - prob_over_45_cards
-    
-    cuota_over_45_cards = 1.70
-    cuota_under_45_cards = 1.48
-    
-    ve_cards_45_over, es_value_cards_45_over = calcular_value_bet(prob_over_45_cards, cuota_over_45_cards)
-    ve_cards_45_under, es_value_cards_45_under = calcular_value_bet(prob_under_45_cards, cuota_under_45_cards)
-    
-    if es_value_cards_45_over and CUOTA_MIN <= cuota_over_45_cards <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "tarjetas",
-            "prediccion": "Más de 4.5 tarjetas",
-            "cuota": cuota_over_45_cards,
-            "probabilidad": prob_over_45_cards,
-            "valor_esperado": ve_cards_45_over,
-            "confianza": prob_over_45_cards * 100
-        })
-    
-    if es_value_cards_45_under and CUOTA_MIN <= cuota_under_45_cards <= CUOTA_MAX:
-        opciones_finales.append({
-            "tipo": "tarjetas",
-            "prediccion": "Menos de 4.5 tarjetas",
-            "cuota": cuota_under_45_cards,
-            "probabilidad": prob_under_45_cards,
-            "valor_esperado": ve_cards_45_under,
-            "confianza": prob_under_45_cards * 100
-        })
-    
-    return opciones_finales
     
     return []
 
@@ -978,54 +415,29 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
     
     return predicciones_validas[:5]
 
-def obtener_contador_pronostico() -> int:
-    """Obtiene y actualiza el contador global de pronósticos"""
-    try:
-        from json_storage import cargar_json, guardar_json
-        
-        contador_data = cargar_json("contador_pronosticos.json") or {"contador": 0}
-        contador_actual = contador_data.get("contador", 0) + 1
-        
-        contador_data["contador"] = contador_actual
-        guardar_json("contador_pronosticos.json", contador_data)
-        
-        return contador_actual
-    except Exception as e:
-        print(f"Error manejando contador de pronósticos: {e}")
-        return 1
-
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
     if not predicciones:
-        return f"🤖 IA SERGIOBETS - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
+        return f"🤖 IA BetGeniuX - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
-    mensaje = f"🤖 IA SERGIOBETS - ANÁLISIS AVANZADO ({fecha})\n\n"
+    mensaje = f"🤖 IA BetGeniuX - ANÁLISIS AVANZADO ({fecha})\n\n"
     
-    contador_base = obtener_contador_pronostico()
-    
-    for i, pred in enumerate(predicciones):
-        numero_pronostico = contador_base + i
-        mensaje += f"🎯 PRONOSTICO #{numero_pronostico}\n"
+    for i, pred in enumerate(predicciones, 1):
+        mensaje += f"🎯 PICK #{i} - VALUE BET\n"
         mensaje += f"🏆 {pred['liga']}\n"
         mensaje += f"⚽ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
-        mensaje += f"📊 Confianza: {pred['confianza']}%\n"
+        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
         mensaje += f"📝 {pred['razon']}\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
-    if len(predicciones) > 1:
-        try:
-            from json_storage import cargar_json, guardar_json
-            contador_data = cargar_json("contador_pronosticos.json") or {"contador": 0}
-            contador_data["contador"] = contador_base + len(predicciones) - 1
-            guardar_json("contador_pronosticos.json", contador_data)
-        except Exception as e:
-            print(f"Error actualizando contador final: {e}")
-    
     total_ve = sum(pred['valor_esperado'] for pred in predicciones)
     mensaje += f"📈 RESUMEN DEL DÍA:\n"
-    mensaje += f"- {len(predicciones)} value bets identificadas\n"
-    mensaje += f"- Valor esperado total: +{total_ve:.1f}%"
+    mensaje += f"• {len(predicciones)} value bets identificadas\n"
+    mensaje += f"• Valor esperado total: +{total_ve:.1f}%\n\n"
+    
+    mensaje += "🧠 Análisis generado por IA avanzada con modelos probabilísticos.\n"
+    mensaje += "⚠️ Apostar con responsabilidad."
     
     return mensaje
 
