@@ -90,7 +90,14 @@ def increment_counter_after_send(mensaje: str) -> int:
     """Increment counter after successful Telegram send based on message content"""
     prediction_count = count_predictions_in_message(mensaje)
     if prediction_count > 0:
-        get_next_pronostico_numbers(prediction_count)
+        current_date = get_current_date()
+        counter_data = load_counter_data()
+        
+        if counter_data.get("date") != current_date:
+            counter_data = {"date": current_date, "counter": 0}
+        
+        counter_data["counter"] += prediction_count
+        save_counter_data(counter_data)
         return prediction_count
     return 0
 

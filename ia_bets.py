@@ -546,12 +546,7 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, numeros_p
         return f"BETGENIUX®  ({fecha})\n\n❌ No se encontraron pronósticos recomendados para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
     if numeros_pronostico is None:
-        try:
-            from daily_counter import get_next_pronostico_numbers
-            numeros_pronostico = get_next_pronostico_numbers(len(predicciones))
-        except Exception as e:
-            print(f"Error getting daily counter: {e}")
-            numeros_pronostico = list(range(1, len(predicciones) + 1))
+        numeros_pronostico = list(range(1, len(predicciones) + 1))
     
     mensaje = f"BETGENIUX®  ({fecha})\n\n"
     

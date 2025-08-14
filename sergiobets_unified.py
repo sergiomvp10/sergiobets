@@ -832,13 +832,7 @@ class SergioBetsUnified:
         
         try:
             if predicciones_seleccionadas:
-                try:
-                    from daily_counter import get_next_pronostico_numbers
-                    numeros_pronostico = get_next_pronostico_numbers(len(predicciones_seleccionadas))
-                    mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha, numeros_pronostico)
-                except Exception as e:
-                    print(f"Error getting prediction numbers: {e}")
-                    mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
                 mensaje_completo += mensaje_predicciones
                 
                 for pred in predicciones_seleccionadas:
