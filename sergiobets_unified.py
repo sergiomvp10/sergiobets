@@ -250,17 +250,27 @@ class SergioBetsUnified:
         return None
     
     def start_telegram_bot(self):
-        """Iniciar bot de Telegram"""
-        logger.info("🤖 Starting Telegram bot...")
-        print("🤖 Iniciando bot de Telegram...")
+        """Iniciar bot de Telegram - NUEVO BOT @BetGeniuXbot"""
+        logger.info("🤖 Starting NEW Telegram bot...")
+        print("🤖 Iniciando NUEVO bot de Telegram: @BetGeniuXbot")
+        print("🔄 Reemplazando bot anterior con token: 8487580276")
         try:
-            # Import and run the bot directly instead of subprocess
-            logger.debug("Importing telegram bot...")
+            import subprocess
+            import time
+            
+            logger.info("Killing any existing bot processes...")
+            try:
+                subprocess.run(['pkill', '-f', 'telegram_bot'], check=False)
+                subprocess.run(['pkill', '-f', 'run_telegram_bot'], check=False)
+                subprocess.run(['pkill', '-f', 'bot_listener'], check=False)
+                time.sleep(2)
+                logger.info("✅ Old bot processes stopped")
+            except Exception as e:
+                logger.warning(f"⚠️ Error stopping old processes: {e}")
             
             def run_bot():
                 try:
-                    logger.info("Starting Telegram bot in thread...")
-                    # Import and call the bot listener function directly
+                    logger.info("Starting NEW Telegram bot in thread...")
                     import sys
                     import asyncio
                     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -268,33 +278,32 @@ class SergioBetsUnified:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     
-                    # Import the iniciar_bot_en_hilo function which is designed for threading
                     from telegram_bot_listener import iniciar_bot_en_hilo
-                    logger.info("Successfully imported iniciar_bot_en_hilo")
+                    logger.info("Successfully imported iniciar_bot_en_hilo for NEW bot")
                     
-                    logger.info("Calling iniciar_bot_en_hilo()...")
+                    logger.info("Calling iniciar_bot_en_hilo() for NEW bot...")
                     iniciar_bot_en_hilo()
                     
                 except Exception as e:
-                    logger.error(f"❌ Error in Telegram bot thread: {e}")
+                    logger.error(f"❌ Error in NEW Telegram bot thread: {e}")
                     logger.error(f"Traceback: {traceback.format_exc()}")
             
-            logger.debug("Creating bot thread...")
+            logger.debug("Creating NEW bot thread...")
             self.bot_thread = threading.Thread(target=run_bot, daemon=True)
             self.bot_thread.start()
-            logger.debug("✅ Bot thread started")
+            logger.debug("✅ NEW Bot thread started")
             
-            logger.debug("Waiting 3 seconds for bot to initialize...")
+            logger.debug("Waiting 3 seconds for NEW bot to initialize...")
             time.sleep(3)
             
-            logger.info("✅ Telegram bot started successfully")
-            print("✅ Bot de Telegram iniciado")
+            logger.info("✅ NEW Telegram bot @BetGeniuXbot started successfully")
+            print("✅ NUEVO Bot de Telegram @BetGeniuXbot iniciado")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error starting Telegram bot: {e}")
+            logger.error(f"❌ Error starting NEW Telegram bot: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            print(f"❌ Error iniciando bot de Telegram: {e}")
+            print(f"❌ Error iniciando NUEVO bot de Telegram: {e}")
             return False
     
     def stop_all_services(self):
