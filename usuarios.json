@@ -3,25 +3,28 @@
     "user_id": "7659029315",
     "username": "n3utro6",
     "first_name": "No",
-    "premium": true,
-    "fecha_expiracion": "2025-08-12T20:47:26.805782",
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "6286055084",
     "username": "Sie7e0",
     "first_name": "Left",
-    "premium": true,
-    "fecha_expiracion": "2025-08-12T22:55:43.433594",
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "6937898258",
     "username": null,
     "first_name": "Juli",
-    "premium": true,
-    "fecha_expiracion": "2025-08-12T21:46:51.687605",
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "7173680564",
@@ -29,15 +32,17 @@
     "first_name": "Jh",
     "premium": false,
     "fecha_expiracion": null,
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "8316148869",
     "username": null,
     "first_name": "Juli",
-    "premium": true,
-    "fecha_expiracion": "2025-08-11T17:09:12.192881",
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "7356807202",
@@ -45,14 +50,25 @@
     "first_name": "Catalina",
     "premium": false,
     "fecha_expiracion": null,
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "7755596745",
     "username": null,
     "first_name": "Miguel",
-    "premium": true,
-    "fecha_expiracion": "2025-08-13T00:01:05.393125",
-    "fecha_registro": "2025-08-04T18:21:51.354306"
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-04T18:21:51.354306",
+    "bot_username": "BetGeniuXbot"
+  },
+  {
+    "user_id": "test_traceability_123",
+    "username": "testuser",
+    "first_name": "Test User",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-08-14T03:17:55.038417",
+    "bot_username": "BetGeniuXbot"
   }
 ]

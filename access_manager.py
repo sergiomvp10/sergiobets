@@ -77,14 +77,15 @@ class AccessManager:
                 return i, users
         return None, users
     
-    def registrar_usuario(self, user_id: str, username: str, first_name: str) -> bool:
-        """Register a new user or update existing user info"""
+    def registrar_usuario(self, user_id: str, username: str, first_name: str, bot_username: str = "BetGeniuXbot") -> bool:
+        """Register a new user or update existing user info with bot traceability"""
         user_index, users = self._find_user_index(user_id)
         
         if user_index is not None:
             users[user_index].update({
                 "username": username,
-                "first_name": first_name
+                "first_name": first_name,
+                "bot_username": bot_username
             })
         else:
             users.append({
@@ -93,7 +94,8 @@ class AccessManager:
                 "first_name": first_name,
                 "premium": False,
                 "fecha_expiracion": None,
-                "fecha_registro": datetime.now().isoformat()
+                "fecha_registro": datetime.now().isoformat(),
+                "bot_username": bot_username
             })
         
         self._save_users(users)
@@ -262,11 +264,39 @@ Estamos comprometidos a brindarte los mejores pronósticos deportivos para maxim
             "usuarios_gratuitos": len(users) - len(premium_users),
             "porcentaje_premium": (len(premium_users) / len(users) * 100) if users else 0
         }
+    
+    def listar_usuarios_por_bot(self, bot_username: str) -> List[Dict]:
+        """List users registered with specific bot"""
+        users = self._load_users()
+        return [user for user in users if user.get("bot_username") == bot_username]
+    
+    def contar_usuarios_por_bot(self, bot_username: str) -> int:
+        """Count users registered with specific bot"""
+        return len(self.listar_usuarios_por_bot(bot_username))
+    
+    def limpiar_usuarios_bot_anterior(self, bot_username_actual: str = "BetGeniuXbot") -> int:
+        """Clean users from previous bot instances, keeping only current bot users"""
+        users = self._load_users()
+        usuarios_anteriores = [user for user in users if user.get("bot_username") != bot_username_actual]
+        usuarios_actuales = [user for user in users if user.get("bot_username") == bot_username_actual]
+        
+        if usuarios_anteriores:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_file = f"usuarios_bot_anterior_backup_{timestamp}.json"
+            with open(backup_file, 'w', encoding='utf-8') as f:
+                json.dump(usuarios_anteriores, f, indent=2, ensure_ascii=False)
+            
+            self._save_users(usuarios_actuales)
+            print(f"🧹 {len(usuarios_anteriores)} usuarios del bot anterior limpiados")
+            print(f"💾 Backup creado: {backup_file}")
+            return len(usuarios_anteriores)
+        
+        return 0
 
 access_manager = AccessManager()
 
-def registrar_usuario(user_id: str, username: str, first_name: str) -> bool:
-    return access_manager.registrar_usuario(user_id, username, first_name)
+def registrar_usuario(user_id: str, username: str, first_name: str, bot_username: str = "BetGeniuXbot") -> bool:
+    return access_manager.registrar_usuario(user_id, username, first_name, bot_username)
 
 def otorgar_acceso(user_id: str, dias: int) -> bool:
     return access_manager.otorgar_acceso(user_id, dias)
@@ -277,10 +307,10 @@ def banear_usuario(user_id: str) -> bool:
 def verificar_acceso(user_id: str) -> bool:
     return access_manager.verificar_acceso(user_id)
 
-def cargar_usuarios_registrados() -> List[str]:
-    """Backward compatibility: return users in old format"""
-    users = access_manager.listar_usuarios()
+def cargar_usuarios_registrados(bot_username: str = "BetGeniuXbot") -> List[str]:
+    """Backward compatibility: return users in old format for specific bot"""
+    users = access_manager.listar_usuarios_por_bot(bot_username)
     return [f"{user['user_id']} - {user['username']} - {user['first_name']}" for user in users]
 
-def contar_usuarios_registrados() -> int:
-    return access_manager.contar_usuarios_registrados()
+def contar_usuarios_registrados(bot_username: str = "BetGeniuXbot") -> int:
+    return access_manager.contar_usuarios_por_bot(bot_username)

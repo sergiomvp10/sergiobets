@@ -22,8 +22,8 @@ def cargar_usuarios_registrados():
     return access_manager.listar_usuarios()
 
 def registrar_usuario(user_id, username, first_name):
-    """Registrar nuevo usuario usando access_manager"""
-    return access_manager.registrar_usuario(str(user_id), username, first_name)
+    """Registrar nuevo usuario usando access_manager con trazabilidad de bot"""
+    return access_manager.registrar_usuario(str(user_id), username, first_name, "BetGeniuXbot")
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar comando /start con menú interactivo"""
@@ -176,32 +176,35 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     try:
         from track_record import TrackRecordManager
+        from datetime import datetime
         
-        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        api_key = os.getenv('FOOTYSTATS_API_KEY', 'b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079')
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         
         if "error" in metricas:
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-📈 Sistema: Activo y funcionando
-⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
+🎯 PRONOSTICOS:
+• Total: 0
+• Pendientes: 0
+• Aciertos: 0
+• Fallos: 0
+• Tasa de éxito: 0.0%
 
-🔄 El sistema está recopilando datos..."""
+
+📅 Actualizado: {datetime.now().strftime('%Y-%m-%d')}"""
         else:
+            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-🎯 PREDICCIONES:
+🎯 PRONOSTICOS:
 • Total: {metricas['total_predicciones']}
-• Resueltas: {metricas['predicciones_resueltas']}
 • Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
+• Fallos: {fallos}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
 
-💰 RENDIMIENTO:
-• Total apostado: ${metricas['total_apostado']:.2f}
-• Ganancia: ${metricas['total_ganancia']:.2f}
-• ROI: {metricas['roi']:.2f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
         
@@ -222,13 +225,29 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
                 contenido = f.read()
         else:
-            contenido = """📢 NOVEDADES BETGENIUX
+            contenido = """📢 ANUNCIOS BETGENIUX® - AGOSTO 2025
 
-🎯 Sistema activo y funcionando
-📊 Estadísticas disponibles en tiempo real
-🤖 IA generando predicciones diariamente
+SOMOS UN BOT PATENTADO, CON RESULTADOS COMPROBABLES QUE TE HARA GANAR DINERO DESDE EL PRIMER DIA, ESTAS PREPARADO?
 
-¡Mantente atento a futuras actualizaciones!"""
+🎯 NUEVAS FUNCIONALIDADES:
+
+Sistema de menú interactivo implementado
+
+Estadísticas en tiempo real disponibles
+
+Track record automático de pronosticos
+
+Soporte para múltiples mercados de apuestas
+
+Sistema de pronosticos optimizado continuamente
+
+🚀 PRÓXIMAMENTE:
+
+Integración con múltiples casas de apuestas
+
+Alertas personalizadas de oportunidades
+
+ESTO ES MATEMATICAS, NO SUERTE"""
         
         keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -301,23 +320,13 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
     query = update.callback_query
-    mensaje = """❓ AYUDA - BETGENIUX
+    mensaje = """❓ AYUDA -  BETGENIUX®
 
-🤖 COMANDOS DISPONIBLES:
-• /start - Mostrar menú principal
-• Cualquier mensaje - Registro automático
-
-📊 FUNCIONES:
-• Estadísticas: Ver rendimiento del sistema
-• Novedades: Últimas actualizaciones
-• Membresía: Información de planes premium
-• Ayuda: Esta información
-
-🎯 CÓMO FUNCIONA:
+🎯 Como Funciona? 
 1. Regístrate enviando cualquier mensaje
 2. Recibirás pronósticos automáticamente
-3. Revisa estadísticas para ver rendimiento
-4. Considera membresía premium para más beneficios
+3. Revisa estadísticas para comprobar el rendimiento
+4. Considera membresía premium para mas pronosticos y beneficios
 
 📞 SOPORTE:
 • Telegram: @sergiomvp10
@@ -327,7 +336,6 @@ async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Mantén notificaciones activas
 • Revisa estadísticas regularmente
 • Sigue las recomendaciones de stake
-• Apuesta con responsabilidad
 
 ⚠️ IMPORTANTE:
 Las apuestas conllevan riesgo. Nunca apuestes más de lo que puedes permitirte perder."""
@@ -377,6 +385,9 @@ def iniciar_bot_listener():
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
+        application.add_handler(MessageHandler(filters.PHOTO, manejar_comprobante_nequi))
+        application.add_handler(MessageHandler(filters.Document.ALL, manejar_comprobante_nequi))
+        application.add_handler(CommandHandler("confirmar_nequi", confirmar_pago_nequi_admin))
         application.add_error_handler(error_handler)
         
         logger.info("BetGeniuXBot listener iniciado - Registrando usuarios automáticamente")
@@ -536,6 +547,35 @@ async def verificar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def procesar_pago_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Procesar solicitud de pago NEQUI"""
     query = update.callback_query
+    user_id = str(query.from_user.id)
+    username = query.from_user.username or "sin_username"
+    
+    try:
+        import json
+        from datetime import datetime
+        
+        nequi_file = "pagos/nequi_payments.json"
+        if os.path.exists(nequi_file):
+            with open(nequi_file, 'r', encoding='utf-8') as f:
+                nequi_payments = json.load(f)
+        else:
+            nequi_payments = {}
+        
+        nequi_payments[user_id] = {
+            "username": username,
+            "first_name": query.from_user.first_name or "",
+            "requested_at": datetime.now().isoformat(),
+            "status": "waiting_receipt",
+            "amount": 50000,
+            "currency": "COP"
+        }
+        
+        os.makedirs("pagos", exist_ok=True)
+        with open(nequi_file, 'w', encoding='utf-8') as f:
+            json.dump(nequi_payments, f, indent=2, ensure_ascii=False)
+            
+    except Exception as e:
+        logger.error(f"Error tracking NEQUI payment: {e}")
     
     mensaje = """📲 PAGO CON NEQUI
 
@@ -556,6 +596,134 @@ _Verificaremos y activaremos tu acceso manualmente._
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
+
+async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Manejar comprobantes de pago NEQUI enviados por usuarios"""
+    user_id = str(update.effective_user.id)
+    username = update.effective_user.username or "sin_username"
+    first_name = update.effective_user.first_name or ""
+    
+    try:
+        import json
+        from datetime import datetime
+        
+        nequi_file = "pagos/nequi_payments.json"
+        if not os.path.exists(nequi_file):
+            return
+            
+        with open(nequi_file, 'r', encoding='utf-8') as f:
+            nequi_payments = json.load(f)
+        
+        if user_id not in nequi_payments:
+            return
+            
+        payment_info = nequi_payments[user_id]
+        if payment_info.get("status") != "waiting_receipt":
+            return
+        
+        payment_info["status"] = "receipt_received"
+        payment_info["receipt_received_at"] = datetime.now().isoformat()
+        
+        with open(nequi_file, 'w', encoding='utf-8') as f:
+            json.dump(nequi_payments, f, indent=2, ensure_ascii=False)
+        
+        await update.message.reply_text(
+            "✅ Comprobante recibido. Verificaremos tu pago y activaremos tu acceso VIP en máximo 24 horas."
+        )
+        
+        admin_id = os.getenv('ADMIN_TELEGRAM_ID', '6712715589')
+        
+        mensaje_admin = f"""📸 COMPROBANTE NEQUI RECIBIDO
+
+👤 Usuario: @{username} ({first_name})
+🆔 ID: {user_id}
+💰 Monto: {payment_info['amount']:,} {payment_info['currency']}
+📅 Solicitado: {payment_info['requested_at'][:16]}
+
+Para confirmar el pago, usa:
+/confirmar_nequi {user_id}"""
+        
+        if update.message.photo:
+            await context.bot.send_photo(
+                chat_id=admin_id,
+                photo=update.message.photo[-1].file_id,
+                caption=mensaje_admin
+            )
+        elif update.message.document:
+            await context.bot.send_document(
+                chat_id=admin_id,
+                document=update.message.document.file_id,
+                caption=mensaje_admin
+            )
+            
+    except Exception as e:
+        logger.error(f"Error procesando comprobante NEQUI: {e}")
+        await update.message.reply_text("❌ Error procesando comprobante. Intenta nuevamente.")
+
+async def confirmar_pago_nequi_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para que el admin confirme pagos NEQUI"""
+    admin_id = os.getenv('ADMIN_TELEGRAM_ID', '6712715589')
+    
+    if str(update.effective_user.id) != admin_id:
+        await update.message.reply_text("❌ No tienes permisos para usar este comando.")
+        return
+    
+    if not context.args:
+        await update.message.reply_text("❌ Uso: /confirmar_nequi {user_id}")
+        return
+        
+    user_id = context.args[0]
+    
+    try:
+        import json
+        from datetime import datetime
+        
+        nequi_file = "pagos/nequi_payments.json"
+        if not os.path.exists(nequi_file):
+            await update.message.reply_text("❌ No hay pagos NEQUI pendientes.")
+            return
+            
+        with open(nequi_file, 'r', encoding='utf-8') as f:
+            nequi_payments = json.load(f)
+        
+        if user_id not in nequi_payments:
+            await update.message.reply_text(f"❌ No se encontró pago pendiente para usuario {user_id}")
+            return
+            
+        payment_info = nequi_payments[user_id]
+        
+        from pagos.payments import PaymentManager
+        payment_manager = PaymentManager()
+        
+        payment_manager._activate_vip_user(
+            user_id=user_id,
+            username=payment_info["username"],
+            membership_type="weekly"
+        )
+        
+        payment_info["status"] = "confirmed"
+        payment_info["confirmed_at"] = datetime.now().isoformat()
+        payment_info["confirmed_by"] = str(update.effective_user.id)
+        
+        with open(nequi_file, 'w', encoding='utf-8') as f:
+            json.dump(nequi_payments, f, indent=2, ensure_ascii=False)
+        
+        await update.message.reply_text(
+            f"✅ Pago NEQUI confirmado para @{payment_info['username']}\n"
+            f"🔐 Acceso VIP activado por 7 días"
+        )
+        
+        try:
+            await context.bot.send_message(
+                chat_id=int(user_id),
+                text="✅ ¡Tu pago NEQUI fue confirmado! Acceso VIP activado por 7 días."
+            )
+        except Exception as e:
+            logger.error(f"Error notificando usuario: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error confirmando pago NEQUI: {e}")
+        await update.message.reply_text(f"❌ Error confirmando pago: {str(e)}")
 
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""
