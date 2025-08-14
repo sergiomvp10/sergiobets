@@ -63,7 +63,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 ANUNCIOS BETGENIUX®", callback_data="novedades")
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
         ],
         [
             InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
@@ -228,17 +228,24 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contenido = """📢 ANUNCIOS BETGENIUX® - AGOSTO 2025
 
 SOMOS UN BOT PATENTADO, CON RESULTADOS COMPROBABLES QUE TE HARA GANAR DINERO DESDE EL PRIMER DIA, ESTAS PREPARADO?
- 
+
 🎯 NUEVAS FUNCIONALIDADES:
-• Sistema de menú interactivo implementado
-• Estadísticas en tiempo real disponibles
-• Track record automático de pronosticos
-• Soporte para múltiples mercados de apuestas
-• Sistema de pronosticos optimizado continuamente
+
+Sistema de menú interactivo implementado
+
+Estadísticas en tiempo real disponibles
+
+Track record automático de pronosticos
+
+Soporte para múltiples mercados de apuestas
+
+Sistema de pronosticos optimizado continuamente
 
 🚀 PRÓXIMAMENTE:
-• Integración con múltiples casas de apuestas
-• Alertas personalizadas de oportunidades
+
+Integración con múltiples casas de apuestas
+
+Alertas personalizadas de oportunidades
 
 ESTO ES MATEMATICAS, NO SUERTE"""
         
@@ -364,7 +371,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 ANUNCIOS BETGENIUX®", callback_data="novedades")
+            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
         ],
         [
             InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
