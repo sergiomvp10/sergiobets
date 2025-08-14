@@ -20,7 +20,10 @@ def kill_old_bot_processes():
         subprocess.run(['pkill', '-f', 'telegram_bot'], check=False)
         subprocess.run(['pkill', '-f', 'run_telegram_bot'], check=False)
         subprocess.run(['pkill', '-f', 'bot_listener'], check=False)
-        time.sleep(2)
+        subprocess.run(['pkill', '-f', 'crudo.py'], check=False)
+        subprocess.run(['pkill', '-f', 'sergiobets'], check=False)
+        subprocess.run(['pkill', '-f', 'python.*telegram'], check=False)
+        time.sleep(3)
         print("✅ Old bot processes stopped")
     except Exception as e:
         print(f"⚠️ Error stopping old processes: {e}")
