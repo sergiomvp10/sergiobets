@@ -6,3 +6,5 @@ tkcalendar
 requests
 flask
 flask-cors
+numpy
+scipy
