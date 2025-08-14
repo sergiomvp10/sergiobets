@@ -543,26 +543,19 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
 
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
     if not predicciones:
-        return f"🤖 IA SERGIOBETS - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
+        return f"BETGENIUX®  ({fecha})\n\n❌ No se encontraron pronósticos recomendados para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
-    mensaje = f"🤖 IA SERGIOBETS - ANÁLISIS AVANZADO ({fecha})\n\n"
+    mensaje = f"BETGENIUX®  ({fecha})\n\n"
     
     for i, pred in enumerate(predicciones, 1):
-        mensaje += f"🎯 PICK #{i} - VALUE BET\n"
+        mensaje += f"🎯 PRONOSTICO #{i}\n"
         mensaje += f"🏆 {pred['liga']}\n"
-        mensaje += f"⚽ {pred['partido']}\n"
+        mensaje += f"⚽️ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
-        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
-        mensaje += f"📝 {pred['razon']}\n"
+        mensaje += f"📊 Confianza: {pred['confianza']:.0f}% | VE: +{pred['valor_esperado']:.3f}\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
-    total_ve = sum(pred['valor_esperado'] for pred in predicciones)
-    mensaje += f"📈 RESUMEN DEL DÍA:\n"
-    mensaje += f"• {len(predicciones)} value bets identificadas\n"
-    mensaje += f"• Valor esperado total: +{total_ve:.1f}%\n\n"
-    
-    mensaje += "🧠 Análisis generado por IA avanzada con modelos probabilísticos.\n"
     mensaje += "⚠️ Apostar con responsabilidad."
     
     return mensaje
