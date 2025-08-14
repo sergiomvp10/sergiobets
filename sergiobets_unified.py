@@ -515,7 +515,18 @@ class SergioBetsUnified:
                             "casa": "FootyStats",
                             "local": str(partido.get("odds_ft_1", "2.00")),
                             "empate": str(partido.get("odds_ft_x", "3.00")),
-                            "visitante": str(partido.get("odds_ft_2", "4.00"))
+                            "visitante": str(partido.get("odds_ft_2", "4.00")),
+                            "btts_si": str(partido.get("odds_btts_yes", "1.80")),
+                            "btts_no": str(partido.get("odds_btts_no", "2.00")),
+                            "over_15": str(partido.get("odds_ft_over15", "1.30")),
+                            "under_15": str(partido.get("odds_ft_under15", "3.50")),
+                            "over_25": str(partido.get("odds_ft_over25", "1.70")),
+                            "under_25": str(partido.get("odds_ft_under25", "2.10")),
+                            "corners_over_85": str(partido.get("odds_corners_over_85", "1.80")),
+                            "corners_over_95": str(partido.get("odds_corners_over_95", "2.20")),
+                            "corners_over_105": str(partido.get("odds_corners_over_105", "2.80")),
+                            "1h_over_05": str(partido.get("odds_1st_half_over05", "1.40")),
+                            "1h_over_15": str(partido.get("odds_1st_half_over15", "2.60"))
                         }
                     })
                 except Exception as partido_error:
