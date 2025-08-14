@@ -225,13 +225,22 @@ async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
                 contenido = f.read()
         else:
-            contenido = """📢 NOVEDADES BETGENIUX
+            contenido = """📢 ANUNCIOS BETGENIUX® - AGOSTO 2025
 
-🎯 Sistema activo y funcionando
-📊 Estadísticas disponibles en tiempo real
-🤖 IA generando predicciones diariamente
+SOMOS UN BOT PATENTADO, CON RESULTADOS COMPROBABLES QUE TE HARA GANAR DINERO DESDE EL PRIMER DIA, ESTAS PREPARADO?
+ 
+🎯 NUEVAS FUNCIONALIDADES:
+• Sistema de menú interactivo implementado
+• Estadísticas en tiempo real disponibles
+• Track record automático de pronosticos
+• Soporte para múltiples mercados de apuestas
+• Sistema de pronosticos optimizado continuamente
 
-¡Mantente atento a futuras actualizaciones!"""
+🚀 PRÓXIMAMENTE:
+• Integración con múltiples casas de apuestas
+• Alertas personalizadas de oportunidades
+
+ESTO ES MATEMATICAS, NO SUERTE"""
         
         keyboard = [[InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
