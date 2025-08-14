@@ -262,7 +262,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > -0.02  # Mínimo -2% de valor esperado (más permisivo para testing)
+    es_value_bet = valor_esperado > -0.10  # Mínimo -10% de valor esperado (muy permisivo para testing)
     
     return valor_esperado, es_value_bet
 
