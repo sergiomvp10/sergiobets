@@ -47,36 +47,28 @@ def es_liga_conocida(liga: str) -> bool:
     return any(liga_conocida.lower() in liga.lower() for liga_conocida in LIGAS_CONOCIDAS)
 
 def calcular_probabilidades_1x2(cuotas: Dict[str, str]) -> Dict[str, float]:
-    """Calcula probabilidades estimadas independientes para value betting"""
+    """Calcula probabilidades implícitas de las cuotas 1X2"""
     try:
-        cuota_local = float(cuotas.get("local", "2.0"))
-        cuota_empate = float(cuotas.get("empate", "3.0"))
-        cuota_visitante = float(cuotas.get("visitante", "3.0"))
+        local = float(cuotas.get("local", "1.00"))
+        empate = float(cuotas.get("empate", "1.00"))
+        visitante = float(cuotas.get("visitante", "1.00"))
         
-        if cuota_local < 1.6:  # Favorito claro
-            prob_local = 0.70
-            prob_empate = 0.20
-            prob_visitante = 0.10
-        elif cuota_local < 2.0:  # Favorito moderado
-            prob_local = 0.60
-            prob_empate = 0.25
-            prob_visitante = 0.15
-        elif cuota_local < 2.5:  # Ligeramente favorito
-            prob_local = 0.50
-            prob_empate = 0.28
-            prob_visitante = 0.22
-        else:  # Partido equilibrado o underdog
-            prob_local = 0.40
-            prob_empate = 0.30
-            prob_visitante = 0.30
+        prob_local = 1 / local if local > 0 else 0
+        prob_empate = 1 / empate if empate > 0 else 0
+        prob_visitante = 1 / visitante if visitante > 0 else 0
         
-        return {
-            "local": prob_local,
-            "empate": prob_empate,
-            "visitante": prob_visitante
-        }
+        total = prob_local + prob_empate + prob_visitante
+        
+        if total > 0:
+            return {
+                "local": prob_local / total,
+                "empate": prob_empate / total,
+                "visitante": prob_visitante / total
+            }
+        else:
+            return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
     except (ValueError, TypeError):
-        return {"local": 0.45, "empate": 0.30, "visitante": 0.25}
+        return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
 
 def calcular_probabilidades_btts(semilla: int) -> Dict[str, float]:
     """Calcula probabilidades de Both Teams To Score basado en estadísticas determinísticas"""
@@ -270,7 +262,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > 0.01  # Mínimo 1% de valor esperado
+    es_value_bet = valor_esperado > 0.05  # Mínimo 5% de valor esperado
     
     return valor_esperado, es_value_bet
 
@@ -425,9 +417,9 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
 
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
     if not predicciones:
-        return f"🤖 IA BetGeniuX - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
+        return f"🤖 IA SERGIOBETS - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
-    mensaje = f"🤖 IA BetGeniuX - ANÁLISIS AVANZADO ({fecha})\n\n"
+    mensaje = f"🤖 IA SERGIOBETS - ANÁLISIS AVANZADO ({fecha})\n\n"
     
     for i, pred in enumerate(predicciones, 1):
         mensaje += f"🎯 PICK #{i} - VALUE BET\n"
@@ -503,21 +495,21 @@ def simular_datos_prueba() -> List[Dict[str, Any]]:
             "liga": "Premier League",
             "local": "Manchester City",
             "visitante": "Arsenal",
-            "cuotas": {"casa": "Bet365", "local": "1.45", "empate": "4.50", "visitante": "6.00"}
+            "cuotas": {"casa": "Bet365", "local": "1.65", "empate": "3.80", "visitante": "4.20"}
         },
         {
             "hora": "17:30",
             "liga": "La Liga",
             "local": "Real Madrid",
             "visitante": "Barcelona",
-            "cuotas": {"casa": "Bet365", "local": "1.50", "empate": "4.20", "visitante": "5.50"}
+            "cuotas": {"casa": "Bet365", "local": "2.10", "empate": "3.40", "visitante": "3.20"}
         },
         {
             "hora": "20:00",
             "liga": "Serie A",
             "local": "Juventus",
             "visitante": "Inter Milan",
-            "cuotas": {"casa": "Bet365", "local": "1.40", "empate": "4.80", "visitante": "7.00"}
+            "cuotas": {"casa": "Bet365", "local": "1.55", "empate": "4.00", "visitante": "5.50"}
         }
     ]
     return partidos_simulados
