@@ -11,7 +11,7 @@ def test_sequential_counter_fix():
     print("=" * 50)
     
     try:
-        from daily_counter import reset_daily_counter, get_current_counter, increment_counter_after_send
+        from daily_counter import reset_daily_counter, get_current_counter, get_next_pronostico_numbers
         from ia_bets import generar_mensaje_ia
         from datetime import datetime
         
@@ -34,29 +34,29 @@ def test_sequential_counter_fix():
         fecha = datetime.now().strftime('%Y-%m-%d')
         
         print("\n🧪 FIRST PREDICTION:")
-        mensaje1 = generar_mensaje_ia(test_predicciones, fecha)
-        print(f"Message formatted (should show #1): {mensaje1[:100]}...")
-        print(f"Counter after formatting: {get_current_counter()}")
+        numbers1 = get_next_pronostico_numbers(1)
+        print(f"Got numbers for send: {numbers1}")
+        print(f"Counter after getting numbers: {get_current_counter()}")
         
-        increment_result1 = increment_counter_after_send(mensaje1)
-        print(f"After Telegram send increment: {increment_result1}")
-        print(f"Counter after send: {get_current_counter()}")
+        mensaje1 = generar_mensaje_ia(test_predicciones, fecha, numbers1)
+        print(f"Message formatted with reserved numbers: PRONOSTICO #{numbers1[0]}")
         
         print("\n🧪 SECOND PREDICTION:")
-        mensaje2 = generar_mensaje_ia(test_predicciones, fecha)
-        print(f"Message formatted (should show #1 again): {mensaje2[:100]}...")
-        print(f"Counter after formatting: {get_current_counter()}")
+        numbers2 = get_next_pronostico_numbers(1)
+        print(f"Got numbers for send: {numbers2}")
+        print(f"Counter after getting numbers: {get_current_counter()}")
         
-        increment_result2 = increment_counter_after_send(mensaje2)
-        print(f"After Telegram send increment: {increment_result2}")
-        print(f"Counter after send: {get_current_counter()}")
+        mensaje2 = generar_mensaje_ia(test_predicciones, fecha, numbers2)
+        print(f"Message formatted with reserved numbers: PRONOSTICO #{numbers2[0]}")
         
-        if get_current_counter() == 2:
+        if get_current_counter() == 2 and numbers1 == [1] and numbers2 == [2]:
             print("✅ SEQUENTIAL COUNTER FIX SUCCESSFUL!")
             print("Counter now increments 1, 2, 3... as expected")
             return True
         else:
             print("❌ Counter fix failed")
+            print(f"Expected counter=2, numbers1=[1], numbers2=[2]")
+            print(f"Got counter={get_current_counter()}, numbers1={numbers1}, numbers2={numbers2}")
             return False
             
     except Exception as e:
