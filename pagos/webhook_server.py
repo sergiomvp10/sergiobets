@@ -80,6 +80,23 @@ def await_send_admin_notification(payment_result):
     except Exception as e:
         logger.error(f"Error enviando notificación al admin: {e}")
 
+def send_nequi_admin_notification(user_info, payment_info):
+    """Enviar notificación al administrador sobre pago NEQUI confirmado"""
+    try:
+        from datetime import datetime
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        mensaje = f"""✅ Pago NEQUI Confirmado
+👤 Usuario: @{user_info.get('username', 'sin_username')}
+💰 Monto: {payment_info.get('amount', 0):,} {payment_info.get('currency', 'COP')}
+📆 Fecha: {fecha}
+🔐 Acceso VIP activado correctamente"""
+        
+        enviar_telegram(mensaje, TELEGRAM_TOKEN, ADMIN_TELEGRAM_ID)
+        
+    except Exception as e:
+        logger.error(f"Error enviando notificación NEQUI al admin: {e}")
+
 def await_send_user_confirmation(payment_result):
     """Enviar confirmación al usuario"""
     try:
