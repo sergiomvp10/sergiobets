@@ -63,7 +63,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
+            InlineKeyboardButton("📢 ANUNCIOS BETGENIUX®", callback_data="novedades")
         ],
         [
             InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
@@ -364,7 +364,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
-            InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
+            InlineKeyboardButton("📢 ANUNCIOS BETGENIUX®", callback_data="novedades")
         ],
         [
             InlineKeyboardButton("⭐ MEMBRESIA", callback_data="membresia"),
