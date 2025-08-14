@@ -164,81 +164,128 @@ def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]
     }
 
 def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
-    """Calcula probabilidades de hándicap asiático"""
+    """Calcula probabilidades de hándicap asiático con análisis de volatilidad y riesgo"""
     try:
         prob_1x2 = calcular_probabilidades_1x2(cuotas)
         
-        factor_forma = 1.0
+        factor_forma = 0.5  # Default neutral
+        blowout_risk = 0.2  # Default moderate risk
+        strength_gap = 0.0  # Default no gap
+        volatility_penalty = 1.0  # Default no penalty
+        
         if rendimiento_equipos:
             forma_local = rendimiento_equipos.get("forma_local", 0.5)
             forma_visitante = rendimiento_equipos.get("forma_visitante", 0.5)
-            factor_forma = forma_local / (forma_local + forma_visitante)
+            factor_forma = forma_local / (forma_local + forma_visitante) if (forma_local + forma_visitante) > 0 else 0.5
+            
+            blowout_risk = rendimiento_equipos.get("blowout_risk", 0.2)
+            strength_gap = rendimiento_equipos.get("strength_gap", 0.0)
+            volatility_avg = rendimiento_equipos.get("volatility_avg", 0.3)
+            
+            volatility_penalty = 1.0 - (volatility_avg * 0.3)  # Reduce probabilidades hasta 30%
         
-        prob_handicap_local_05 = prob_1x2["local"] * factor_forma
-        prob_handicap_visitante_05 = 1 - prob_handicap_local_05
+        base_local_05 = prob_1x2["local"] * factor_forma * volatility_penalty
+        base_local_15 = prob_1x2["local"] * 0.4 * factor_forma * volatility_penalty  # Más conservador
         
-        prob_handicap_local_15 = prob_1x2["local"] * 0.6 * factor_forma
-        prob_handicap_visitante_15 = 1 - prob_handicap_local_15
+        blowout_penalty = 1.0 - (blowout_risk * 0.6)  # Hasta 60% de penalización
+        
+        prob_handicap_local_05 = max(0.15, min(0.85, base_local_05 * blowout_penalty))
+        prob_handicap_visitante_05 = max(0.15, min(0.85, (1 - base_local_05) * blowout_penalty))
+        
+        total_05 = prob_handicap_local_05 + prob_handicap_visitante_05
+        
+        if total_05 > 0:
+            prob_handicap_local_05 /= total_05
+            prob_handicap_visitante_05 /= total_05
         
         return {
             "handicap_local_05": prob_handicap_local_05,
             "handicap_visitante_05": prob_handicap_visitante_05,
-            "handicap_local_15": prob_handicap_local_15,
-            "handicap_visitante_15": prob_handicap_visitante_15
+            "blowout_risk": blowout_risk,
+            "strength_gap": strength_gap,
+            "volatility_penalty": volatility_penalty
         }
-    except:
+    except Exception as e:
         return {
-            "handicap_local_05": 0.5,
-            "handicap_visitante_05": 0.5,
-            "handicap_local_15": 0.35,
-            "handicap_visitante_15": 0.65
+            "handicap_local_05": 0.45,
+            "handicap_visitante_05": 0.55,
+            "blowout_risk": 0.3,
+            "strength_gap": 0.0,
+            "volatility_penalty": 0.8
         }
 
 def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int, partido_data: Optional[Dict] = None) -> Dict[str, Any]:
-    """Simula análisis de rendimiento reciente con factores de árbitro e importancia del partido"""
+    """Análisis realista de rendimiento con datos contextuales y factores de volatilidad"""
     np.random.seed(semilla + 6)
     
-    local_strength = hash(local) % 100 / 100.0
-    visitante_strength = hash(visitante) % 100 / 100.0
+    local_strength = 0.5  # Default neutral
+    visitante_strength = 0.5  # Default neutral
+    local_volatility = 0.3  # Default moderate volatility
+    visitante_volatility = 0.3  # Default moderate volatility
+    
+    if partido_data:
+        home_ppg = partido_data.get("home_ppg", 1.0)
+        away_ppg = partido_data.get("away_ppg", 1.0)
+        
+        local_strength = min(1.0, max(0.1, home_ppg / 3.0))
+        visitante_strength = min(1.0, max(0.1, away_ppg / 3.0))
+        
+        strength_diff = abs(local_strength - visitante_strength)
+        if strength_diff > 0.4:  # Gran diferencia = mayor volatilidad para el débil
+            if local_strength < visitante_strength:
+                local_volatility = 0.6  # Equipo débil más impredecible
+                visitante_volatility = 0.2  # Equipo fuerte más consistente
+            else:
+                local_volatility = 0.2
+                visitante_volatility = 0.6
+        elif strength_diff < 0.1:  # Equipos parejos = alta volatilidad
+            local_volatility = 0.5
+            visitante_volatility = 0.5
     
     referee_factor = 1.0
     if partido_data and partido_data.get("refereeID"):
         referee_id = partido_data.get("refereeID")
         if referee_id and referee_id != "None":
-            referee_discipline = (hash(str(referee_id)) % 50) / 100.0 + 0.75
+            referee_discipline = (hash(str(referee_id)) % 30) / 100.0 + 0.85
             referee_factor = referee_discipline
     
     importance_factor = 1.0
     if partido_data:
         competition_id = partido_data.get("competition_id", 0)
         if competition_id > 10000:
-            importance_factor = 1.1
+            importance_factor = 1.05  # Reducido de 1.1 a 1.05
         
         strength_diff = abs(local_strength - visitante_strength)
-        if strength_diff < 0.2:
-            importance_factor *= 1.05
+        if strength_diff < 0.15:  # Más restrictivo para derbys
+            importance_factor *= 1.02  # Reducido de 1.05 a 1.02
     
     rendimiento_local = {
-        "goles_favor": float(np.random.normal(1.2 + local_strength * 0.8, 0.4)),
-        "goles_contra": float(np.random.normal(1.0 + (1-local_strength) * 0.6, 0.3)),
-        "tarjetas": float(np.random.normal(2.0 + local_strength * 0.8, 0.6)) * importance_factor,
-        "corners": float(np.random.normal(5.0 + local_strength * 2.0, 1.2)),
-        "victorias": max(0, min(5, int(np.random.normal(2 + local_strength * 2, 1)))),
-        "forma": float(np.clip(np.random.normal(0.4 + local_strength * 0.4, 0.15), 0.1, 0.9))
+        "goles_favor": float(np.random.normal(0.8 + local_strength * 1.2, 0.3 + local_volatility * 0.4)),
+        "goles_contra": float(np.random.normal(0.8 + (1-local_strength) * 1.2, 0.3 + local_volatility * 0.3)),
+        "tarjetas": float(np.random.normal(2.0 + local_strength * 0.5, 0.4 + local_volatility * 0.3)) * importance_factor,
+        "corners": float(np.random.normal(4.5 + local_strength * 1.5, 0.8 + local_volatility * 0.6)),
+        "victorias": max(0, min(5, int(np.random.normal(1.5 + local_strength * 2, 0.8 + local_volatility)))),
+        "forma": float(np.clip(np.random.normal(0.3 + local_strength * 0.4, 0.1 + local_volatility * 0.2), 0.05, 0.95)),
+        "volatilidad": local_volatility
     }
     
     rendimiento_visitante = {
-        "goles_favor": float(np.random.normal(1.0 + visitante_strength * 0.6, 0.4)),
-        "goles_contra": float(np.random.normal(1.2 + (1-visitante_strength) * 0.8, 0.4)),
-        "tarjetas": float(np.random.normal(2.2 + visitante_strength * 0.6, 0.7)) * importance_factor,
-        "corners": float(np.random.normal(4.5 + visitante_strength * 1.5, 1.0)),
-        "victorias": max(0, min(5, int(np.random.normal(1.5 + visitante_strength * 1.5, 1)))),
-        "forma": float(np.clip(np.random.normal(0.3 + visitante_strength * 0.4, 0.15), 0.1, 0.9))
+        "goles_favor": float(np.random.normal(0.6 + visitante_strength * 1.0, 0.3 + visitante_volatility * 0.4)),
+        "goles_contra": float(np.random.normal(1.0 + (1-visitante_strength) * 1.4, 0.4 + visitante_volatility * 0.3)),
+        "tarjetas": float(np.random.normal(2.2 + visitante_strength * 0.4, 0.5 + visitante_volatility * 0.3)) * importance_factor,
+        "corners": float(np.random.normal(4.0 + visitante_strength * 1.2, 0.8 + visitante_volatility * 0.6)),
+        "victorias": max(0, min(5, int(np.random.normal(1.0 + visitante_strength * 1.8, 0.8 + visitante_volatility)))),
+        "forma": float(np.clip(np.random.normal(0.2 + visitante_strength * 0.4, 0.1 + visitante_volatility * 0.2), 0.05, 0.95)),
+        "volatilidad": visitante_volatility
     }
     
     h2h_factor = (local_strength - visitante_strength) * 0.3
     h2h_goles_local = float(np.random.normal(1.3 + h2h_factor, 0.6))
     h2h_goles_visitante = float(np.random.normal(1.1 - h2h_factor, 0.5))
+    
+    strength_gap = abs(local_strength - visitante_strength)
+    volatility_avg = (local_volatility + visitante_volatility) / 2
+    blowout_risk = min(0.4, strength_gap * 0.8 + volatility_avg * 0.3)  # Máximo 40% riesgo
     
     return {
         "local": rendimiento_local,
@@ -247,14 +294,21 @@ def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int, parti
         "h2h_goles_visitante": h2h_goles_visitante,
         "forma_local": rendimiento_local["forma"],
         "forma_visitante": rendimiento_visitante["forma"],
-        "goles_promedio_local": max(0.5, min(3.0, rendimiento_local["goles_favor"])),
-        "goles_promedio_visitante": max(0.5, min(3.0, rendimiento_visitante["goles_favor"])),
+        "goles_promedio_local": max(0.3, min(2.5, rendimiento_local["goles_favor"])),
+        "goles_promedio_visitante": max(0.3, min(2.5, rendimiento_visitante["goles_favor"])),
         "tarjetas_promedio": (rendimiento_local["tarjetas"] + rendimiento_visitante["tarjetas"]) / 4.8,
-        "corners_promedio": (rendimiento_local["corners"] + rendimiento_visitante["corners"]) / 10.3,
+        "corners_promedio": (rendimiento_local["corners"] + rendimiento_visitante["corners"]) / 9.5,
         "h2h_goles_total": h2h_goles_local + h2h_goles_visitante,
         "ventaja_local": rendimiento_local["forma"] - rendimiento_visitante["forma"],
         "referee_factor": referee_factor,
-        "importance_factor": importance_factor
+        "importance_factor": importance_factor,
+        "local_strength": local_strength,
+        "visitante_strength": visitante_strength,
+        "strength_gap": strength_gap,
+        "volatility_avg": volatility_avg,
+        "blowout_risk": blowout_risk,
+        "local_volatility": local_volatility,
+        "visitante_volatility": visitante_volatility
     }
 
 def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
@@ -295,6 +349,34 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
         "cuotas_disponibles": cuotas
     }
 
+def calibrar_confianza(probabilidad: float, valor_esperado: float, rendimiento_equipos: Optional[Dict[str, Any]] = None) -> int:
+    """Calibra la confianza basada en factores de riesgo y volatilidad"""
+    confianza_base = probabilidad * 100
+    
+    confianza_maxima = 60  # Nunca superar 60% de confianza
+    
+    if rendimiento_equipos:
+        blowout_risk = rendimiento_equipos.get("blowout_risk", 0.2)
+        volatility_avg = (rendimiento_equipos.get("local_volatility", 0.3) + rendimiento_equipos.get("visitante_volatility", 0.3)) / 2
+        strength_gap = abs(rendimiento_equipos.get("local_strength", 0.5) - rendimiento_equipos.get("visitante_strength", 0.5))
+        
+        if blowout_risk > 0.25:
+            confianza_base *= (1.0 - blowout_risk * 0.4)
+        
+        # Penalización por alta volatilidad
+        if volatility_avg > 0.4:
+            confianza_base *= (1.0 - volatility_avg * 0.3)
+        
+        if strength_gap > 0.3:
+            confianza_base *= 0.8
+    
+    if valor_esperado < 0.1:
+        confianza_base *= 0.9
+    
+    confianza_final = max(15, min(confianza_maxima, int(confianza_base)))
+    
+    return confianza_final
+
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
@@ -331,10 +413,8 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
         ("Tarjetas", "over_35", analisis.get("probabilidades_tarjetas", {}).get("over_35_cards", 0.6), cuotas_reales.get("cards_over_35", "0"), "Más de 3.5 tarjetas"),
         ("Tarjetas", "over_55", analisis.get("probabilidades_tarjetas", {}).get("over_55_cards", 0.4), cuotas_reales.get("cards_over_55", "0"), "Más de 5.5 tarjetas"),
         
-        ("Hándicap", "local_05", analisis.get("probabilidades_handicap", {}).get("handicap_local_05", 0.5), cuotas_reales.get("handicap_local_05", "0"), f"{analisis['partido'].split(' vs ')[0]} -0.5"),
-        ("Hándicap", "visitante_05", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_05", 0.5), cuotas_reales.get("handicap_visitante_05", "0"), f"{analisis['partido'].split(' vs ')[1]} +0.5"),
-        ("Hándicap", "local_15", analisis.get("probabilidades_handicap", {}).get("handicap_local_15", 0.35), cuotas_reales.get("handicap_local_15", "0"), f"{analisis['partido'].split(' vs ')[0]} -1.5"),
-        ("Hándicap", "visitante_15", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_15", 0.65), cuotas_reales.get("handicap_visitante_15", "0"), f"{analisis['partido'].split(' vs ')[1]} +1.5"),
+        ("Hándicap", "local_05", analisis.get("probabilidades_handicap", {}).get("handicap_local_05", 0.5), cuotas_reales.get("handicap_local_05", "0"), f"Hándicap {analisis['partido'].split(' vs ')[0]} -0.5"),
+        ("Hándicap", "visitante_05", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_05", 0.5), cuotas_reales.get("handicap_visitante_05", "0"), f"Hándicap {analisis['partido'].split(' vs ')[1]} +0.5"),
         
         ("1H", "over_05", analisis.get("probabilidades_primera_mitad", {}).get("over_05_1h", 0.6), cuotas_reales.get("1h_over_05", "0"), "Más de 0.5 goles 1H"),
         ("1H", "over_15", analisis.get("probabilidades_primera_mitad", {}).get("over_15_1h", 0.3), cuotas_reales.get("1h_over_15", "0"), "Más de 1.5 goles 1H"),
@@ -360,7 +440,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
                     "probabilidad": probabilidad,
                     "cuota": cuota_real,
                     "valor_esperado": ve,
-                    "confianza": probabilidad * 100,
+                    "confianza": calibrar_confianza(probabilidad, ve, analisis.get("rendimiento_equipos")),
                     "ajuste": "ninguno"
                 })
                 
@@ -551,7 +631,6 @@ def simular_datos_prueba() -> List[Dict[str, Any]]:
                 "corners_under_85": "2.20", "corners_under_95": "1.85",
                 "cards_over_35": "2.10", "cards_over_55": "3.20",
                 "handicap_local_05": "2.00", "handicap_visitante_05": "1.80",
-                "handicap_local_15": "2.80", "handicap_visitante_15": "1.45",
                 "1h_over_05": "1.40", "1h_over_15": "2.60"
             }
         },
@@ -570,7 +649,6 @@ def simular_datos_prueba() -> List[Dict[str, Any]]:
                 "corners_under_85": "2.10", "corners_under_95": "1.80",
                 "cards_over_35": "1.90", "cards_over_55": "2.80",
                 "handicap_local_05": "1.85", "handicap_visitante_05": "1.95",
-                "handicap_local_15": "2.40", "handicap_visitante_15": "1.60",
                 "1h_over_05": "1.45", "1h_over_15": "2.70"
             }
         },
@@ -589,7 +667,6 @@ def simular_datos_prueba() -> List[Dict[str, Any]]:
                 "corners_under_85": "2.00", "corners_under_95": "1.70",
                 "cards_over_35": "1.80", "cards_over_55": "2.90",
                 "handicap_local_05": "1.90", "handicap_visitante_05": "1.90",
-                "handicap_local_15": "2.60", "handicap_visitante_15": "1.50",
                 "1h_over_05": "1.35", "1h_over_15": "2.55"
             }
         }
