@@ -178,7 +178,7 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         from track_record import TrackRecordManager
         from datetime import datetime
         
-        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        api_key = os.getenv('FOOTYSTATS_API_KEY', 'b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079')
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         

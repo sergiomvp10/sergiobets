@@ -198,34 +198,41 @@ class TrackRecordManager:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" goles")[0])
                 acierto = resultado["total_goals"] > umbral
                 
+            elif "menos de" in tipo_prediccion and "goles" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" goles")[0])
+                acierto = resultado["total_goals"] < umbral
+                
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
                 corner_available = resultado.get("corner_data_available", True)
                 if not corner_available or total_corners <= 0:
-                    print(f"    ⚠️ Skipping corner bet - no corner data available")
-                    return None, None
-                umbral = float(tipo_prediccion.split("más de ")[1].split(" corners")[0])
-                acierto = total_corners > umbral
-                print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
+                    print(f"    ⚠️ Corner bet marked as LOSS - no corner data available")
+                    acierto = False
+                else:
+                    umbral = float(tipo_prediccion.split("más de ")[1].split(" corners")[0])
+                    acierto = total_corners > umbral
+                    print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "menos de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
                 corner_available = resultado.get("corner_data_available", True)
                 if not corner_available or total_corners <= 0:
-                    print(f"    ⚠️ Skipping corner bet - no corner data available")
-                    return None, None
-                umbral = float(tipo_prediccion.split("menos de ")[1].split(" corners")[0])
-                acierto = total_corners < umbral
-                print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
+                    print(f"    ⚠️ Corner bet marked as LOSS - no corner data available")
+                    acierto = False
+                else:
+                    umbral = float(tipo_prediccion.split("menos de ")[1].split(" corners")[0])
+                    acierto = total_corners < umbral
+                    print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
                 total_cards = resultado.get("total_cards", 0)
                 if not resultado.get("cards_data_available", True) or total_cards <= 0:
-                    print(f"    ⚠️ Skipping card bet - no card data available")
-                    return None, None
-                umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
-                acierto = total_cards > umbral
-                print(f"    🏁 Card bet validation: {total_cards} cards vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
+                    print(f"    ⚠️ Card bet marked as LOSS - no card data available")
+                    acierto = False
+                else:
+                    umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
+                    acierto = total_cards > umbral
+                    print(f"    🏁 Card bet validation: {total_cards} cards vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "btts" in tipo_prediccion or "ambos equipos marcan" in tipo_prediccion:
                 acierto = resultado["home_score"] > 0 and resultado["away_score"] > 0
@@ -334,12 +341,15 @@ class TrackRecordManager:
             for prediccion in historial:
                 resultado_real = prediccion.get("resultado_real")
                 
-                if resultado_real is not None and prediccion.get("acierto") is not None:
+                if resultado_real is not None:
                     try:
                         correct_acierto, correct_ganancia = self.validar_prediccion(prediccion, resultado_real)
                         current_acierto = prediccion.get("acierto")
                         
-                        if correct_acierto is not None and correct_acierto != current_acierto:
+                        if correct_acierto is None:
+                            continue
+                            
+                        if correct_acierto != current_acierto:
                             predicciones_corregidas.append({
                                 "partido": prediccion.get("partido", "unknown"),
                                 "fecha": prediccion.get("fecha", "unknown"),
