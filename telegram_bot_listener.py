@@ -320,23 +320,13 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar información de ayuda"""
     query = update.callback_query
-    mensaje = """❓ AYUDA - BETGENIUX
+    mensaje = """❓ AYUDA -  BETGENIUX®
 
-🤖 COMANDOS DISPONIBLES:
-• /start - Mostrar menú principal
-• Cualquier mensaje - Registro automático
-
-📊 FUNCIONES:
-• Estadísticas: Ver rendimiento del sistema
-• Novedades: Últimas actualizaciones
-• Membresía: Información de planes premium
-• Ayuda: Esta información
-
-🎯 CÓMO FUNCIONA:
+🎯 Como Funciona? 
 1. Regístrate enviando cualquier mensaje
 2. Recibirás pronósticos automáticamente
-3. Revisa estadísticas para ver rendimiento
-4. Considera membresía premium para más beneficios
+3. Revisa estadísticas para comprobar el rendimiento
+4. Considera membresía premium para mas pronosticos y beneficios
 
 📞 SOPORTE:
 • Telegram: @sergiomvp10
@@ -346,7 +336,6 @@ async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Mantén notificaciones activas
 • Revisa estadísticas regularmente
 • Sigue las recomendaciones de stake
-• Apuesta con responsabilidad
 
 ⚠️ IMPORTANTE:
 Las apuestas conllevan riesgo. Nunca apuestes más de lo que puedes permitirte perder."""
