@@ -541,14 +541,23 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
     
     return predicciones_validas[:5]
 
-def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
+def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, numeros_pronostico: List[int] = None) -> str:
     if not predicciones:
         return f"BETGENIUX®  ({fecha})\n\n❌ No se encontraron pronósticos recomendados para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
+    if numeros_pronostico is None:
+        try:
+            from daily_counter import get_next_pronostico_numbers
+            numeros_pronostico = get_next_pronostico_numbers(len(predicciones))
+        except Exception as e:
+            print(f"Error getting daily counter: {e}")
+            numeros_pronostico = list(range(1, len(predicciones) + 1))
+    
     mensaje = f"BETGENIUX®  ({fecha})\n\n"
     
-    for i, pred in enumerate(predicciones, 1):
-        mensaje += f"🎯 PRONOSTICO #{i}\n"
+    for i, pred in enumerate(predicciones):
+        numero_pronostico = numeros_pronostico[i] if i < len(numeros_pronostico) else i + 1
+        mensaje += f"🎯 PRONOSTICO #{numero_pronostico}\n"
         mensaje += f"🏆 {pred['liga']}\n"
         mensaje += f"⚽️ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"

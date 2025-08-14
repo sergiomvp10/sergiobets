@@ -107,6 +107,15 @@ def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot"):
     
     print(f"📊 Resumen: {resultados['enviados_exitosos']} enviados, {resultados['errores']} errores, {resultados['usuarios_bloqueados']} bloqueados")
     
+    if resultados["enviados_exitosos"] > 0:
+        try:
+            from daily_counter import increment_counter_after_send
+            predictions_sent = increment_counter_after_send(mensaje)
+            if predictions_sent > 0:
+                print(f"📊 Contador diario actualizado: +{predictions_sent} pronósticos enviados")
+        except Exception as e:
+            print(f"Error actualizando contador diario: {e}")
+    
     resultados["exito"] = resultados["enviados_exitosos"] > 0
     return resultados
 
