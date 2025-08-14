@@ -256,11 +256,11 @@ class TrackRecordManager:
                         
             elif any(x in tipo_prediccion for x in ["1", "x", "2", "local", "empate", "visitante"]):
                 if "local" in tipo_prediccion or "1" in tipo_prediccion:
-                    acierto = resultado["resultado_1x2"] == "1"
+                    acierto = resultado.get("resultado_1x2", "") == "1"
                 elif "empate" in tipo_prediccion or "x" in tipo_prediccion:
-                    acierto = resultado["resultado_1x2"] == "X"
+                    acierto = resultado.get("resultado_1x2", "") == "X"
                 elif "visitante" in tipo_prediccion or "2" in tipo_prediccion:
-                    acierto = resultado["resultado_1x2"] == "2"
+                    acierto = resultado.get("resultado_1x2", "") == "2"
             
             if acierto:
                 ganancia = stake * (cuota - 1)
