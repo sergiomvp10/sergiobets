@@ -495,21 +495,21 @@ def simular_datos_prueba() -> List[Dict[str, Any]]:
             "liga": "Premier League",
             "local": "Manchester City",
             "visitante": "Arsenal",
-            "cuotas": {"casa": "Bet365", "local": "1.65", "empate": "3.80", "visitante": "4.20"}
+            "cuotas": {"casa": "Bet365", "local": "1.45", "empate": "4.50", "visitante": "6.00"}
         },
         {
             "hora": "17:30",
             "liga": "La Liga",
             "local": "Real Madrid",
             "visitante": "Barcelona",
-            "cuotas": {"casa": "Bet365", "local": "2.10", "empate": "3.40", "visitante": "3.20"}
+            "cuotas": {"casa": "Bet365", "local": "1.50", "empate": "4.20", "visitante": "5.50"}
         },
         {
             "hora": "20:00",
             "liga": "Serie A",
             "local": "Juventus",
             "visitante": "Inter Milan",
-            "cuotas": {"casa": "Bet365", "local": "1.55", "empate": "4.00", "visitante": "5.50"}
+            "cuotas": {"casa": "Bet365", "local": "1.40", "empate": "4.80", "visitante": "7.00"}
         }
     ]
     return partidos_simulados
