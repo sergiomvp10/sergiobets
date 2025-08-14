@@ -155,6 +155,8 @@ def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]
     return {
         "over_85_corners": prob_over_85_corners,
         "over_105_corners": prob_over_105_corners,
+        "under_85_corners": 1 - prob_over_85_corners,
+        "under_95_corners": float(1 - stats.poisson.cdf(9, corners_esperados)),
         "corners_esperados": corners_esperados
     }
 
@@ -190,37 +192,45 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
         }
 
 def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
-    """Simula análisis de rendimiento reciente y enfrentamientos directos"""
+    """Simula análisis de rendimiento reciente y enfrentamientos directos con patrones más realistas"""
     np.random.seed(semilla + 6)
     
+    local_strength = hash(local) % 100 / 100.0
+    visitante_strength = hash(visitante) % 100 / 100.0
+    
     rendimiento_local = {
-        "goles_favor": float(np.random.normal(1.4, 0.6)),
-        "goles_contra": float(np.random.normal(1.1, 0.5)),
-        "tarjetas": float(np.random.normal(2.2, 0.8)),
-        "corners": float(np.random.normal(5.5, 1.5)),
-        "victorias": np.random.randint(1, 4),
-        "forma": float(np.random.normal(0.6, 0.2))
+        "goles_favor": float(np.random.normal(1.2 + local_strength * 0.8, 0.4)),
+        "goles_contra": float(np.random.normal(1.0 + (1-local_strength) * 0.6, 0.3)),
+        "tarjetas": float(np.random.normal(2.0 + local_strength * 0.8, 0.6)),
+        "corners": float(np.random.normal(5.0 + local_strength * 2.0, 1.2)),
+        "victorias": max(0, min(5, int(np.random.normal(2 + local_strength * 2, 1)))),
+        "forma": float(np.clip(np.random.normal(0.4 + local_strength * 0.4, 0.15), 0.1, 0.9))
     }
     
     rendimiento_visitante = {
-        "goles_favor": float(np.random.normal(1.2, 0.5)),
-        "goles_contra": float(np.random.normal(1.3, 0.6)),
-        "tarjetas": float(np.random.normal(2.4, 0.9)),
-        "corners": float(np.random.normal(4.8, 1.3)),
-        "victorias": np.random.randint(0, 3),
-        "forma": float(np.random.normal(0.4, 0.2))
+        "goles_favor": float(np.random.normal(1.0 + visitante_strength * 0.6, 0.4)),
+        "goles_contra": float(np.random.normal(1.2 + (1-visitante_strength) * 0.8, 0.4)),
+        "tarjetas": float(np.random.normal(2.2 + visitante_strength * 0.6, 0.7)),
+        "corners": float(np.random.normal(4.5 + visitante_strength * 1.5, 1.0)),
+        "victorias": max(0, min(5, int(np.random.normal(1.5 + visitante_strength * 1.5, 1)))),
+        "forma": float(np.clip(np.random.normal(0.3 + visitante_strength * 0.4, 0.15), 0.1, 0.9))
     }
     
-    h2h_goles_local = float(np.random.normal(1.5, 0.8))
-    h2h_goles_visitante = float(np.random.normal(1.2, 0.7))
+    h2h_factor = (local_strength - visitante_strength) * 0.3
+    h2h_goles_local = float(np.random.normal(1.3 + h2h_factor, 0.6))
+    h2h_goles_visitante = float(np.random.normal(1.1 - h2h_factor, 0.5))
     
     return {
+        "local": rendimiento_local,
+        "visitante": rendimiento_visitante,
+        "h2h_goles_local": h2h_goles_local,
+        "h2h_goles_visitante": h2h_goles_visitante,
+        "forma_local": rendimiento_local["forma"],
+        "forma_visitante": rendimiento_visitante["forma"],
         "goles_promedio_local": max(0.5, min(3.0, rendimiento_local["goles_favor"])),
         "goles_promedio_visitante": max(0.5, min(3.0, rendimiento_visitante["goles_favor"])),
         "tarjetas_promedio": (rendimiento_local["tarjetas"] + rendimiento_visitante["tarjetas"]) / 4.8,
         "corners_promedio": (rendimiento_local["corners"] + rendimiento_visitante["corners"]) / 10.3,
-        "forma_local": max(0.1, min(0.9, rendimiento_local["forma"])),
-        "forma_visitante": max(0.1, min(0.9, rendimiento_visitante["forma"])),
         "h2h_goles_total": h2h_goles_local + h2h_goles_visitante,
         "ventaja_local": rendimiento_local["forma"] - rendimiento_visitante["forma"]
     }
@@ -289,6 +299,16 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
         ("Corners", "over_85", analisis.get("probabilidades_corners", {}).get("over_85_corners", 0.6), cuotas_reales.get("corners_over_85", "0"), "Más de 8.5 corners"),
         ("Corners", "over_95", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.5), cuotas_reales.get("corners_over_95", "0"), "Más de 9.5 corners"),
         ("Corners", "over_105", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.4), cuotas_reales.get("corners_over_105", "0"), "Más de 10.5 corners"),
+        ("Corners", "under_85", analisis.get("probabilidades_corners", {}).get("under_85_corners", 0.4), cuotas_reales.get("corners_under_85", "0"), "Menos de 8.5 corners"),
+        ("Corners", "under_95", analisis.get("probabilidades_corners", {}).get("under_95_corners", 0.5), cuotas_reales.get("corners_under_95", "0"), "Menos de 9.5 corners"),
+        
+        ("Tarjetas", "over_35", analisis.get("probabilidades_tarjetas", {}).get("over_35_cards", 0.6), cuotas_reales.get("cards_over_35", "0"), "Más de 3.5 tarjetas"),
+        ("Tarjetas", "over_55", analisis.get("probabilidades_tarjetas", {}).get("over_55_cards", 0.4), cuotas_reales.get("cards_over_55", "0"), "Más de 5.5 tarjetas"),
+        
+        ("Hándicap", "local_05", analisis.get("probabilidades_handicap", {}).get("handicap_local_05", 0.5), cuotas_reales.get("handicap_local_05", "0"), f"{analisis['partido'].split(' vs ')[0]} -0.5"),
+        ("Hándicap", "visitante_05", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_05", 0.5), cuotas_reales.get("handicap_visitante_05", "0"), f"{analisis['partido'].split(' vs ')[1]} +0.5"),
+        ("Hándicap", "local_15", analisis.get("probabilidades_handicap", {}).get("handicap_local_15", 0.35), cuotas_reales.get("handicap_local_15", "0"), f"{analisis['partido'].split(' vs ')[0]} -1.5"),
+        ("Hándicap", "visitante_15", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_15", 0.65), cuotas_reales.get("handicap_visitante_15", "0"), f"{analisis['partido'].split(' vs ')[1]} +1.5"),
         
         ("1H", "over_05", analisis.get("probabilidades_primera_mitad", {}).get("over_05_1h", 0.6), cuotas_reales.get("1h_over_05", "0"), "Más de 0.5 goles 1H"),
         ("1H", "over_15", analisis.get("probabilidades_primera_mitad", {}).get("over_15_1h", 0.3), cuotas_reales.get("1h_over_15", "0"), "Más de 1.5 goles 1H"),

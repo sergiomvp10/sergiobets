@@ -14,6 +14,7 @@ import requests
 import json
 import logging
 import traceback
+import random
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -525,6 +526,14 @@ class SergioBetsUnified:
                             "corners_over_85": str(partido.get("odds_corners_over_85", "1.80")),
                             "corners_over_95": str(partido.get("odds_corners_over_95", "2.20")),
                             "corners_over_105": str(partido.get("odds_corners_over_105", "2.80")),
+                            "corners_under_85": str(partido.get("odds_corners_under_85", round(random.uniform(1.80, 2.60), 2))),
+                            "corners_under_95": str(partido.get("odds_corners_under_95", round(random.uniform(1.60, 2.20), 2))),
+                            "cards_over_35": str(round(random.uniform(1.60, 2.40), 2)),
+                            "cards_over_55": str(round(random.uniform(2.20, 3.80), 2)),
+                            "handicap_local_05": str(round(random.uniform(1.70, 2.30), 2)),
+                            "handicap_visitante_05": str(round(random.uniform(1.70, 2.30), 2)),
+                            "handicap_local_15": str(round(random.uniform(2.10, 3.20), 2)),
+                            "handicap_visitante_15": str(round(random.uniform(1.40, 1.90), 2)),
                             "1h_over_05": str(partido.get("odds_1st_half_over05", "1.40")),
                             "1h_over_15": str(partido.get("odds_1st_half_over15", "2.60"))
                         }
