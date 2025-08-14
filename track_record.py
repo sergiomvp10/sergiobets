@@ -150,6 +150,7 @@ class TrackRecordManager:
                                 "cards_home": partido.get("home_cards", 0),
                                 "cards_away": partido.get("away_cards", 0),
                                 "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
+                                "cards_data_available": partido.get("home_cards", 0) + partido.get("away_cards", 0) > 0,
                                 "corner_data_available": total_corner_count != -1,
                                 "resultado_1x2": self._determinar_resultado_1x2(
                                     partido.get("home_goals", 0), 
@@ -199,7 +200,9 @@ class TrackRecordManager:
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
-                if not resultado.get("corner_data_available", True) or total_corners <= 0:
+                corner_available = resultado.get("corner_data_available", True)
+                if not corner_available or total_corners <= 0:
+                    print(f"    ⚠️ Skipping corner bet - no corner data available")
                     return None, None
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" corners")[0])
                 acierto = total_corners > umbral
@@ -207,15 +210,22 @@ class TrackRecordManager:
                 
             elif "menos de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
-                if not resultado.get("corner_data_available", True) or total_corners <= 0:
+                corner_available = resultado.get("corner_data_available", True)
+                if not corner_available or total_corners <= 0:
+                    print(f"    ⚠️ Skipping corner bet - no corner data available")
                     return None, None
                 umbral = float(tipo_prediccion.split("menos de ")[1].split(" corners")[0])
                 acierto = total_corners < umbral
                 print(f"    🏁 Corner bet validation: {total_corners} corners vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
+                total_cards = resultado.get("total_cards", 0)
+                if not resultado.get("cards_data_available", True) or total_cards <= 0:
+                    print(f"    ⚠️ Skipping card bet - no card data available")
+                    return None, None
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
-                acierto = resultado["total_cards"] > umbral
+                acierto = total_cards > umbral
+                print(f"    🏁 Card bet validation: {total_cards} cards vs {umbral} threshold = {'WIN' if acierto else 'LOSS'}")
                 
             elif "btts" in tipo_prediccion or "ambos equipos marcan" in tipo_prediccion:
                 acierto = resultado["home_score"] > 0 and resultado["away_score"] > 0

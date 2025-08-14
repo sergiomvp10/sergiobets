@@ -512,6 +512,13 @@ class SergioBetsUnified:
                         "liga": liga_detectada,
                         "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
                         "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
+                        "partido_data": {
+                            "refereeID": partido.get("refereeID"),
+                            "competition_id": partido.get("competition_id", 0),
+                            "season": partido.get("season", ""),
+                            "home_ppg": partido.get("home_ppg", 0),
+                            "away_ppg": partido.get("away_ppg", 0)
+                        },
                         "cuotas": {
                             "casa": "FootyStats",
                             "local": str(partido.get("odds_ft_1", "2.00")),

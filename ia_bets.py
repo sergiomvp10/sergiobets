@@ -118,14 +118,16 @@ def calcular_probabilidades_primera_mitad(semilla: int) -> Dict[str, float]:
         "goles_esperados_1h": goles_primera_mitad
     }
 
-def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
-    """Calcula probabilidades de tarjetas con análisis contextual"""
+def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0, referee_factor: float = 1.0) -> Dict[str, float]:
+    """Calcula probabilidades de tarjetas con análisis contextual y factor de árbitro"""
     np.random.seed(semilla + 4)
     tarjetas_esperadas = float(np.random.normal(4.8, 1.2))
     
     if rendimiento_equipos:
         factor_disciplina = rendimiento_equipos.get("tarjetas_promedio", 1.0)
         tarjetas_esperadas = tarjetas_esperadas * factor_disciplina
+    
+    tarjetas_esperadas = tarjetas_esperadas * referee_factor
     
     tarjetas_esperadas = max(2.0, min(8.0, tarjetas_esperadas))
     
@@ -135,7 +137,8 @@ def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any
     return {
         "over_35_cards": prob_over_35_cards,
         "over_55_cards": prob_over_55_cards,
-        "tarjetas_esperadas": tarjetas_esperadas
+        "tarjetas_esperadas": tarjetas_esperadas,
+        "referee_factor": referee_factor
     }
 
 def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
@@ -191,17 +194,34 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
             "handicap_visitante_15": 0.65
         }
 
-def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
-    """Simula análisis de rendimiento reciente y enfrentamientos directos con patrones más realistas"""
+def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int, partido_data: Optional[Dict] = None) -> Dict[str, Any]:
+    """Simula análisis de rendimiento reciente con factores de árbitro e importancia del partido"""
     np.random.seed(semilla + 6)
     
     local_strength = hash(local) % 100 / 100.0
     visitante_strength = hash(visitante) % 100 / 100.0
     
+    referee_factor = 1.0
+    if partido_data and partido_data.get("refereeID"):
+        referee_id = partido_data.get("refereeID")
+        if referee_id and referee_id != "None":
+            referee_discipline = (hash(str(referee_id)) % 50) / 100.0 + 0.75
+            referee_factor = referee_discipline
+    
+    importance_factor = 1.0
+    if partido_data:
+        competition_id = partido_data.get("competition_id", 0)
+        if competition_id > 10000:
+            importance_factor = 1.1
+        
+        strength_diff = abs(local_strength - visitante_strength)
+        if strength_diff < 0.2:
+            importance_factor *= 1.05
+    
     rendimiento_local = {
         "goles_favor": float(np.random.normal(1.2 + local_strength * 0.8, 0.4)),
         "goles_contra": float(np.random.normal(1.0 + (1-local_strength) * 0.6, 0.3)),
-        "tarjetas": float(np.random.normal(2.0 + local_strength * 0.8, 0.6)),
+        "tarjetas": float(np.random.normal(2.0 + local_strength * 0.8, 0.6)) * importance_factor,
         "corners": float(np.random.normal(5.0 + local_strength * 2.0, 1.2)),
         "victorias": max(0, min(5, int(np.random.normal(2 + local_strength * 2, 1)))),
         "forma": float(np.clip(np.random.normal(0.4 + local_strength * 0.4, 0.15), 0.1, 0.9))
@@ -210,7 +230,7 @@ def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Di
     rendimiento_visitante = {
         "goles_favor": float(np.random.normal(1.0 + visitante_strength * 0.6, 0.4)),
         "goles_contra": float(np.random.normal(1.2 + (1-visitante_strength) * 0.8, 0.4)),
-        "tarjetas": float(np.random.normal(2.2 + visitante_strength * 0.6, 0.7)),
+        "tarjetas": float(np.random.normal(2.2 + visitante_strength * 0.6, 0.7)) * importance_factor,
         "corners": float(np.random.normal(4.5 + visitante_strength * 1.5, 1.0)),
         "victorias": max(0, min(5, int(np.random.normal(1.5 + visitante_strength * 1.5, 1)))),
         "forma": float(np.clip(np.random.normal(0.3 + visitante_strength * 0.4, 0.15), 0.1, 0.9))
@@ -232,7 +252,9 @@ def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Di
         "tarjetas_promedio": (rendimiento_local["tarjetas"] + rendimiento_visitante["tarjetas"]) / 4.8,
         "corners_promedio": (rendimiento_local["corners"] + rendimiento_visitante["corners"]) / 10.3,
         "h2h_goles_total": h2h_goles_local + h2h_goles_visitante,
-        "ventaja_local": rendimiento_local["forma"] - rendimiento_visitante["forma"]
+        "ventaja_local": rendimiento_local["forma"] - rendimiento_visitante["forma"],
+        "referee_factor": referee_factor,
+        "importance_factor": importance_factor
     }
 
 def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
@@ -244,13 +266,17 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     
     semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
     
-    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla)
+    partido_data = partido.get("partido_data", {})
+    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla, partido_data)
     
     prob_1x2 = calcular_probabilidades_1x2(cuotas)
     prob_btts = calcular_probabilidades_btts(semilla)
     prob_over_under = calcular_probabilidades_over_under(rendimiento, semilla)
     prob_primera_mitad = calcular_probabilidades_primera_mitad(semilla)
-    prob_tarjetas = calcular_probabilidades_tarjetas(rendimiento, semilla)
+    prob_tarjetas = calcular_probabilidades_tarjetas(
+        rendimiento, semilla, 
+        referee_factor=rendimiento.get("referee_factor", 1.0)
+    )
     prob_corners = calcular_probabilidades_corners(rendimiento, semilla)
     prob_handicap = calcular_probabilidades_handicap(cuotas, rendimiento)
     
@@ -272,7 +298,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > -0.10  # Mínimo -10% de valor esperado (muy permisivo para testing)
+    es_value_bet = valor_esperado > 0.05
     
     return valor_esperado, es_value_bet
 
