@@ -322,6 +322,63 @@ class TrackRecordManager:
             print(f"Error corrigiendo datos históricos: {e}")
             return {"error": str(e)}
 
+    def corregir_validaciones_incorrectas(self) -> Dict[str, Any]:
+        """
+        Detecta y corrige predicciones con validaciones incorrectas
+        """
+        try:
+            historial = cargar_json(self.historial_file) or []
+            correcciones = 0
+            predicciones_corregidas = []
+            
+            for prediccion in historial:
+                resultado_real = prediccion.get("resultado_real")
+                
+                if resultado_real is not None and prediccion.get("acierto") is not None:
+                    try:
+                        correct_acierto, correct_ganancia = self.validar_prediccion(prediccion, resultado_real)
+                        current_acierto = prediccion.get("acierto")
+                        
+                        if correct_acierto is not None and correct_acierto != current_acierto:
+                            predicciones_corregidas.append({
+                                "partido": prediccion.get("partido", "unknown"),
+                                "fecha": prediccion.get("fecha", "unknown"),
+                                "prediccion": prediccion.get("prediccion", "unknown"),
+                                "acierto_anterior": current_acierto,
+                                "acierto_correcto": correct_acierto,
+                                "ganancia_anterior": prediccion.get("ganancia", 0),
+                                "ganancia_correcta": correct_ganancia
+                            })
+                            
+                            prediccion["acierto"] = correct_acierto
+                            prediccion["ganancia"] = correct_ganancia
+                            prediccion["fecha_actualizacion"] = datetime.now().isoformat()
+                            prediccion["validation_corrected"] = True
+                            
+                            correcciones += 1
+                            
+                    except Exception as e:
+                        print(f"Error re-validando predicción: {e}")
+                        continue
+            
+            if correcciones > 0:
+                guardar_json(self.historial_file, historial)
+                print(f"Corregidas {correcciones} predicciones con validaciones incorrectas")
+                
+                for correccion in predicciones_corregidas[:5]:  # Mostrar solo las primeras 5
+                    print(f"  - {correccion['partido']} ({correccion['fecha']}) - {correccion['prediccion']}")
+                    print(f"    Era: {'WIN' if correccion['acierto_anterior'] else 'LOSS'} -> Ahora: {'WIN' if correccion['acierto_correcto'] else 'LOSS'}")
+            
+            return {
+                "correcciones": correcciones,
+                "predicciones_corregidas": predicciones_corregidas,
+                "total_predicciones": len(historial)
+            }
+            
+        except Exception as e:
+            print(f"Error corrigiendo validaciones: {e}")
+            return {"error": str(e)}
+
     def actualizar_historial_con_resultados(self, max_matches=10, timeout_per_match=15) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
@@ -331,6 +388,7 @@ class TrackRecordManager:
             import time
             
             correccion_result = self.corregir_datos_historicos()
+            validation_result = self.corregir_validaciones_incorrectas()
             
             historial = cargar_json(self.historial_file) or []
             actualizaciones = 0
@@ -347,6 +405,7 @@ class TrackRecordManager:
                     "errores": 0,
                     "partidos_incompletos": 0,
                     "correcciones_historicas": correccion_result.get("correcciones", 0),
+                "correcciones_validacion": validation_result.get("correcciones", 0),
                     "total_procesadas": 0,
                     "matches_procesados": 0,
                     "matches_restantes": 0
@@ -606,6 +665,7 @@ class TrackRecordManager:
                 "partidos_incompletos": partidos_incompletos,
                 "timeouts": timeouts,
                 "correcciones_historicas": correccion_result.get("correcciones", 0),
+                "correcciones_validacion": validation_result.get("correcciones", 0),
                 "total_procesadas": len(predicciones_pendientes),
                 "matches_procesados": len(matches_to_process),
                 "matches_restantes": remaining_matches
