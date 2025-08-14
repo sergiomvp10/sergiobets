@@ -47,28 +47,36 @@ def es_liga_conocida(liga: str) -> bool:
     return any(liga_conocida.lower() in liga.lower() for liga_conocida in LIGAS_CONOCIDAS)
 
 def calcular_probabilidades_1x2(cuotas: Dict[str, str]) -> Dict[str, float]:
-    """Calcula probabilidades implícitas de las cuotas 1X2"""
+    """Calcula probabilidades estimadas independientes para value betting"""
     try:
-        local = float(cuotas.get("local", "1.00"))
-        empate = float(cuotas.get("empate", "1.00"))
-        visitante = float(cuotas.get("visitante", "1.00"))
+        cuota_local = float(cuotas.get("local", "2.0"))
+        cuota_empate = float(cuotas.get("empate", "3.0"))
+        cuota_visitante = float(cuotas.get("visitante", "3.0"))
         
-        prob_local = 1 / local if local > 0 else 0
-        prob_empate = 1 / empate if empate > 0 else 0
-        prob_visitante = 1 / visitante if visitante > 0 else 0
+        if cuota_local < 1.6:  # Favorito claro
+            prob_local = 0.70
+            prob_empate = 0.20
+            prob_visitante = 0.10
+        elif cuota_local < 2.0:  # Favorito moderado
+            prob_local = 0.60
+            prob_empate = 0.25
+            prob_visitante = 0.15
+        elif cuota_local < 2.5:  # Ligeramente favorito
+            prob_local = 0.50
+            prob_empate = 0.28
+            prob_visitante = 0.22
+        else:  # Partido equilibrado o underdog
+            prob_local = 0.40
+            prob_empate = 0.30
+            prob_visitante = 0.30
         
-        total = prob_local + prob_empate + prob_visitante
-        
-        if total > 0:
-            return {
-                "local": prob_local / total,
-                "empate": prob_empate / total,
-                "visitante": prob_visitante / total
-            }
-        else:
-            return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
+        return {
+            "local": prob_local,
+            "empate": prob_empate,
+            "visitante": prob_visitante
+        }
     except (ValueError, TypeError):
-        return {"local": 0.33, "empate": 0.33, "visitante": 0.34}
+        return {"local": 0.45, "empate": 0.30, "visitante": 0.25}
 
 def calcular_probabilidades_btts(semilla: int) -> Dict[str, float]:
     """Calcula probabilidades de Both Teams To Score basado en estadísticas determinísticas"""
