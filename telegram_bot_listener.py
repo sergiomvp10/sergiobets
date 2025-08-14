@@ -176,6 +176,7 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     try:
         from track_record import TrackRecordManager
+        from datetime import datetime
         
         api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
         tracker = TrackRecordManager(api_key)
@@ -184,24 +185,26 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         if "error" in metricas:
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-📈 Sistema: Activo y funcionando
-⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
+🎯 PRONOSTICOS:
+• Total: 0
+• Pendientes: 0
+• Aciertos: 0
+• Fallos: 0
+• Tasa de éxito: 0.0%
 
-🔄 El sistema está recopilando datos..."""
+
+📅 Actualizado: {datetime.now().strftime('%Y-%m-%d')}"""
         else:
+            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-🎯 PREDICCIONES:
+🎯 PRONOSTICOS:
 • Total: {metricas['total_predicciones']}
-• Resueltas: {metricas['predicciones_resueltas']}
 • Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
+• Fallos: {fallos}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
 
-💰 RENDIMIENTO:
-• Total apostado: ${metricas['total_apostado']:.2f}
-• Ganancia: ${metricas['total_ganancia']:.2f}
-• ROI: {metricas['roi']:.2f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
         
