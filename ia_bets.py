@@ -495,21 +495,45 @@ def simular_datos_prueba() -> List[Dict[str, Any]]:
             "liga": "Premier League",
             "local": "Manchester City",
             "visitante": "Arsenal",
-            "cuotas": {"casa": "Bet365", "local": "1.65", "empate": "3.80", "visitante": "4.20"}
+            "cuotas": {
+                "casa": "Bet365", 
+                "local": "1.65", "empate": "3.80", "visitante": "4.20",
+                "btts_si": "1.85", "btts_no": "1.95",
+                "over_15": "1.20", "under_15": "4.50",
+                "over_25": "1.55", "under_25": "2.40",
+                "corners_over_85": "1.75", "corners_over_95": "2.10", "corners_over_105": "2.80",
+                "1h_over_05": "1.40", "1h_over_15": "2.60"
+            }
         },
         {
             "hora": "17:30",
             "liga": "La Liga",
             "local": "Real Madrid",
             "visitante": "Barcelona",
-            "cuotas": {"casa": "Bet365", "local": "2.10", "empate": "3.40", "visitante": "3.20"}
+            "cuotas": {
+                "casa": "Bet365",
+                "local": "2.10", "empate": "3.40", "visitante": "3.20",
+                "btts_si": "1.70", "btts_no": "2.15",
+                "over_15": "1.25", "under_15": "3.80",
+                "over_25": "1.65", "under_25": "2.25",
+                "corners_over_85": "1.80", "corners_over_95": "2.20", "corners_over_105": "2.90",
+                "1h_over_05": "1.45", "1h_over_15": "2.70"
+            }
         },
         {
             "hora": "20:00",
             "liga": "Serie A",
             "local": "Juventus",
             "visitante": "Inter Milan",
-            "cuotas": {"casa": "Bet365", "local": "1.55", "empate": "4.00", "visitante": "5.50"}
+            "cuotas": {
+                "casa": "Bet365",
+                "local": "1.55", "empate": "4.00", "visitante": "5.50",
+                "btts_si": "1.90", "btts_no": "1.90",
+                "over_15": "1.15", "under_15": "5.50",
+                "over_25": "1.50", "under_25": "2.50",
+                "corners_over_85": "1.70", "corners_over_95": "2.05", "corners_over_105": "2.75",
+                "1h_over_05": "1.35", "1h_over_15": "2.55"
+            }
         }
     ]
     return partidos_simulados
