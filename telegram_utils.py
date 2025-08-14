@@ -8,34 +8,40 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsK
 TELEGRAM_CHAT_ID = '7659029315'
 USUARIOS_FILE = 'usuarios.txt'
 
-def cargar_usuarios_registrados():
-    """Cargar lista de usuarios registrados desde usuarios.txt"""
-    usuarios = []
+def cargar_usuarios_registrados(bot_username="BetGeniuXbot"):
+    """Cargar lista de usuarios registrados para bot específico"""
     try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        partes = linea.strip().split(' - ')
-                        if len(partes) >= 3:
-                            usuarios.append({
-                                'user_id': partes[0],
-                                'username': partes[1],
-                                'first_name': partes[2]
-                            })
+        from access_manager import access_manager
+        usuarios_bot = access_manager.listar_usuarios_por_bot(bot_username)
+        return [{'user_id': user['user_id'], 'username': user['username'], 'first_name': user['first_name']} for user in usuarios_bot]
     except Exception as e:
-        print(f"Error cargando usuarios registrados: {e}")
-    return usuarios
+        print(f"Error cargando usuarios del bot {bot_username}: {e}")
+        usuarios = []
+        try:
+            if os.path.exists(USUARIOS_FILE):
+                with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
+                    for linea in f:
+                        if linea.strip() and ' - ' in linea:
+                            partes = linea.strip().split(' - ')
+                            if len(partes) >= 3:
+                                usuarios.append({
+                                    'user_id': partes[0],
+                                    'username': partes[1],
+                                    'first_name': partes[2]
+                                })
+        except Exception as e2:
+            print(f"Error cargando usuarios desde archivo: {e2}")
+        return usuarios
 
-def enviar_telegram_masivo(mensaje, token=None):
-    """Enviar mensaje a todos los usuarios registrados"""
+def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot"):
+    """Enviar mensaje a todos los usuarios del bot específico"""
     if mensaje is None:
         return {"exito": False, "error": "Mensaje vacío"}
     
     if token is None:
         token = TELEGRAM_TOKEN
     
-    usuarios = cargar_usuarios_registrados()
+    usuarios = cargar_usuarios_registrados(bot_username)
     
     if not usuarios:
         print("⚠️ No hay usuarios registrados. Enviando a chat_id por defecto.")

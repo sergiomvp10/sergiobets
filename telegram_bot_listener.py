@@ -22,8 +22,8 @@ def cargar_usuarios_registrados():
     return access_manager.listar_usuarios()
 
 def registrar_usuario(user_id, username, first_name):
-    """Registrar nuevo usuario usando access_manager"""
-    return access_manager.registrar_usuario(str(user_id), username, first_name)
+    """Registrar nuevo usuario usando access_manager con trazabilidad de bot"""
+    return access_manager.registrar_usuario(str(user_id), username, first_name, "BetGeniuXbot")
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar comando /start con menú interactivo"""
