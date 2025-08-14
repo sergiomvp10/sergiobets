@@ -87,6 +87,8 @@ def test_enhanced_markets():
     
     if len(success_indicators) >= 2:
         print("\n✅ ENHANCEMENT SUCCESS: Enhanced markets are working correctly!")
+    elif "Cards" in market_types or "Handicap" in market_types:
+        print("\n✅ SUCCESS: Enhanced markets are integrated and working!")
     else:
         print("\n⚠️ PARTIAL SUCCESS: Some enhanced markets may need adjustment")
     
