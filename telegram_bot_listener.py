@@ -109,15 +109,81 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await volver_menu_principal(update, context)
 
 async def mostrar_pronosticos(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar pronósticos disponibles"""
+    """Mostrar pronósticos disponibles - conectado con GUI"""
     query = update.callback_query
     user_id = str(query.from_user.id)
     
     from access_manager import verificar_acceso
+    import json
+    import os
+    from datetime import datetime, timedelta
+    
     tiene_acceso = verificar_acceso(user_id)
     
+    pronosticos_recientes = []
+    try:
+        if os.path.exists('historial_predicciones.json'):
+            with open('historial_predicciones.json', 'r', encoding='utf-8') as f:
+                historial = json.load(f)
+            
+            fecha_limite = datetime.now() - timedelta(days=7)
+            for pred in historial:
+                if (pred.get('sent_to_telegram') and 
+                    pred.get('fecha_envio_telegram')):
+                    try:
+                        fecha_envio = datetime.fromisoformat(pred['fecha_envio_telegram'])
+                        if fecha_envio >= fecha_limite:
+                            pronosticos_recientes.append(pred)
+                    except:
+                        continue
+            
+            pronosticos_recientes.sort(key=lambda x: x.get('fecha_envio_telegram', ''), reverse=True)
+            pronosticos_recientes = pronosticos_recientes[:10]  # Mostrar últimos 10
+    except Exception as e:
+        print(f"Error cargando pronósticos: {e}")
+    
     if tiene_acceso:
-        mensaje = """🎯 PRONÓSTICOS BETGENIUX®
+        if pronosticos_recientes:
+            mensaje = """🎯 PRONÓSTICOS BETGENIUX®
+
+🏆 ACCESO PREMIUM ACTIVO
+
+📊 PRONÓSTICOS RECIENTES ENVIADOS:
+
+"""
+            for i, pred in enumerate(pronosticos_recientes[:5], 1):
+                partido = pred.get('partido', 'N/A')
+                prediccion = pred.get('prediccion', 'N/A')
+                cuota = pred.get('cuota', 'N/A')
+                fecha = pred.get('fecha', 'N/A')
+                
+                acierto = pred.get('acierto')
+                if acierto is True:
+                    estado = "✅ GANADA"
+                elif acierto is False:
+                    estado = "❌ PERDIDA"
+                else:
+                    estado = "⏳ PENDIENTE"
+                
+                mensaje += f"""🎯 PRONÓSTICO #{i}
+⚽ {partido}
+🎲 {prediccion}
+💰 Cuota: {cuota}
+📅 Fecha: {fecha}
+📊 Estado: {estado}
+
+"""
+            
+            mensaje += """💎 TUS BENEFICIOS PREMIUM:
+• Pronósticos diarios premium
+• Análisis detallado de mercados
+• Soporte personalizado 24/7
+• Estadísticas en tiempo real
+• ROI superior al 15%
+
+📈 Revisa las estadísticas para ver el rendimiento completo."""
+        else:
+            mensaje = """🎯 PRONÓSTICOS BETGENIUX®
 
 🏆 ACCESO PREMIUM ACTIVO
 
@@ -134,7 +200,8 @@ async def mostrar_pronosticos(update: Update, context: ContextTypes.DEFAULT_TYPE
 • Estadísticas en tiempo real
 • ROI superior al 15%
 
-🎯 Los pronósticos se envían automáticamente cuando están disponibles.
+🎯 Los pronósticos se envían desde la aplicación principal.
+Cuando se publiquen nuevos pronósticos, aparecerán aquí automáticamente.
 
 📈 Revisa las estadísticas para ver el rendimiento histórico."""
     else:
