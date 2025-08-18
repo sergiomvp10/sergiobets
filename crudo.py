@@ -56,7 +56,6 @@ def cargar_partidos_reales(fecha):
         print("🔄 Usando datos simulados como respaldo.")
         return simular_datos_prueba()
 
-progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
 mensaje_telegram = ""
 predicciones_actuales = []
 checkboxes_predicciones = []
@@ -67,7 +66,6 @@ checkboxes_partidos = []
 
 def guardar_datos_json(fecha):
     guardar_json("partidos.json", cargar_partidos_reales(fecha))
-    guardar_json("progreso.json", progreso_data)
 
 
 def buscar_en_hilo():
@@ -397,57 +395,6 @@ def enviar_alerta():
         messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
 
 
-def abrir_progreso():
-    def guardar_datos():
-        try:
-            deposito = float(entry_deposito.get())
-            meta = float(entry_meta.get())
-            saldo = float(entry_saldo.get())
-
-            progreso_data["deposito"] = deposito
-            progreso_data["meta"] = meta
-            progreso_data["saldo_actual"] = saldo
-
-            actualizar_barra()
-            guardar_datos_json(entry_fecha.get())
-        except ValueError:
-            messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
-
-    def actualizar_barra():
-        progreso = (progreso_data["saldo_actual"] - progreso_data["deposito"]) / (progreso_data["meta"] - progreso_data["deposito"]) * 100
-        progreso = max(0, min(progreso, 100))
-        barra['value'] = progreso
-        label_resultado.config(text=f"📈 Progreso: {progreso:.2f}%")
-
-    ventana = tk.Toplevel(root)
-    ventana.title("📊 Progreso del Usuario")
-    ventana.geometry("400x300")
-    ventana.configure(bg="#f1f3f4")
-
-    ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
-    entry_deposito = ttk.Entry(ventana)
-    entry_deposito.insert(0, str(progreso_data["deposito"]))
-    entry_deposito.pack()
-
-    ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
-    entry_meta = ttk.Entry(ventana)
-    entry_meta.insert(0, str(progreso_data["meta"]))
-    entry_meta.pack()
-
-    ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
-    entry_saldo = ttk.Entry(ventana)
-    entry_saldo.insert(0, str(progreso_data["saldo_actual"]))
-    entry_saldo.pack()
-
-    ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)
-
-    barra = ttk.Progressbar(ventana, length=300, mode='determinate')
-    barra.pack(pady=10)
-
-    label_resultado = ttk.Label(ventana, text="")
-    label_resultado.pack()
-
-    actualizar_barra()
 
 
 def abrir_track_record():
@@ -1083,8 +1030,6 @@ def regenerar_en_hilo():
 btn_regenerar = ttk.Button(frame_top, text="🔄 Regenerar", command=regenerar_en_hilo)
 btn_regenerar.pack(side=tk.LEFT, padx=2)
 
-btn_progreso = ttk.Button(frame_top, text="📊 Progreso", command=abrir_progreso)
-btn_progreso.pack(side=tk.LEFT, padx=5)
 
 btn_enviar = ttk.Button(frame_top, text="📢 Enviar a Telegram", command=enviar_alerta)
 btn_enviar.pack(side=tk.LEFT, padx=5)
