@@ -14,6 +14,7 @@ import requests
 import json
 import logging
 import traceback
+import random
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -75,6 +76,20 @@ class SergioBetsUnified:
             self.ngrok_process = None
             self.ngrok_url = None
             self.running = True
+            
+            self.root = None
+            self.entry_fecha = None
+            self.combo_ligas = None
+            self.frame_predicciones = None
+            self.frame_partidos = None
+            self.output = None
+            self.ligas_disponibles = set()
+            self.checkboxes_predicciones = []
+            self.checkboxes_partidos = []
+            self.predicciones_actuales = []
+            self.partidos_actuales = []
+            self.mensaje_telegram = ""
+            
             logger.info("✅ SergioBetsUnified initialized successfully")
         except Exception as e:
             logger.error(f"❌ Error initializing SergioBetsUnified: {e}")
@@ -234,17 +249,27 @@ class SergioBetsUnified:
         return None
     
     def start_telegram_bot(self):
-        """Iniciar bot de Telegram"""
-        logger.info("🤖 Starting Telegram bot...")
-        print("🤖 Iniciando bot de Telegram...")
+        """Iniciar bot de Telegram - NUEVO BOT @BetGeniuXbot"""
+        logger.info("🤖 Starting NEW Telegram bot...")
+        print("🤖 Iniciando NUEVO bot de Telegram: @BetGeniuXbot")
+        print("🔄 Reemplazando bot anterior con token: 8487580276")
         try:
-            # Import and run the bot directly instead of subprocess
-            logger.debug("Importing telegram bot...")
+            import subprocess
+            import time
+            
+            logger.info("Killing any existing bot processes...")
+            try:
+                subprocess.run(['pkill', '-f', 'telegram_bot'], check=False)
+                subprocess.run(['pkill', '-f', 'run_telegram_bot'], check=False)
+                subprocess.run(['pkill', '-f', 'bot_listener'], check=False)
+                time.sleep(2)
+                logger.info("✅ Old bot processes stopped")
+            except Exception as e:
+                logger.warning(f"⚠️ Error stopping old processes: {e}")
             
             def run_bot():
                 try:
-                    logger.info("Starting Telegram bot in thread...")
-                    # Import and call the bot listener function directly
+                    logger.info("Starting NEW Telegram bot in thread...")
                     import sys
                     import asyncio
                     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -252,33 +277,32 @@ class SergioBetsUnified:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     
-                    # Import the iniciar_bot_en_hilo function which is designed for threading
                     from telegram_bot_listener import iniciar_bot_en_hilo
-                    logger.info("Successfully imported iniciar_bot_en_hilo")
+                    logger.info("Successfully imported iniciar_bot_en_hilo for NEW bot")
                     
-                    logger.info("Calling iniciar_bot_en_hilo()...")
+                    logger.info("Calling iniciar_bot_en_hilo() for NEW bot...")
                     iniciar_bot_en_hilo()
                     
                 except Exception as e:
-                    logger.error(f"❌ Error in Telegram bot thread: {e}")
+                    logger.error(f"❌ Error in NEW Telegram bot thread: {e}")
                     logger.error(f"Traceback: {traceback.format_exc()}")
             
-            logger.debug("Creating bot thread...")
+            logger.debug("Creating NEW bot thread...")
             self.bot_thread = threading.Thread(target=run_bot, daemon=True)
             self.bot_thread.start()
-            logger.debug("✅ Bot thread started")
+            logger.debug("✅ NEW Bot thread started")
             
-            logger.debug("Waiting 3 seconds for bot to initialize...")
+            logger.debug("Waiting 3 seconds for NEW bot to initialize...")
             time.sleep(3)
             
-            logger.info("✅ Telegram bot started successfully")
-            print("✅ Bot de Telegram iniciado")
+            logger.info("✅ NEW Telegram bot @BetGeniuXbot started successfully")
+            print("✅ NUEVO Bot de Telegram @BetGeniuXbot iniciado")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error starting Telegram bot: {e}")
+            logger.error(f"❌ Error starting NEW Telegram bot: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            print(f"❌ Error iniciando bot de Telegram: {e}")
+            print(f"❌ Error iniciando NUEVO bot de Telegram: {e}")
             return False
     
     def stop_all_services(self):
@@ -347,18 +371,6 @@ class SergioBetsUnified:
         style.configure('TButton', font=('Segoe UI', 10, 'bold'))
         style.configure('TCombobox', font=('Segoe UI', 10))
         
-        self.entry_fecha = None
-        self.combo_ligas = None
-        self.frame_predicciones = None
-        self.frame_partidos = None
-        self.output = None
-        self.ligas_disponibles = set()
-        self.checkboxes_predicciones = []
-        self.checkboxes_partidos = []
-        self.predicciones_actuales = []
-        self.partidos_actuales = []
-        self.mensaje_telegram = ""
-        self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
@@ -384,7 +396,6 @@ class SergioBetsUnified:
         
         ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📊 Progreso", command=self.abrir_progreso).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📢 Enviar a Telegram", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
@@ -508,11 +519,37 @@ class SergioBetsUnified:
                         "liga": liga_detectada,
                         "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
                         "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
+                        "partido_data": {
+                            "refereeID": partido.get("refereeID"),
+                            "competition_id": partido.get("competition_id", 0),
+                            "season": partido.get("season", ""),
+                            "home_ppg": partido.get("home_ppg", 0),
+                            "away_ppg": partido.get("away_ppg", 0)
+                        },
                         "cuotas": {
                             "casa": "FootyStats",
                             "local": str(partido.get("odds_ft_1", "2.00")),
                             "empate": str(partido.get("odds_ft_x", "3.00")),
-                            "visitante": str(partido.get("odds_ft_2", "4.00"))
+                            "visitante": str(partido.get("odds_ft_2", "4.00")),
+                            "btts_si": str(partido.get("odds_btts_yes", "1.80")),
+                            "btts_no": str(partido.get("odds_btts_no", "2.00")),
+                            "over_15": str(partido.get("odds_ft_over15", "1.30")),
+                            "under_15": str(partido.get("odds_ft_under15", "3.50")),
+                            "over_25": str(partido.get("odds_ft_over25", "1.70")),
+                            "under_25": str(partido.get("odds_ft_under25", "2.10")),
+                            "corners_over_85": str(partido.get("odds_corners_over_85", "1.80")),
+                            "corners_over_95": str(partido.get("odds_corners_over_95", "2.20")),
+                            "corners_over_105": str(partido.get("odds_corners_over_105", "2.80")),
+                            "corners_under_85": str(partido.get("odds_corners_under_85", round(random.uniform(1.80, 2.60), 2))),
+                            "corners_under_95": str(partido.get("odds_corners_under_95", round(random.uniform(1.60, 2.20), 2))),
+                            "cards_over_35": str(round(random.uniform(1.60, 2.40), 2)),
+                            "cards_over_55": str(round(random.uniform(2.20, 3.80), 2)),
+                            "handicap_local_05": str(round(random.uniform(1.70, 2.30), 2)),
+                            "handicap_visitante_05": str(round(random.uniform(1.70, 2.30), 2)),
+                            "handicap_local_15": str(round(random.uniform(2.10, 3.20), 2)),
+                            "handicap_visitante_15": str(round(random.uniform(1.40, 1.90), 2)),
+                            "1h_over_05": str(partido.get("odds_1st_half_over05", "1.40")),
+                            "1h_over_15": str(partido.get("odds_1st_half_over15", "2.60"))
                         }
                     })
                 except Exception as partido_error:
@@ -539,6 +576,9 @@ class SergioBetsUnified:
 
     def buscar(self, opcion_numero=1):
         """Buscar partidos y predicciones"""
+        if not self.entry_fecha or not self.output:
+            print("⚠️ GUI not initialized yet")
+            return
         try:
             fecha = self.entry_fecha.get()
             self.output.delete('1.0', tk.END)
@@ -566,10 +606,13 @@ class SergioBetsUnified:
 
             self.actualizar_ligas()
 
-            liga_filtrada = self.combo_ligas.get()
-            if liga_filtrada not in ['Todas'] + sorted(list(self.ligas_disponibles)):
-                self.combo_ligas.set('Todas')
+            if not self.combo_ligas:
                 liga_filtrada = 'Todas'
+            else:
+                liga_filtrada = self.combo_ligas.get()
+                if liga_filtrada not in ['Todas'] + sorted(list(self.ligas_disponibles)):
+                    self.combo_ligas.set('Todas')
+                    liga_filtrada = 'Todas'
 
             if liga_filtrada == 'Todas':
                 partidos_filtrados = partidos
@@ -620,6 +663,8 @@ class SergioBetsUnified:
 
     def actualizar_ligas(self):
         """Actualizar lista de ligas disponibles"""
+        if not self.combo_ligas:
+            return
         ligas = sorted(self.ligas_disponibles)
         self.combo_ligas['values'] = ['Todas'] + ligas
         if self.combo_ligas.get() not in self.combo_ligas['values']:
@@ -633,10 +678,11 @@ class SergioBetsUnified:
     def guardar_datos_json(self, fecha):
         """Guardar datos en JSON"""
         guardar_json("partidos.json", self.cargar_partidos_reales(fecha))
-        guardar_json("progreso.json", self.progreso_data)
     
     def limpiar_frame_predicciones(self):
         """Limpiar el frame de predicciones y checkboxes"""
+        if not self.frame_predicciones:
+            return
         for widget in self.frame_predicciones.winfo_children():
             widget.destroy()
         self.checkboxes_predicciones.clear()
@@ -644,6 +690,8 @@ class SergioBetsUnified:
 
     def limpiar_frame_partidos(self):
         """Limpiar el frame de partidos y checkboxes"""
+        if not self.frame_partidos:
+            return
         for widget in self.frame_partidos.winfo_children():
             widget.destroy()
         self.checkboxes_partidos.clear()
@@ -651,6 +699,8 @@ class SergioBetsUnified:
 
     def mostrar_predicciones_con_checkboxes(self, predicciones, liga_filtrada, titulo_extra=""):
         """Mostrar predicciones con checkboxes para selección"""
+        if not self.frame_predicciones:
+            return
         self.limpiar_frame_predicciones()
         
         if not predicciones:
@@ -694,6 +744,8 @@ class SergioBetsUnified:
 
     def mostrar_partidos_con_checkboxes(self, partidos_filtrados, liga_filtrada, fecha):
         """Mostrar partidos con checkboxes para selección"""
+        if not self.frame_partidos:
+            return
         self.limpiar_frame_partidos()
         
         if not partidos_filtrados:
@@ -769,12 +821,21 @@ class SergioBetsUnified:
             messagebox.showwarning("Sin selección", "Selecciona al menos un pronóstico o partido para enviar.")
             return
         
+        if not self.entry_fecha:
+            messagebox.showwarning("Error", "GUI no inicializada correctamente")
+            return
         fecha = self.entry_fecha.get()
         mensaje_completo = ""
         
         try:
             if predicciones_seleccionadas:
-                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+                try:
+                    from daily_counter import get_next_pronostico_numbers
+                    numeros_pronostico = get_next_pronostico_numbers(len(predicciones_seleccionadas))
+                    mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha, numeros_pronostico)
+                except Exception as e:
+                    print(f"Error getting prediction numbers: {e}")
+                    mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
                 mensaje_completo += mensaje_predicciones
                 
                 for pred in predicciones_seleccionadas:
@@ -874,67 +935,17 @@ class SergioBetsUnified:
         else:
             messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
 
-    def abrir_progreso(self):
-        """Abrir ventana de progreso del usuario"""
-        def guardar_datos():
-            try:
-                deposito = float(entry_deposito.get())
-                meta = float(entry_meta.get())
-                saldo = float(entry_saldo.get())
-
-                self.progreso_data["deposito"] = deposito
-                self.progreso_data["meta"] = meta
-                self.progreso_data["saldo_actual"] = saldo
-
-                actualizar_barra()
-                self.guardar_datos_json(self.entry_fecha.get())
-            except ValueError:
-                messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
-
-        def actualizar_barra():
-            progreso = (self.progreso_data["saldo_actual"] - self.progreso_data["deposito"]) / (self.progreso_data["meta"] - self.progreso_data["deposito"]) * 100
-            progreso = max(0, min(progreso, 100))
-            barra['value'] = progreso
-            label_resultado.config(text=f"📈 Progreso: {progreso:.2f}%")
-
-        ventana = tk.Toplevel(self.root)
-        ventana.title("📊 Progreso del Usuario")
-        ventana.geometry("400x300")
-        ventana.configure(bg="#f1f3f4")
-
-        ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
-        entry_deposito = ttk.Entry(ventana)
-        entry_deposito.insert(0, str(self.progreso_data["deposito"]))
-        entry_deposito.pack()
-
-        ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
-        entry_meta = ttk.Entry(ventana)
-        entry_meta.insert(0, str(self.progreso_data["meta"]))
-        entry_meta.pack()
-
-        ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
-        entry_saldo = ttk.Entry(ventana)
-        entry_saldo.insert(0, str(self.progreso_data["saldo_actual"]))
-        entry_saldo.pack()
-
-        ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)
-
-        barra = ttk.Progressbar(ventana, length=300, mode='determinate')
-        barra.pack(pady=10)
-
-        label_resultado = ttk.Label(ventana, text="")
-        label_resultado.pack()
-
-        actualizar_barra()
 
     def abrir_track_record(self):
         """Abre ventana de track record mejorada con filtros y tabla estructurada"""
         try:
             from track_record import TrackRecordManager
             import os
+            import json
             from datetime import datetime, timedelta
+            import tkinter.messagebox as messagebox
             
-            api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+            api_key = os.getenv('FOOTYSTATS_API_KEY', 'b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079')
             tracker = TrackRecordManager(api_key)
             
             ventana_track = tk.Toplevel(self.root)
@@ -957,6 +968,188 @@ class SergioBetsUnified:
             
             frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
             frame_acciones.pack(fill='x', pady=(0, 10))
+            
+            bulk_edit_btn = tk.Button(frame_acciones, text="✏️ Edición Masiva", 
+                                    command=lambda: abrir_edicion_masiva(),
+                                    bg="#9b59b6", fg="white", font=('Segoe UI', 10, 'bold'))
+            bulk_edit_btn.pack(side='left', padx=(0, 10))
+            
+            def abrir_edicion_masiva():
+                """Abrir ventana de edición masiva para múltiples predicciones"""
+                ventana_bulk = tk.Toplevel(ventana_track)
+                ventana_bulk.title("✏️ Edición Masiva de Predicciones")
+                ventana_bulk.geometry("800x600")
+                ventana_bulk.configure(bg="#2c3e50")
+                ventana_bulk.grab_set()
+                
+                titulo_bulk = tk.Label(ventana_bulk, text="✏️ EDICIÓN MASIVA DE PREDICCIONES", 
+                                     bg="#2c3e50", fg="white", font=('Segoe UI', 14, 'bold'))
+                titulo_bulk.pack(pady=(10, 20))
+                
+                info_label = tk.Label(ventana_bulk, text="Selecciona las predicciones que deseas editar masivamente:", 
+                                    bg="#2c3e50", fg="#bdc3c7", font=('Segoe UI', 10))
+                info_label.pack(pady=(0, 10))
+                
+                filter_frame = tk.Frame(ventana_bulk, bg="#2c3e50")
+                filter_frame.pack(fill='x', padx=20, pady=10)
+                
+                tk.Label(filter_frame, text="Filtrar por estado:", bg="#2c3e50", fg="white", 
+                        font=('Segoe UI', 10, 'bold')).pack(side='left', padx=(0, 10))
+                
+                filter_var = tk.StringVar(value="todos")
+                tk.Radiobutton(filter_frame, text="Todos", variable=filter_var, value="todos",
+                              bg="#2c3e50", fg="white", selectcolor="#3498db").pack(side='left', padx=(0, 10))
+                tk.Radiobutton(filter_frame, text="Pendientes", variable=filter_var, value="pendientes",
+                              bg="#2c3e50", fg="white", selectcolor="#f39c12").pack(side='left', padx=(0, 10))
+                tk.Radiobutton(filter_frame, text="Con resultado", variable=filter_var, value="con_resultado",
+                              bg="#2c3e50", fg="white", selectcolor="#27ae60").pack(side='left')
+                
+                list_frame = tk.Frame(ventana_bulk, bg="#2c3e50")
+                list_frame.pack(fill='both', expand=True, padx=20, pady=10)
+                
+                canvas_bulk = tk.Canvas(list_frame, bg="#2c3e50")
+                scrollbar_bulk = ttk.Scrollbar(list_frame, orient="vertical", command=canvas_bulk.yview)
+                scrollable_bulk = tk.Frame(canvas_bulk, bg="#2c3e50")
+                
+                scrollable_bulk.bind("<Configure>", lambda e: canvas_bulk.configure(scrollregion=canvas_bulk.bbox("all")))
+                canvas_bulk.create_window((0, 0), window=scrollable_bulk, anchor="nw")
+                canvas_bulk.configure(yscrollcommand=scrollbar_bulk.set)
+                
+                canvas_bulk.pack(side="left", fill="both", expand=True)
+                scrollbar_bulk.pack(side="right", fill="y")
+                
+                selected_predictions = []
+                checkboxes = []
+                
+                def cargar_predicciones_bulk():
+                    for widget in scrollable_bulk.winfo_children():
+                        widget.destroy()
+                    
+                    checkboxes.clear()
+                    selected_predictions.clear()
+                    
+                    try:
+                        historial = cargar_json('historial_predicciones.json') or []
+                        historial = [p for p in historial if p.get('sent_to_telegram', False)]
+                        
+                        filtro = filter_var.get()
+                        if filtro == "pendientes":
+                            historial = [p for p in historial if p.get('acierto') is None]
+                        elif filtro == "con_resultado":
+                            historial = [p for p in historial if p.get('resultado_real') is not None]
+                        
+                        for i, pred in enumerate(historial):
+                            pred_frame = tk.Frame(scrollable_bulk, bg="white", relief='ridge', bd=1)
+                            pred_frame.pack(fill='x', pady=2, padx=5)
+                            
+                            var = tk.BooleanVar()
+                            checkboxes.append((var, pred))
+                            
+                            checkbox = tk.Checkbutton(pred_frame, variable=var, bg="white")
+                            checkbox.pack(side='left', padx=5)
+                            
+                            info_text = f"{pred.get('partido', 'N/A')} - {pred.get('prediccion', 'N/A')} ({pred.get('fecha', 'N/A')})"
+                            estado_text = ""
+                            if pred.get('acierto') is True:
+                                estado_text = " [GANADA]"
+                            elif pred.get('acierto') is False:
+                                estado_text = " [PERDIDA]"
+                            else:
+                                estado_text = " [PENDIENTE]"
+                            
+                            tk.Label(pred_frame, text=info_text + estado_text, bg="white", 
+                                   font=('Segoe UI', 9), anchor='w').pack(side='left', fill='x', expand=True, padx=5)
+                    
+                    except Exception as e:
+                        tk.Label(scrollable_bulk, text=f"Error cargando predicciones: {e}", 
+                               bg="#2c3e50", fg="#e74c3c").pack(pady=20)
+                
+                cargar_predicciones_bulk()
+                
+                def actualizar_filtro():
+                    cargar_predicciones_bulk()
+                
+                for widget in filter_frame.winfo_children():
+                    if isinstance(widget, tk.Radiobutton):
+                        widget.configure(command=actualizar_filtro)
+                
+                action_frame = tk.Frame(ventana_bulk, bg="#2c3e50")
+                action_frame.pack(fill='x', padx=20, pady=10)
+                
+                tk.Label(action_frame, text="Acción masiva:", bg="#2c3e50", fg="white", 
+                        font=('Segoe UI', 10, 'bold')).pack(side='left', padx=(0, 10))
+                
+                action_var = tk.StringVar(value="marcar_ganadas")
+                tk.Radiobutton(action_frame, text="Marcar como Ganadas", variable=action_var, value="marcar_ganadas",
+                              bg="#2c3e50", fg="white", selectcolor="#27ae60").pack(side='left', padx=(0, 10))
+                tk.Radiobutton(action_frame, text="Marcar como Perdidas", variable=action_var, value="marcar_perdidas",
+                              bg="#2c3e50", fg="white", selectcolor="#e74c3c").pack(side='left', padx=(0, 10))
+                tk.Radiobutton(action_frame, text="Marcar como Pendientes", variable=action_var, value="marcar_pendientes",
+                              bg="#2c3e50", fg="white", selectcolor="#f39c12").pack(side='left')
+                
+                buttons_bulk = tk.Frame(ventana_bulk, bg="#2c3e50")
+                buttons_bulk.pack(fill='x', padx=20, pady=20)
+                
+                def aplicar_cambios_masivos():
+                    selected = [pred for var, pred in checkboxes if var.get()]
+                    
+                    if not selected:
+                        messagebox.showwarning("Advertencia", "No has seleccionado ninguna predicción")
+                        return
+                    
+                    accion = action_var.get()
+                    respuesta = messagebox.askyesno("Confirmar", 
+                        f"¿Estás seguro de que quieres {accion.replace('_', ' ')} {len(selected)} predicciones?")
+                    
+                    if respuesta:
+                        try:
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            cambios = 0
+                            
+                            for pred_selected in selected:
+                                for p in historial_actual:
+                                    if (p.get('partido') == pred_selected.get('partido') and
+                                        p.get('prediccion') == pred_selected.get('prediccion') and
+                                        p.get('fecha') == pred_selected.get('fecha')):
+                                        
+                                        if accion == "marcar_ganadas":
+                                            p['acierto'] = True
+                                            p['ganancia'] = p.get('stake', 10) * (p.get('cuota', 1.5) - 1)
+                                        elif accion == "marcar_perdidas":
+                                            p['acierto'] = False
+                                            p['ganancia'] = -p.get('stake', 10)
+                                        else:
+                                            p['acierto'] = None
+                                            p['ganancia'] = None
+                                        
+                                        p['fecha_actualizacion'] = datetime.now().isoformat()
+                                        p['actualizacion_manual'] = True
+                                        cambios += 1
+                                        break
+                            
+                            if cambios > 0:
+                                with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                    json.dump(historial_actual, f, indent=2, ensure_ascii=False)
+                                
+                                messagebox.showinfo("Éxito", f"Se actualizaron {cambios} predicciones correctamente")
+                                ventana_bulk.destroy()
+                                cargar_datos_filtrados()
+                            else:
+                                messagebox.showwarning("Advertencia", "No se realizaron cambios")
+                                
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error aplicando cambios: {e}")
+                
+                def cerrar_bulk():
+                    ventana_bulk.destroy()
+                
+                tk.Button(buttons_bulk, text="✅ Aplicar Cambios", command=aplicar_cambios_masivos,
+                         bg="#27ae60", fg="white", font=('Segoe UI', 12, 'bold'), 
+                         padx=20, pady=10).pack(side='left', padx=(0, 10))
+                
+                tk.Button(buttons_bulk, text="❌ Cancelar", command=cerrar_bulk,
+                         bg="#e74c3c", fg="white", font=('Segoe UI', 12, 'bold'), 
+                         padx=20, pady=10).pack(side='left')
             
             filtro_actual = tk.StringVar(value="historico")
             fecha_inicio = tk.StringVar()
@@ -1066,6 +1259,177 @@ class SergioBetsUnified:
                         except Exception as e:
                             messagebox.showerror("Error", f"Error eliminando predicción: {e}")
                 
+                def editar_prediccion_individual(bet_to_edit):
+                    """Abrir ventana de edición manual para una predicción individual"""
+                    ventana_edit = tk.Toplevel(ventana_track)
+                    ventana_edit.title("✏️ Editar Predicción Manual")
+                    ventana_edit.geometry("500x600")
+                    ventana_edit.configure(bg="#2c3e50")
+                    ventana_edit.grab_set()
+                    
+                    titulo_edit = tk.Label(ventana_edit, text="✏️ EDICIÓN MANUAL DE PREDICCIÓN", 
+                                         bg="#2c3e50", fg="white", font=('Segoe UI', 14, 'bold'))
+                    titulo_edit.pack(pady=(10, 20))
+                    
+                    info_frame = tk.Frame(ventana_edit, bg="#34495e", relief='ridge', bd=2)
+                    info_frame.pack(fill='x', padx=20, pady=(0, 20))
+                    
+                    tk.Label(info_frame, text=f"⚽ Partido: {bet_to_edit.get('partido', 'N/A')}", 
+                            bg="#34495e", fg="white", font=('Segoe UI', 10, 'bold')).pack(pady=5)
+                    tk.Label(info_frame, text=f"🎯 Predicción: {bet_to_edit.get('prediccion', 'N/A')}", 
+                            bg="#34495e", fg="white", font=('Segoe UI', 10)).pack(pady=2)
+                    tk.Label(info_frame, text=f"📅 Fecha: {bet_to_edit.get('fecha', 'N/A')}", 
+                            bg="#34495e", fg="white", font=('Segoe UI', 10)).pack(pady=2)
+                    tk.Label(info_frame, text=f"💰 Cuota: {bet_to_edit.get('cuota', 'N/A')}", 
+                            bg="#34495e", fg="white", font=('Segoe UI', 10)).pack(pady=2)
+                    
+                    edit_frame = tk.Frame(ventana_edit, bg="#2c3e50")
+                    edit_frame.pack(fill='x', padx=20, pady=10)
+                    
+                    tk.Label(edit_frame, text="🎯 Estado de la Apuesta:", 
+                            bg="#2c3e50", fg="white", font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(10, 5))
+                    
+                    estado_var = tk.StringVar()
+                    current_acierto = bet_to_edit.get('acierto')
+                    if current_acierto is True:
+                        estado_var.set("ganada")
+                    elif current_acierto is False:
+                        estado_var.set("perdida")
+                    else:
+                        estado_var.set("pendiente")
+                    
+                    estado_frame = tk.Frame(edit_frame, bg="#2c3e50")
+                    estado_frame.pack(fill='x', pady=5)
+                    
+                    tk.Radiobutton(estado_frame, text="✅ Ganada", variable=estado_var, value="ganada",
+                                  bg="#2c3e50", fg="white", selectcolor="#27ae60", 
+                                  font=('Segoe UI', 10)).pack(side='left', padx=(0, 20))
+                    tk.Radiobutton(estado_frame, text="❌ Perdida", variable=estado_var, value="perdida",
+                                  bg="#2c3e50", fg="white", selectcolor="#e74c3c", 
+                                  font=('Segoe UI', 10)).pack(side='left', padx=(0, 20))
+                    tk.Radiobutton(estado_frame, text="⏳ Pendiente", variable=estado_var, value="pendiente",
+                                  bg="#2c3e50", fg="white", selectcolor="#f39c12", 
+                                  font=('Segoe UI', 10)).pack(side='left')
+                    
+                    resultado_frame = tk.Frame(edit_frame, bg="#2c3e50")
+                    resultado_frame.pack(fill='x', pady=10)
+                    
+                    tk.Label(resultado_frame, text="⚽ Resultado del Partido:", 
+                            bg="#2c3e50", fg="white", font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(10, 5))
+                    
+                    resultado_real = bet_to_edit.get('resultado_real', {})
+                    
+                    score_frame = tk.Frame(resultado_frame, bg="#2c3e50")
+                    score_frame.pack(fill='x', pady=5)
+                    
+                    tk.Label(score_frame, text="Goles Local:", bg="#2c3e50", fg="white").pack(side='left')
+                    home_score_var = tk.StringVar(value=str(resultado_real.get('home_score', 0)))
+                    home_entry = tk.Entry(score_frame, textvariable=home_score_var, width=5)
+                    home_entry.pack(side='left', padx=(5, 10))
+                    
+                    tk.Label(score_frame, text="Goles Visitante:", bg="#2c3e50", fg="white").pack(side='left')
+                    away_score_var = tk.StringVar(value=str(resultado_real.get('away_score', 0)))
+                    away_entry = tk.Entry(score_frame, textvariable=away_score_var, width=5)
+                    away_entry.pack(side='left', padx=(5, 10))
+                    
+                    extra_frame = tk.Frame(resultado_frame, bg="#2c3e50")
+                    extra_frame.pack(fill='x', pady=5)
+                    
+                    tk.Label(extra_frame, text="Corners Total:", bg="#2c3e50", fg="white").pack(side='left')
+                    corners_var = tk.StringVar(value=str(resultado_real.get('total_corners', 0)))
+                    corners_entry = tk.Entry(extra_frame, textvariable=corners_var, width=5)
+                    corners_entry.pack(side='left', padx=(5, 10))
+                    
+                    tk.Label(extra_frame, text="Tarjetas Total:", bg="#2c3e50", fg="white").pack(side='left')
+                    cards_var = tk.StringVar(value=str(resultado_real.get('total_cards', 0)))
+                    cards_entry = tk.Entry(extra_frame, textvariable=cards_var, width=5)
+                    cards_entry.pack(side='left', padx=(5, 10))
+                    
+                    buttons_frame = tk.Frame(ventana_edit, bg="#2c3e50")
+                    buttons_frame.pack(fill='x', padx=20, pady=20)
+                    
+                    def guardar_cambios():
+                        try:
+                            home_score = int(home_score_var.get())
+                            away_score = int(away_score_var.get())
+                            total_corners = int(corners_var.get())
+                            total_cards = int(cards_var.get())
+                            
+                            if home_score < 0 or away_score < 0 or total_corners < 0 or total_cards < 0:
+                                messagebox.showerror("Error", "Los valores no pueden ser negativos")
+                                return
+                            
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            
+                            bet_updated = False
+                            for i, p in enumerate(historial_actual):
+                                if (p.get('partido') == bet_to_edit.get('partido') and
+                                    p.get('prediccion') == bet_to_edit.get('prediccion') and
+                                    p.get('fecha') == bet_to_edit.get('fecha') and
+                                    p.get('cuota') == bet_to_edit.get('cuota')):
+                                    
+                                    estado = estado_var.get()
+                                    if estado == "ganada":
+                                        p['acierto'] = True
+                                        p['ganancia'] = p.get('stake', 10) * (p.get('cuota', 1.5) - 1)
+                                    elif estado == "perdida":
+                                        p['acierto'] = False
+                                        p['ganancia'] = -p.get('stake', 10)
+                                    else:
+                                        p['acierto'] = None
+                                        p['ganancia'] = None
+                                    
+                                    total_goals = home_score + away_score
+                                    resultado_1x2 = "X"
+                                    if home_score > away_score:
+                                        resultado_1x2 = "1"
+                                    elif away_score > home_score:
+                                        resultado_1x2 = "2"
+                                    
+                                    p['resultado_real'] = {
+                                        "home_score": home_score,
+                                        "away_score": away_score,
+                                        "total_goals": total_goals,
+                                        "total_corners": total_corners,
+                                        "total_cards": total_cards,
+                                        "resultado_1x2": resultado_1x2,
+                                        "status": "complete",
+                                        "corner_data_available": total_corners > 0,
+                                        "cards_data_available": total_cards > 0
+                                    }
+                                    
+                                    p['fecha_actualizacion'] = datetime.now().isoformat()
+                                    p['actualizacion_manual'] = True
+                                    
+                                    bet_updated = True
+                                    break
+                            
+                            if bet_updated:
+                                with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                    json.dump(historial_actual, f, indent=2, ensure_ascii=False)
+                                
+                                messagebox.showinfo("Éxito", "Predicción actualizada correctamente")
+                                ventana_edit.destroy()
+                                mostrar_bets_por_categoria(categoria)
+                            else:
+                                messagebox.showerror("Error", "No se pudo encontrar la predicción para actualizar")
+                                
+                        except ValueError:
+                            messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos")
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error guardando cambios: {e}")
+                    
+                    def cancelar():
+                        ventana_edit.destroy()
+                    
+                    tk.Button(buttons_frame, text="💾 Guardar Cambios", command=guardar_cambios,
+                             bg="#27ae60", fg="white", font=('Segoe UI', 12, 'bold'), 
+                             padx=20, pady=10).pack(side='left', padx=(0, 10))
+                    
+                    tk.Button(buttons_frame, text="❌ Cancelar", command=cancelar,
+                             bg="#e74c3c", fg="white", font=('Segoe UI', 12, 'bold'), 
+                             padx=20, pady=10).pack(side='left')
+                
                 if not bets_filtrados:
                     if categoria == "pendientes":
                         no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas pendientes enviadas a Telegram", 
@@ -1089,6 +1453,12 @@ class SergioBetsUnified:
                         partido_label = tk.Label(header_frame, text=partido_text, bg="white", 
                                                font=('Segoe UI', 11, 'bold'), anchor='w')
                         partido_label.pack(side='left', fill='x', expand=True)
+                        
+                        edit_btn = tk.Button(header_frame, text="✏️", 
+                                           command=lambda b=bet: editar_prediccion_individual(b),
+                                           bg="#3498db", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                           padx=5, pady=2)
+                        edit_btn.pack(side='right', padx=(5, 0))
                         
                         delete_btn = tk.Button(header_frame, text="🗑️", 
                                              command=lambda b=bet: eliminar_prediccion_individual(b),
@@ -1639,7 +2009,10 @@ class SergioBetsUnified:
             monitor_thread = threading.Thread(target=self.monitor_services, daemon=True)
             monitor_thread.start()
             
-            self.root.mainloop()
+            if self.root:
+                self.root.mainloop()
+            else:
+                print("❌ GUI root not initialized")
             
         except Exception as e:
             print(f"❌ Error en GUI: {e}")
