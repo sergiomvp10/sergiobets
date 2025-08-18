@@ -58,8 +58,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [
-            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
-            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
+            InlineKeyboardButton("🎯 PRONÓSTICOS", callback_data="pronosticos")
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
@@ -90,10 +89,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if query.data == "gratis":
-        await mostrar_gratis(update, context)
-    elif query.data == "premium":
-        await mostrar_premium(update, context)
+    if query.data == "pronosticos":
+        await mostrar_pronosticos(update, context)
     elif query.data == "estadisticas":
         await mostrar_estadisticas(update, context)
     elif query.data == "novedades":
@@ -111,49 +108,48 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "menu_principal":
         await volver_menu_principal(update, context)
 
-async def mostrar_gratis(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar contenido gratuito"""
+async def mostrar_pronosticos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar pronósticos disponibles"""
     query = update.callback_query
+    user_id = str(query.from_user.id)
     
-    mensaje = """💲 CONTENIDO GRATUITO BETGENIUX
-
-🎯 PREDICCIONES BÁSICAS:
-• Análisis de partidos principales
-• Tips básicos de apuestas
-• Estadísticas generales
-
-📊 ACCESO INCLUYE:
-• Predicciones diarias seleccionadas
-• Análisis de cuotas básico
-• Tips de gestión de bankroll
-
-🔄 Para acceder a predicciones premium y análisis avanzado, consulta nuestra membresía.
-
-¿Te gustaría ver las predicciones gratuitas de hoy?"""
+    from access_manager import verificar_acceso
+    tiene_acceso = verificar_acceso(user_id)
     
-    keyboard = [
-        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await query.edit_message_text(mensaje, reply_markup=reply_markup)
+    if tiene_acceso:
+        mensaje = """🎯 PRONÓSTICOS BETGENIUX®
 
-async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar contenido premium"""
-    query = update.callback_query
-    
-    mensaje = """💰 CONTENIDO PREMIUM BETGENIUX
+🏆 ACCESO PREMIUM ACTIVO
 
-🏆 PREDICCIONES VIP:
+📊 PRONÓSTICOS DISPONIBLES:
 • Análisis profesional completo
 • Predicciones de alta confianza
 • Estrategias avanzadas de apuestas
+• Gestión de bankroll personalizada
 
-💎 ACCESO PREMIUM INCLUYE:
-• Predicciones diarias premium
+💎 TUS BENEFICIOS PREMIUM:
+• Pronósticos diarios premium
 • Análisis detallado de mercados
+• Soporte personalizado 24/7
+• Estadísticas en tiempo real
+• ROI superior al 15%
+
+🎯 Los pronósticos se envían automáticamente cuando están disponibles.
+
+📈 Revisa las estadísticas para ver el rendimiento histórico."""
+    else:
+        mensaje = """🎯 PRONÓSTICOS BETGENIUX®
+
+⚠️ ACCESO REQUERIDO
+
+Para acceder a nuestros pronósticos profesionales necesitas una membresía activa.
+
+🏆 QUÉ INCLUYE LA MEMBRESÍA:
+• Pronósticos diarios premium
+• Análisis profesional completo
+• Predicciones de alta confianza
 • Gestión avanzada de bankroll
-• Soporte personalizado
+• Soporte personalizado 24/7
 • Estadísticas en tiempo real
 
 📈 RESULTADOS COMPROBADOS:
@@ -161,14 +157,20 @@ async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Más de 70% de aciertos
 • Seguimiento detallado
 
-¿Quieres acceder al contenido premium?"""
+💳 Adquiere tu membresía para comenzar a recibir pronósticos ganadores."""
     
-    keyboard = [
-        [InlineKeyboardButton("💳 Ver Membresía", callback_data="membresia")],
-        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
-    ]
+    if tiene_acceso:
+        keyboard = [
+            [InlineKeyboardButton("📊 Ver Estadísticas", callback_data="estadisticas")],
+            [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("💳 Ver Membresía", callback_data="membresia")],
+            [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+        ]
+    
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
     await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -355,8 +357,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     
     keyboard = [
         [
-            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
-            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
+            InlineKeyboardButton("🎯 PRONÓSTICOS", callback_data="pronosticos")
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
@@ -381,7 +382,7 @@ def iniciar_bot_listener():
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
+        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(pronosticos|estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
