@@ -89,7 +89,6 @@ class SergioBetsUnified:
             self.predicciones_actuales = []
             self.partidos_actuales = []
             self.mensaje_telegram = ""
-            self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
             
             logger.info("✅ SergioBetsUnified initialized successfully")
         except Exception as e:
@@ -397,7 +396,6 @@ class SergioBetsUnified:
         
         ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📊 Progreso", command=self.abrir_progreso).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📢 Enviar a Telegram", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
@@ -680,7 +678,6 @@ class SergioBetsUnified:
     def guardar_datos_json(self, fecha):
         """Guardar datos en JSON"""
         guardar_json("partidos.json", self.cargar_partidos_reales(fecha))
-        guardar_json("progreso.json", self.progreso_data)
     
     def limpiar_frame_predicciones(self):
         """Limpiar el frame de predicciones y checkboxes"""
@@ -938,59 +935,6 @@ class SergioBetsUnified:
         else:
             messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
 
-    def abrir_progreso(self):
-        """Abrir ventana de progreso del usuario"""
-        def guardar_datos():
-            try:
-                deposito = float(entry_deposito.get())
-                meta = float(entry_meta.get())
-                saldo = float(entry_saldo.get())
-
-                self.progreso_data["deposito"] = deposito
-                self.progreso_data["meta"] = meta
-                self.progreso_data["saldo_actual"] = saldo
-
-                actualizar_barra()
-                if self.entry_fecha:
-                    self.guardar_datos_json(self.entry_fecha.get())
-            except ValueError:
-                messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
-
-        def actualizar_barra():
-            progreso = (self.progreso_data["saldo_actual"] - self.progreso_data["deposito"]) / (self.progreso_data["meta"] - self.progreso_data["deposito"]) * 100
-            progreso = max(0, min(progreso, 100))
-            barra['value'] = progreso
-            label_resultado.config(text=f"📈 Progreso: {progreso:.2f}%")
-
-        ventana = tk.Toplevel(self.root)
-        ventana.title("📊 Progreso del Usuario")
-        ventana.geometry("400x300")
-        ventana.configure(bg="#f1f3f4")
-
-        ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
-        entry_deposito = ttk.Entry(ventana)
-        entry_deposito.insert(0, str(self.progreso_data["deposito"]))
-        entry_deposito.pack()
-
-        ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
-        entry_meta = ttk.Entry(ventana)
-        entry_meta.insert(0, str(self.progreso_data["meta"]))
-        entry_meta.pack()
-
-        ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
-        entry_saldo = ttk.Entry(ventana)
-        entry_saldo.insert(0, str(self.progreso_data["saldo_actual"]))
-        entry_saldo.pack()
-
-        ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)
-
-        barra = ttk.Progressbar(ventana, length=300, mode='determinate')
-        barra.pack(pady=10)
-
-        label_resultado = ttk.Label(ventana, text="")
-        label_resultado.pack()
-
-        actualizar_barra()
 
     def abrir_track_record(self):
         """Abre ventana de track record mejorada con filtros y tabla estructurada"""
