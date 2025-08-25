@@ -219,10 +219,12 @@ PRONOSTICOS:
 • Resueltos: 22
 • Pendientes: 1
 • Aciertos: 15
+• Fallos: 7
 • Tasa de éxito: 68.2%
 
 📅 Actualizado: 2025-08-25"""
         else:
+            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 PRONOSTICOS:
@@ -231,6 +233,7 @@ PRONOSTICOS:
 • Resueltos: {metricas['predicciones_resueltas']}
 • Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
+• Fallos: {fallos}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
