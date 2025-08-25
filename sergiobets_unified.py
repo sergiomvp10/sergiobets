@@ -1077,6 +1077,46 @@ class SergioBetsUnified:
                         except Exception as e:
                             messagebox.showerror("Error", f"Error eliminando predicción: {e}")
                 
+                def editar_prediccion_individual(bet_to_edit):
+                    """Editar una predicción individual para marcarla como ganada"""
+                    respuesta = messagebox.askyesno("Confirmar edición manual", 
+                        f"¿Estás seguro de que quieres marcar esta predicción como GANADA?\n\n" +
+                        f"Partido: {bet_to_edit.get('partido', 'N/A')}\n" +
+                        f"Predicción: {bet_to_edit.get('prediccion', 'N/A')}\n" +
+                        f"Cuota: {bet_to_edit.get('cuota', 'N/A')}\n\n" +
+                        f"Esta acción marcará la predicción como acertada manualmente.")
+                    
+                    if respuesta:
+                        try:
+                            from datetime import datetime
+                            historial_actual = cargar_json('historial_predicciones.json') or []
+                            
+                            for prediccion in historial_actual:
+                                if (prediccion.get('partido') == bet_to_edit.get('partido') and 
+                                   prediccion.get('prediccion') == bet_to_edit.get('prediccion') and
+                                   prediccion.get('fecha') == bet_to_edit.get('fecha') and
+                                   prediccion.get('cuota') == bet_to_edit.get('cuota')):
+                                    
+                                    prediccion['acierto'] = True
+                                    prediccion['actualizacion_manual'] = True
+                                    prediccion['fecha_actualizacion'] = datetime.now().isoformat()
+                                    
+                                    stake = float(prediccion.get('stake', 0))
+                                    cuota = float(prediccion.get('cuota', 1))
+                                    ganancia = stake * cuota
+                                    prediccion['ganancia'] = ganancia
+                                    
+                                    break
+                            
+                            with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                json.dump(historial_actual, f, indent=2, ensure_ascii=False)
+                            
+                            messagebox.showinfo("Éxito", "Predicción marcada como ganada correctamente")
+                            mostrar_bets_por_categoria(categoria)
+                            
+                        except Exception as e:
+                            messagebox.showerror("Error", f"Error editando predicción: {e}")
+                
                 if not bets_filtrados:
                     if categoria == "pendientes":
                         no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas pendientes enviadas a Telegram", 
@@ -1100,6 +1140,13 @@ class SergioBetsUnified:
                         partido_label = tk.Label(header_frame, text=partido_text, bg="white", 
                                                font=('Segoe UI', 11, 'bold'), anchor='w')
                         partido_label.pack(side='left', fill='x', expand=True)
+                        
+                        if categoria == "fallados":
+                            edit_btn = tk.Button(header_frame, text="✏️", 
+                                               command=lambda b=bet: editar_prediccion_individual(b),
+                                               bg="#f39c12", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                               padx=5, pady=2)
+                            edit_btn.pack(side='right', padx=(5, 0))
                         
                         delete_btn = tk.Button(header_frame, text="🗑️", 
                                              command=lambda b=bet: eliminar_prediccion_individual(b),
