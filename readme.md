@@ -2,6 +2,8 @@
 
 **BetGeniuX** es un bot de apuestas deportivas desarrollado en Python con interfaz gráfica (Tkinter), que muestra partidos, cuotas, envía pronósticos por Telegram y gestiona el progreso del usuario.
 
+> 🔧 **Estado**: Verificación de acceso al repositorio y funcionalidad de lint completada
+
 ---
 
 ## 🚀 Características principales

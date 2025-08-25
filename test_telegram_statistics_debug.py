@@ -14,7 +14,7 @@ def test_statistics_message_formatting():
     print('=== PRUEBA DE FORMATEO COMPLETO DE MENSAJE DE ESTADÍSTICAS ===')
     
     try:
-        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         
@@ -71,7 +71,7 @@ async def test_mock_telegram_call():
         mock_query = Mock()
         mock_query.edit_message_text = AsyncMock()
         
-        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         
