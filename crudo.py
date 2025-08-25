@@ -884,25 +884,17 @@ def abrir_usuarios():
 
 
 def refrescar_usuarios(texto_widget, header_frame):
-    """Refrescar la lista de usuarios"""
+    """Refrescar la lista de usuarios usando access_manager unificado"""
     usuarios_data = []
     total_usuarios = 0
     
     try:
-        if os.path.exists('usuarios.txt'):
-            with open('usuarios.txt', 'r', encoding='utf-8') as f:
-                for linea in f:
-                    if linea.strip() and ' - ' in linea:
-                        partes = linea.strip().split(' - ')
-                        if len(partes) >= 3:
-                            usuarios_data.append({
-                                'user_id': partes[0],
-                                'username': partes[1],
-                                'first_name': partes[2]
-                            })
-                            total_usuarios += 1
+        from access_manager import access_manager
+        usuarios_data = access_manager.listar_usuarios()
+        total_usuarios = len(usuarios_data)
     except Exception as e:
-        print(f"Error leyendo usuarios.txt: {e}")
+        print(f"Error cargando usuarios con access_manager: {e}")
+        usuarios_data = []
     
     for widget in header_frame.winfo_children():
         if isinstance(widget, tk.Label):
@@ -917,9 +909,9 @@ def refrescar_usuarios(texto_widget, header_frame):
         texto_widget.insert(tk.END, "-" * 65 + "\n")
         
         for usuario in usuarios_data:
-            user_id = usuario['user_id'].ljust(16)
-            username = usuario['username'].ljust(18)
-            first_name = usuario['first_name']
+            user_id = str(usuario.get('user_id', 'N/A')).ljust(16)
+            username = str(usuario.get('username', 'N/A') or 'sin_username').ljust(18)
+            first_name = str(usuario.get('first_name', 'N/A'))
             
             linea = f"{user_id} | {username} | {first_name}\n"
             texto_widget.insert(tk.END, linea)
