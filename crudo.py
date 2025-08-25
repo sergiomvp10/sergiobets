@@ -46,7 +46,18 @@ def cargar_partidos_reales(fecha):
                     "casa": "FootyStats",
                     "local": str(partido.get("odds_ft_1", "2.00")),
                     "empate": str(partido.get("odds_ft_x", "3.00")),
-                    "visitante": str(partido.get("odds_ft_2", "4.00"))
+                    "visitante": str(partido.get("odds_ft_2", "4.00")),
+                    "btts_si": str(partido.get("odds_btts_yes", "0")),
+                    "btts_no": str(partido.get("odds_btts_no", "0")),
+                    "over_15": str(partido.get("odds_ft_over15", "0")),
+                    "under_15": str(partido.get("odds_ft_under15", "0")),
+                    "over_25": str(partido.get("odds_ft_over25", "0")),
+                    "under_25": str(partido.get("odds_ft_under25", "0")),
+                    "corners_over_85": str(partido.get("odds_corners_over_85", "0")),
+                    "corners_over_95": str(partido.get("odds_corners_over_95", "0")),
+                    "corners_over_105": str(partido.get("odds_corners_over_105", "0")),
+                    "1h_over_05": str(partido.get("odds_1st_half_over05", "0")),
+                    "1h_over_15": str(partido.get("odds_1st_half_over15", "0"))
                 }
             })
 
