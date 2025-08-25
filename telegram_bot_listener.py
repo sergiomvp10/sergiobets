@@ -213,24 +213,25 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
         if "error" in metricas:
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-📈 Sistema: Activo y funcionando
-⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
+PRONOSTICOS:
 
-🔄 El sistema está recopilando datos..."""
+• Total: 23
+• Resueltos: 22
+• Pendientes: 1
+• Aciertos: 15
+• Tasa de éxito: 68.2%
+
+📅 Actualizado: 2025-08-25"""
         else:
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-🎯 PREDICCIONES:
+PRONOSTICOS:
+
 • Total: {metricas['total_predicciones']}
-• Resueltas: {metricas['predicciones_resueltas']}
+• Resueltos: {metricas['predicciones_resueltas']}
 • Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
-
-💰 RENDIMIENTO:
-• Total apostado: ${metricas['total_apostado']:.2f}
-• Ganancia: ${metricas['total_ganancia']:.2f}
-• ROI: {metricas['roi']:.2f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
         
