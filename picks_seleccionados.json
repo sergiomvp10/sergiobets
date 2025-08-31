@@ -1,20 +1,20 @@
 {
-    "fecha": "2025-08-06",
+    "fecha": "2025-08-30",
     "predicciones": [
         {
-            "partido": "Lech Poznań vs Red Star Belgrade",
-            "liga": "Champions League",
-            "hora": "11:30",
-            "prediccion": "Red Star Belgrade +0.5",
-            "cuota": 1.5,
+            "partido": "San Lorenzo vs Huracán",
+            "liga": "Liga Argentina",
+            "hora": "10:45",
+            "prediccion": "Más de 1.5 goles",
+            "cuota": 1.9,
             "stake_recomendado": 10,
-            "confianza": 84.0,
-            "valor_esperado": 0.26,
-            "razon": "Ventaja forma: -0.02. H2H promedio: 1.9 goles. Probabilidad 84.0% con VE +26.0%",
+            "confianza": 93.9,
+            "valor_esperado": 0.784,
+            "razon": "Modelo predictivo estima 4.5 goles. Rendimiento ofensivo equipos favorece línea. VE: +78.4%",
             "opcion_numero": 1,
-            "total_opciones": 1,
+            "total_opciones": 2,
             "sent_to_telegram": true,
-            "fecha_envio_telegram": "2025-08-06T11:34:10.277253"
+            "fecha_envio_telegram": "2025-08-29T21:53:37.508767"
         }
     ]
 }

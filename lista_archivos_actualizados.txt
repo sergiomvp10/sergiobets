@@ -1,0 +1,48 @@
+ARCHIVOS ACTUALIZADOS CON NUEVA API KEY DE FOOTYSTATS
+=======================================================
+
+Nueva API Key: ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd
+
+ARCHIVOS PRINCIPALES (6 archivos core):
+- crudo.py                    (Aplicación principal con interfaz gráfica)
+- footystats_api.py          (Configuración principal de la API)
+- sergiobets_unified.py      (Sistema unificado)
+- telegram_bot_listener.py   (Bot de Telegram)
+- track_record.py            (Gestión de historial y estadísticas)
+- ia_bets.py                 (Sistema de apuestas con IA)
+
+ARCHIVOS DE UTILIDADES Y FIXES (3 archivos):
+- debug_final_investigation.py
+- debug_track_record_issue.py
+- diagnose_api_issues.py
+- fix_athletic_corner_bet.py
+- update_corner_bets.py
+
+ARCHIVOS DE TESTING (18 archivos):
+- test_clean_track_record.py
+- test_complete_button_fixes.py
+- test_crash_fix.py
+- test_enhanced_track_record.py
+- test_final_comprehensive_button_fixes.py
+- test_flexible_universal_button.py
+- test_statistics_optimization.py
+- test_status_filtering.py
+- test_telegram_filter_fix.py
+- test_telegram_statistics_debug.py
+- test_telegram_statistics_isolation.py
+- test_track_record.py
+- test_track_record_direct.py
+- test_track_record_fix.py
+- test_track_record_performance.py
+- test_ui_fixes.py
+
+ARCHIVO DE DOCUMENTACIÓN (1 archivo):
+- readme.md                  (Actualización de documentación)
+
+TOTAL: 28 archivos modificados
+
+INSTRUCCIONES:
+1. Descarga los archivos principales desde el PR: https://github.com/sergiomvp10/sergiobets/pull/16
+2. O clona la rama: git checkout devin/1756152864-test-draft-pr
+3. Verifica la conectividad: python footystats_api.py
+4. Prueba la aplicación: python crudo.py

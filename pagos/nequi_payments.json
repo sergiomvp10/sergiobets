@@ -1,0 +1,32 @@
+{
+  "7659029315": {
+    "username": "n3utro6",
+    "first_name": "No",
+    "requested_at": "2025-08-17T16:32:51.325222",
+    "status": "waiting_receipt",
+    "amount": 50000,
+    "currency": "COP"
+  },
+  "6937898258": {
+    "username": "sin_username",
+    "first_name": "Juli",
+    "requested_at": "2025-08-14T00:40:43.860900",
+    "status": "confirmed",
+    "amount": 50000,
+    "currency": "COP",
+    "receipt_received_at": "2025-08-14T00:40:59.530488",
+    "confirmed_at": "2025-08-14T00:41:33.109937",
+    "confirmed_by": "7659029315"
+  },
+  "8316148869": {
+    "username": "sin_username",
+    "first_name": "Juli",
+    "requested_at": "2025-08-14T11:04:22.872091",
+    "status": "confirmed",
+    "amount": 50000,
+    "currency": "COP",
+    "receipt_received_at": "2025-08-14T11:04:42.324886",
+    "confirmed_at": "2025-08-14T11:05:14.199652",
+    "confirmed_by": "7659029315"
+  }
+}

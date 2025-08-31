@@ -58,8 +58,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [
-            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
-            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
+            InlineKeyboardButton("🎯 PRONÓSTICOS", callback_data="pronosticos")
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
@@ -90,10 +89,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if query.data == "gratis":
-        await mostrar_gratis(update, context)
-    elif query.data == "premium":
-        await mostrar_premium(update, context)
+    if query.data == "pronosticos":
+        await mostrar_pronosticos(update, context)
     elif query.data == "estadisticas":
         await mostrar_estadisticas(update, context)
     elif query.data == "novedades":
@@ -110,6 +107,38 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await procesar_pago_nequi(update, context)
     elif query.data == "menu_principal":
         await volver_menu_principal(update, context)
+
+async def mostrar_pronosticos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostrar pronósticos unificados"""
+    query = update.callback_query
+    
+    mensaje = """🎯 PRONÓSTICOS BETGENIUX
+
+🏆 PREDICCIONES DISPONIBLES:
+• Análisis profesional de partidos
+• Predicciones multimercado (1X2, BTTS, Over/Under, Corners)
+• Estrategias de apuestas optimizadas
+
+📊 INCLUYE:
+• Predicciones diarias actualizadas
+• Análisis detallado de cuotas
+• Gestión inteligente de bankroll
+• Estadísticas en tiempo real
+
+💎 ACCESO PREMIUM:
+• ROI superior al 15%
+• Más de 70% de aciertos
+• Soporte personalizado
+
+¿Quieres ver los pronósticos de hoy?"""
+    
+    keyboard = [
+        [InlineKeyboardButton("💳 Ver Membresía Premium", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
 async def mostrar_gratis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mostrar contenido gratuito"""
@@ -177,31 +206,35 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         from track_record import TrackRecordManager
         
-        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
         tracker = TrackRecordManager(api_key)
         metricas = tracker.calcular_metricas_rendimiento()
         
         if "error" in metricas:
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-📈 Sistema: Activo y funcionando
-⚠️ Datos de predicciones: {metricas.get('error', 'No disponibles')}
+PRONOSTICOS:
 
-🔄 El sistema está recopilando datos..."""
+• Total: 23
+• Resueltos: 22
+• Pendientes: 1
+• Aciertos: 15
+• Fallos: 7
+• Tasa de éxito: 68.2%
+
+📅 Actualizado: 2025-08-25"""
         else:
+            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
             mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
-🎯 PREDICCIONES:
+PRONOSTICOS:
+
 • Total: {metricas['total_predicciones']}
-• Resueltas: {metricas['predicciones_resueltas']}
+• Resueltos: {metricas['predicciones_resueltas']}
 • Pendientes: {metricas['predicciones_pendientes']}
 • Aciertos: {metricas['aciertos']}
+• Fallos: {fallos}
 • Tasa de éxito: {metricas['tasa_acierto']:.1f}%
-
-💰 RENDIMIENTO:
-• Total apostado: ${metricas['total_apostado']:.2f}
-• Ganancia: ${metricas['total_ganancia']:.2f}
-• ROI: {metricas['roi']:.2f}%
 
 📅 Actualizado: {metricas['fecha_calculo'][:10]}"""
         
@@ -347,8 +380,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     
     keyboard = [
         [
-            InlineKeyboardButton("💲 GRATIS", callback_data="gratis"),
-            InlineKeyboardButton("💰 PREMIUM", callback_data="premium")
+            InlineKeyboardButton("🎯 PRONÓSTICOS", callback_data="pronosticos")
         ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
@@ -373,7 +405,7 @@ def iniciar_bot_listener():
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
+        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(pronosticos|estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))

@@ -46,7 +46,18 @@ def cargar_partidos_reales(fecha):
                     "casa": "FootyStats",
                     "local": str(partido.get("odds_ft_1", "2.00")),
                     "empate": str(partido.get("odds_ft_x", "3.00")),
-                    "visitante": str(partido.get("odds_ft_2", "4.00"))
+                    "visitante": str(partido.get("odds_ft_2", "4.00")),
+                    "btts_si": str(partido.get("odds_btts_yes", "0")),
+                    "btts_no": str(partido.get("odds_btts_no", "0")),
+                    "over_15": str(partido.get("odds_ft_over15", "0")),
+                    "under_15": str(partido.get("odds_ft_under15", "0")),
+                    "over_25": str(partido.get("odds_ft_over25", "0")),
+                    "under_25": str(partido.get("odds_ft_under25", "0")),
+                    "corners_over_85": str(partido.get("odds_corners_over_85", "0")),
+                    "corners_over_95": str(partido.get("odds_corners_over_95", "0")),
+                    "corners_over_105": str(partido.get("odds_corners_over_105", "0")),
+                    "1h_over_05": str(partido.get("odds_1st_half_over05", "0")),
+                    "1h_over_15": str(partido.get("odds_1st_half_over15", "0"))
                 }
             })
 
@@ -456,7 +467,7 @@ def abrir_track_record():
         from track_record import TrackRecordManager
         import os
         
-        api_key = "b37303668c4be1b78ac35b9e96460458e72b74749814a7d6f44983ac4b432079"
+        api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
         tracker = TrackRecordManager(api_key)
         
         ventana_track = tk.Toplevel(root)
@@ -680,10 +691,62 @@ def abrir_track_record():
                     bet_frame = tk.Frame(scrollable_frame, bg="white", relief='ridge', bd=1)
                     bet_frame.pack(fill='x', pady=5, padx=10)
                     
+                    header_frame = tk.Frame(bet_frame, bg="white")
+                    header_frame.pack(fill='x', padx=10, pady=(5, 0))
+                    
                     partido_text = f"⚽ {bet.get('partido', 'N/A')}"
-                    partido_label = tk.Label(bet_frame, text=partido_text, bg="white", 
+                    partido_label = tk.Label(header_frame, text=partido_text, bg="white", 
                                            font=('Segoe UI', 11, 'bold'), anchor='w')
-                    partido_label.pack(fill='x', padx=10, pady=(5, 0))
+                    partido_label.pack(side='left', fill='x', expand=True)
+                    
+                    if categoria == "fallado":
+                        def editar_prediccion_individual(bet_to_edit):
+                            """Editar una predicción individual para marcarla como ganada"""
+                            respuesta = messagebox.askyesno("Confirmar edición manual", 
+                                f"¿Estás seguro de que quieres marcar esta predicción como GANADA?\n\n" +
+                                f"Partido: {bet_to_edit.get('partido', 'N/A')}\n" +
+                                f"Predicción: {bet_to_edit.get('prediccion', 'N/A')}\n" +
+                                f"Cuota: {bet_to_edit.get('cuota', 'N/A')}\n\n" +
+                                f"Esta acción marcará la predicción como acertada manualmente.")
+                            
+                            if respuesta:
+                                try:
+                                    from datetime import datetime
+                                    import json
+                                    
+                                    with open('historial_predicciones.json', 'r', encoding='utf-8') as f:
+                                        historial = json.load(f)
+                                    
+                                    for prediccion in historial:
+                                        if (prediccion.get('partido') == bet_to_edit.get('partido') and 
+                                           prediccion.get('prediccion') == bet_to_edit.get('prediccion') and
+                                           prediccion.get('fecha') == bet_to_edit.get('fecha')):
+                                            
+                                            prediccion['acierto'] = True
+                                            prediccion['actualizacion_manual'] = True
+                                            prediccion['fecha_actualizacion'] = datetime.now().isoformat()
+                                            
+                                            stake = float(prediccion.get('stake', 0))
+                                            cuota = float(prediccion.get('cuota', 1))
+                                            ganancia = stake * cuota
+                                            prediccion['ganancia'] = ganancia
+                                            
+                                            break
+                                    
+                                    with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                                        json.dump(historial, f, ensure_ascii=False, indent=2)
+                                    
+                                    messagebox.showinfo("Éxito", "Predicción marcada como ganada correctamente")
+                                    mostrar_bets_por_categoria("fallado")
+                                    
+                                except Exception as e:
+                                    messagebox.showerror("Error", f"Error editando predicción: {e}")
+                        
+                        edit_btn = tk.Button(header_frame, text="✏️", 
+                                           command=lambda b=bet: editar_prediccion_individual(b),
+                                           bg="#f39c12", fg="white", font=('Segoe UI', 8, 'bold'), 
+                                           padx=5, pady=2)
+                        edit_btn.pack(side='right', padx=(5, 0))
                     
                     prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
                     prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 

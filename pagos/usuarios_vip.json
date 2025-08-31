@@ -1,1 +1,16 @@
-{}
+{
+  "6937898258": {
+    "username": "sin_username",
+    "membership_type": "weekly",
+    "activated_at": "2025-08-14T00:41:33.106956",
+    "expires_at": "2025-08-21T00:41:33.106956",
+    "active": true
+  },
+  "8316148869": {
+    "username": "sin_username",
+    "membership_type": "weekly",
+    "activated_at": "2025-08-14T11:05:14.198652",
+    "expires_at": "2025-08-21T11:05:14.198652",
+    "active": true
+  }
+}

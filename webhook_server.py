@@ -75,41 +75,36 @@ def await_send_admin_notification(payment_result):
 📆 Fecha: {fecha}
 🔐 Acceso VIP activado correctamente"""
         
-        if TELEGRAM_TOKEN and ADMIN_TELEGRAM_ID:
-            enviar_telegram(TELEGRAM_TOKEN, ADMIN_TELEGRAM_ID, mensaje)
-        else:
-            logger.warning("Telegram token o admin ID no configurados")
+        enviar_telegram(mensaje, TELEGRAM_TOKEN, ADMIN_TELEGRAM_ID)
         
     except Exception as e:
         logger.error(f"Error enviando notificación al admin: {e}")
+
+def send_nequi_admin_notification(user_info, payment_info):
+    """Enviar notificación al administrador sobre pago NEQUI confirmado"""
+    try:
+        from datetime import datetime
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        mensaje = f"""✅ Pago NEQUI Confirmado
+👤 Usuario: @{user_info.get('username', 'sin_username')}
+💰 Monto: {payment_info.get('amount', 0):,} {payment_info.get('currency', 'COP')}
+📆 Fecha: {fecha}
+🔐 Acceso VIP activado correctamente"""
+        
+        enviar_telegram(mensaje, TELEGRAM_TOKEN, ADMIN_TELEGRAM_ID)
+        
+    except Exception as e:
+        logger.error(f"Error enviando notificación NEQUI al admin: {e}")
 
 def await_send_user_confirmation(payment_result):
     """Enviar confirmación al usuario"""
     try:
         user_id = payment_result.get('user_id')
         
-        try:
-            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            from access_manager import access_manager
-            
-            if access_manager.otorgar_acceso(user_id, 7):
-                logger.info(f"✅ Acceso premium otorgado a usuario {user_id}")
-                
-                mensaje = access_manager.generar_mensaje_confirmacion_premium(user_id)
-                logger.info(f"✅ Mensaje de confirmación generado para usuario {user_id}")
-            else:
-                logger.error(f"❌ Error otorgando acceso premium a usuario {user_id}")
-                mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
-                
-        except Exception as e:
-            logger.error(f"❌ Error activando acceso VIP: {e}")
-            mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
+        mensaje = "✅ Tu pago fue confirmado. Acceso VIP activado."
         
-        if TELEGRAM_TOKEN and user_id:
-            enviar_telegram(TELEGRAM_TOKEN, user_id, mensaje)
-            logger.info(f"✅ Mensaje de confirmación enviado a usuario {user_id}")
-        else:
-            logger.warning("Telegram token o user ID no disponibles")
+        enviar_telegram(mensaje, TELEGRAM_TOKEN, user_id)
         
     except Exception as e:
         logger.error(f"Error enviando confirmación al usuario: {e}")
