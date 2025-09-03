@@ -1,0 +1,20 @@
+{
+    "fecha": "2025-08-28",
+    "predicciones": [
+        {
+            "partido": "PAOK vs Rijeka",
+            "liga": "Champions League",
+            "hora": "10:30",
+            "prediccion": "Más de 2.5 goles",
+            "cuota": 2.0,
+            "stake_recomendado": 10,
+            "confianza": 79.3,
+            "valor_esperado": 0.585,
+            "razon": "Modelo predictivo estima 4.2 goles. Rendimiento ofensivo equipos favorece línea. VE: +58.5%",
+            "opcion_numero": 1,
+            "total_opciones": 2,
+            "sent_to_telegram": true,
+            "fecha_envio_telegram": "2025-09-02T23:40:19.261939"
+        }
+    ]
+}

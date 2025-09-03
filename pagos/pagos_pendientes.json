@@ -862,5 +862,41 @@
       "product": "api",
       "origin_ip": "2600:1011:a18f:e070:bdef:2bde:1179:a26"
     }
+  },
+  "5737885034": {
+    "user_id": "7659029315",
+    "username": "n3utro6",
+    "membership_type": "weekly",
+    "created_at": "2025-09-02T23:16:04.390382",
+    "payment_data": {
+      "payment_id": "5737885034",
+      "payment_status": "waiting",
+      "pay_address": "MGeh3GFjsfq2oFT5MRVU9dmyL4qFEKvPEo",
+      "price_amount": 12,
+      "price_currency": "usd",
+      "pay_amount": 0.1075762,
+      "amount_received": 0.1067398,
+      "pay_currency": "ltc",
+      "order_id": "sergiobets_7659029315_1756880162",
+      "order_description": "SergioBets 7-Day VIP Access - User n3utro6",
+      "payin_extra_id": null,
+      "ipn_callback_url": null,
+      "customer_email": null,
+      "created_at": "2025-09-03T06:16:03.633Z",
+      "updated_at": "2025-09-03T06:16:03.633Z",
+      "purchase_id": "6229145751",
+      "smart_contract": null,
+      "network": "ltc",
+      "network_precision": null,
+      "time_limit": null,
+      "burning_percent": null,
+      "expiration_estimate_date": "2025-09-03T06:36:03.633Z",
+      "is_fixed_rate": false,
+      "is_fee_paid_by_user": false,
+      "valid_until": "2025-09-10T06:16:03.633Z",
+      "type": "crypto2crypto",
+      "product": "api",
+      "origin_ip": "2600:1011:a18f:e070:472a:3288:3c53:78ce"
+    }
   }
 }

@@ -415,29 +415,30 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
     
     return predicciones_validas[:5]
 
-def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str) -> str:
+def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_numbers: Optional[List[int]] = None) -> str:
     if not predicciones:
-        return f"🤖 IA BetGeniuX - {fecha}\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
+        return f"BETGENIUX® ({fecha})\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
     
-    mensaje = f"🤖 IA BetGeniuX - ANÁLISIS AVANZADO ({fecha})\n\n"
+    if counter_numbers is None:
+        try:
+            from daily_counter import get_next_pronostico_numbers
+            counter_numbers = get_next_pronostico_numbers(len(predicciones))
+        except ImportError:
+            counter_numbers = list(range(1, len(predicciones) + 1))
     
-    for i, pred in enumerate(predicciones, 1):
-        mensaje += f"🎯 PICK #{i} - VALUE BET\n"
+    mensaje = f"BETGENIUX® ({fecha})\n\n"
+    
+    for i, pred in enumerate(predicciones):
+        numero_pronostico = counter_numbers[i] if i < len(counter_numbers) else i + 1
+        mensaje += f"🎯 PRONOSTICO #{numero_pronostico}\n"
         mensaje += f"🏆 {pred['liga']}\n"
-        mensaje += f"⚽ {pred['partido']}\n"
+        mensaje += f"⚽️ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
         mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
-        mensaje += f"📝 {pred['razon']}\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
-    total_ve = sum(pred['valor_esperado'] for pred in predicciones)
-    mensaje += f"📈 RESUMEN DEL DÍA:\n"
-    mensaje += f"• {len(predicciones)} value bets identificadas\n"
-    mensaje += f"• Valor esperado total: +{total_ve:.1f}%\n\n"
-    
-    mensaje += "🧠 Análisis generado por IA avanzada con modelos probabilísticos.\n"
-    mensaje += "⚠️ Apostar con responsabilidad."
+    mensaje += "⚠️ Apostar con responsabilidad"
     
     return mensaje
 
