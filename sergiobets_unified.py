@@ -384,8 +384,7 @@ class SergioBetsUnified:
         
         ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📊 Progreso", command=self.abrir_progreso).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="📢 Enviar a Telegram", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="📢 Enviar Alerta", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
@@ -670,7 +669,7 @@ class SergioBetsUnified:
         titulo_frame = tk.Frame(self.frame_predicciones, bg="#34495e")
         titulo_frame.pack(fill='x', pady=2)
         
-        titulo_text = "🤖 PREDICCIONES IA - SELECCIONA PICKS PARA ENVIAR"
+        titulo_text = "🎯 BETGENIUX® - SELECCIONA PRONÓSTICOS PARA ENVIAR"
         if liga_filtrada != 'Todas':
             titulo_text += f" - {liga_filtrada}"
         titulo_text += titulo_extra
@@ -694,7 +693,7 @@ class SergioBetsUnified:
             checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
             checkbox.pack(side=tk.LEFT)
             
-            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+            pred_text = f"🎯 PRONOSTICO #{i+1}: {pred['prediccion']} | ⚽️ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
             pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
                                  font=('Segoe UI', 9), anchor='w')
             pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
@@ -785,7 +784,13 @@ class SergioBetsUnified:
         
         try:
             if predicciones_seleccionadas:
-                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha)
+                try:
+                    from daily_counter import get_next_pronostico_numbers
+                    counter_numbers = get_next_pronostico_numbers(len(predicciones_seleccionadas))
+                except ImportError:
+                    counter_numbers = list(range(1, len(predicciones_seleccionadas) + 1))
+                
+                mensaje_predicciones = generar_mensaje_ia(predicciones_seleccionadas, fecha, counter_numbers)
                 mensaje_completo += mensaje_predicciones
                 
                 for pred in predicciones_seleccionadas:
@@ -793,11 +798,11 @@ class SergioBetsUnified:
                     pred['fecha_envio_telegram'] = datetime.now().isoformat()
                     guardar_prediccion_historica(pred, fecha)
                 
-                with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
+                with open("pronosticos_seleccionados.json", "w", encoding="utf-8") as f:
                     json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
                 
-                with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
-                    f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
+                with open("pronosticos_seleccionados.txt", "a", encoding="utf-8") as f:
+                    f.write(f"\n=== PRONÓSTICOS SELECCIONADOS {fecha} ===\n")
                     for pred in predicciones_seleccionadas:
                         f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
                     f.write("\n")
@@ -861,82 +866,31 @@ class SergioBetsUnified:
             messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
 
     def enviar_alerta(self):
-        """Enviar alerta general a Telegram"""
-        if hasattr(self, 'mensaje_telegram') and self.mensaje_telegram:
-            try:
-                resultado = enviar_telegram_masivo(self.mensaje_telegram)
-                if resultado["exito"]:
-                    mensaje_resultado = f"✅ El mensaje se ha enviado a Telegram correctamente.\n\n"
-                    mensaje_resultado += f"📊 Estadísticas de envío:\n"
-                    mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
-                    mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
-                    if resultado.get('usuarios_bloqueados', 0) > 0:
-                        mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
-                    if resultado.get('errores', 0) > 0:
-                        mensaje_resultado += f"• Errores: {resultado['errores']}\n"
-                    messagebox.showinfo("Enviado", mensaje_resultado)
-                else:
-                    error_msg = "No se pudo enviar el mensaje a Telegram. Revisa la conexión."
-                    if resultado.get('detalles_errores'):
-                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
-                    messagebox.showerror("Error", error_msg)
-            except Exception as e:
-                messagebox.showerror("Error", f"Error enviando a Telegram: {e}")
-        else:
-            messagebox.showwarning("Sin datos", "Debes buscar primero los partidos antes de enviar a Telegram.")
+        """Enviar alerta de pronóstico a Telegram"""
+        mensaje_alerta = """📢 ¡Alerta de pronostico! 📢
+Nuestro sistema ha detectado una oportunidad con valor.  
+En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
+        
+        try:
+            resultado = enviar_telegram_masivo(mensaje_alerta)
+            if resultado["exito"]:
+                mensaje_resultado = f"✅ La alerta se ha enviado a Telegram correctamente.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                messagebox.showinfo("Alerta Enviada", mensaje_resultado)
+            else:
+                error_msg = "No se pudo enviar la alerta a Telegram. Revisa la conexión."
+                if resultado.get('detalles_errores'):
+                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                messagebox.showerror("Error", error_msg)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando alerta a Telegram: {e}")
 
-    def abrir_progreso(self):
-        """Abrir ventana de progreso del usuario"""
-        def guardar_datos():
-            try:
-                deposito = float(entry_deposito.get())
-                meta = float(entry_meta.get())
-                saldo = float(entry_saldo.get())
-
-                self.progreso_data["deposito"] = deposito
-                self.progreso_data["meta"] = meta
-                self.progreso_data["saldo_actual"] = saldo
-
-                actualizar_barra()
-                self.guardar_datos_json(self.entry_fecha.get())
-            except ValueError:
-                messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos.")
-
-        def actualizar_barra():
-            progreso = (self.progreso_data["saldo_actual"] - self.progreso_data["deposito"]) / (self.progreso_data["meta"] - self.progreso_data["deposito"]) * 100
-            progreso = max(0, min(progreso, 100))
-            barra['value'] = progreso
-            label_resultado.config(text=f"📈 Progreso: {progreso:.2f}%")
-
-        ventana = tk.Toplevel(self.root)
-        ventana.title("📊 Progreso del Usuario")
-        ventana.geometry("400x300")
-        ventana.configure(bg="#f1f3f4")
-
-        ttk.Label(ventana, text="💵 Depósito inicial:").pack(pady=5)
-        entry_deposito = ttk.Entry(ventana)
-        entry_deposito.insert(0, str(self.progreso_data["deposito"]))
-        entry_deposito.pack()
-
-        ttk.Label(ventana, text="🎯 Meta objetivo:").pack(pady=5)
-        entry_meta = ttk.Entry(ventana)
-        entry_meta.insert(0, str(self.progreso_data["meta"]))
-        entry_meta.pack()
-
-        ttk.Label(ventana, text="📊 Saldo actual:").pack(pady=5)
-        entry_saldo = ttk.Entry(ventana)
-        entry_saldo.insert(0, str(self.progreso_data["saldo_actual"]))
-        entry_saldo.pack()
-
-        ttk.Button(ventana, text="✅ Guardar y calcular", command=guardar_datos).pack(pady=10)
-
-        barra = ttk.Progressbar(ventana, length=300, mode='determinate')
-        barra.pack(pady=10)
-
-        label_resultado = ttk.Label(ventana, text="")
-        label_resultado.pack()
-
-        actualizar_barra()
 
     def abrir_track_record(self):
         """Abre ventana de track record mejorada con filtros y tabla estructurada"""
