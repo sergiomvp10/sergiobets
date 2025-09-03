@@ -946,14 +946,23 @@ def abrir_pronostico():
         justificacion = entry_justificacion.get()
         fecha = date.today().strftime('%Y-%m-%d')
 
+        try:
+            from daily_counter import get_next_pronostico_numbers
+            counter_numbers = get_next_pronostico_numbers(1)
+            numero_pronostico = counter_numbers[0]
+        except ImportError:
+            numero_pronostico = 1
+
         mensaje = (
-            f"⚡️ PICK AVANZADO IA {fecha} ⚡️\n\n"
+            f"BETGENIUX® ({fecha})\n\n"
+            f"🎯 PRONOSTICO #{numero_pronostico}\n"
             f"🏆 {liga}\n"
-            f"{local} 🆚 {visitante}\n\n"
-            f"💥 {pronostico}\n"
-            f"📝 {justificacion}\n\n"
-            f"💰 Cuota: {cuota} | Stake {stake}u | {hora} ⏰\n"
-            f"🧠 Análisis probabilístico IA"
+            f"⚽️ {local} vs {visitante}\n"
+            f"🔮 {pronostico}\n"
+            f"💰 Cuota: {cuota} | Stake: {stake}u\n"
+            f"📊 Confianza: 60% | VE: +0.373\n"
+            f"⏰ {hora}\n\n"
+            f"⚠️ Apostar con responsabilidad"
         )
 
         try:
