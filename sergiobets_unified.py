@@ -670,7 +670,7 @@ class SergioBetsUnified:
         titulo_frame = tk.Frame(self.frame_predicciones, bg="#34495e")
         titulo_frame.pack(fill='x', pady=2)
         
-        titulo_text = "🤖 PREDICCIONES IA - SELECCIONA PICKS PARA ENVIAR"
+        titulo_text = "🎯 BETGENIUX® - SELECCIONA PRONÓSTICOS PARA ENVIAR"
         if liga_filtrada != 'Todas':
             titulo_text += f" - {liga_filtrada}"
         titulo_text += titulo_extra
@@ -694,7 +694,14 @@ class SergioBetsUnified:
             checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
             checkbox.pack(side=tk.LEFT)
             
-            pred_text = f"🎯 PICK #{i+1}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+            try:
+                from daily_counter import get_next_pronostico_numbers
+                counter_numbers = get_next_pronostico_numbers(1)
+                numero_pronostico = counter_numbers[0]
+            except ImportError:
+                numero_pronostico = i + 1
+            
+            pred_text = f"🎯 PRONOSTICO #{numero_pronostico}: {pred['prediccion']} | ⚽️ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
             pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
                                  font=('Segoe UI', 9), anchor='w')
             pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
@@ -793,11 +800,11 @@ class SergioBetsUnified:
                     pred['fecha_envio_telegram'] = datetime.now().isoformat()
                     guardar_prediccion_historica(pred, fecha)
                 
-                with open("picks_seleccionados.json", "w", encoding="utf-8") as f:
+                with open("pronosticos_seleccionados.json", "w", encoding="utf-8") as f:
                     json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
                 
-                with open("picks_seleccionados.txt", "a", encoding="utf-8") as f:
-                    f.write(f"\n=== PICKS SELECCIONADOS {fecha} ===\n")
+                with open("pronosticos_seleccionados.txt", "a", encoding="utf-8") as f:
+                    f.write(f"\n=== PRONÓSTICOS SELECCIONADOS {fecha} ===\n")
                     for pred in predicciones_seleccionadas:
                         f.write(f"{pred['partido']} | {pred['prediccion']} | {pred['cuota']} | {pred['razon']}\n")
                     f.write("\n")
