@@ -81,6 +81,7 @@ class SergioBetsUnified:
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
         
+        self.cleanup_cache_periodically()
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
     
@@ -385,6 +386,7 @@ class SergioBetsUnified:
         ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
         ttk.Button(frame_top, text="📢 Enviar Alerta", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_top, text="🧹 Limpiar Cache", command=self.limpiar_cache_api).pack(side=tk.LEFT, padx=2)
         ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
         ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
@@ -541,11 +543,21 @@ class SergioBetsUnified:
 
     def buscar_en_hilo(self):
         """Buscar en hilo separado"""
-        threading.Thread(target=self.buscar).start()
+        try:
+            from thread_pool_manager import thread_manager
+            executor = thread_manager.get_executor()
+            self.future_busqueda = executor.submit(self.buscar)
+        except ImportError:
+            threading.Thread(target=self.buscar).start()
 
     def regenerar_en_hilo(self):
         """Regenerar predicciones en hilo separado"""
-        threading.Thread(target=lambda: self.buscar(opcion_numero=2)).start()
+        try:
+            from thread_pool_manager import thread_manager
+            executor = thread_manager.get_executor()
+            self.future_regeneracion = executor.submit(lambda: self.buscar(opcion_numero=2))
+        except ImportError:
+            threading.Thread(target=lambda: self.buscar(opcion_numero=2)).start()
 
     def buscar(self, opcion_numero=1):
         """Buscar partidos y predicciones"""
@@ -891,6 +903,26 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando alerta a Telegram: {e}")
 
+
+    def limpiar_cache_api(self):
+        """Limpiar cache de API para forzar datos frescos"""
+        try:
+            from api_cache import APICache
+            cache = APICache()
+            cleared = cache.clear_expired()
+            messagebox.showinfo("Cache Limpiado", f"Se limpiaron {cleared} entradas de cache expiradas")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error limpiando cache: {e}")
+
+    def cleanup_cache_periodically(self):
+        """Limpiar cache automáticamente cada hora"""
+        try:
+            from api_cache import APICache
+            cache = APICache()
+            cache.clear_expired()
+            self.root.after(3600000, self.cleanup_cache_periodically)
+        except:
+            pass
 
     def abrir_track_record(self):
         """Abre ventana de track record mejorada con filtros y tabla estructurada"""

@@ -9,6 +9,8 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from json_storage import cargar_json, guardar_json
+from json_optimizer import JSONOptimizer
+from error_handler import safe_file_operation
 
 VALID_MATCH_STATUSES = ["complete", "finished", "ft", "full-time", "ended"]
 INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended"]
@@ -57,7 +59,7 @@ class TrackRecordManager:
             print(f"  ❌ Error in flexible team matching: {e}")
             return None
 
-    def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 10) -> Optional[Dict[str, Any]]:
+    def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
         """
         Obtiene el resultado de un partido específico de la API con timeout
         """
@@ -312,7 +314,8 @@ class TrackRecordManager:
             print(f"Error corrigiendo datos históricos: {e}")
             return {"error": str(e)}
 
-    def actualizar_historial_con_resultados(self, max_matches=10, timeout_per_match=15) -> Dict[str, Any]:
+    @safe_file_operation(default_return={"actualizados": 0, "errores": 0})
+    def actualizar_historial_con_resultados(self, max_matches=10, timeout_per_match=8) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
         Optimizado para evitar colgados con límites y timeouts

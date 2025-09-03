@@ -52,7 +52,7 @@ def test_ngrok_payment_creation():
             f"{ngrok_url}/api/create_payment",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=15
+            timeout=8
         )
         
         if response.status_code == 200:
@@ -98,7 +98,7 @@ def test_ngrok_ipn_webhook(payment_id):
             f"{ngrok_url}/webhook/nowpayments",
             json=ipn_payload,
             headers={"Content-Type": "application/json"},
-            timeout=15
+            timeout=8
         )
         
         if response.status_code == 200:

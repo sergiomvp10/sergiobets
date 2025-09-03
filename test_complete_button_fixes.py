@@ -37,7 +37,7 @@ def test_actualizar_resultados_pending_only():
         "2025-08-04",
         "Athletic Club", 
         "Atlético GO",
-        timeout=15
+        timeout=8
     )
     
     if resultado:
@@ -142,7 +142,7 @@ def test_historical_date_processing():
         "2025-08-04",
         "Athletic Club", 
         "Atlético GO",
-        timeout=15
+        timeout=8
     )
     
     if resultado:
