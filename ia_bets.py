@@ -628,7 +628,7 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
         partido_con_fecha = {**partido, 'fecha': fecha}
         
         analisis = analizar_partido_completo(partido_con_fecha)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=True)
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=50, bypass_filters=True)
         
         if not mejores_apuestas:
             log_data = {
