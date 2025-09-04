@@ -86,7 +86,7 @@ def calcular_probabilidades_btts(semilla: int) -> Dict[str, float]:
     }
 
 def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, Any]] = None, semilla: int = 0) -> Dict[str, float]:
-    """Calcula probabilidades de Over/Under con análisis contextual"""
+    """Calcula probabilidades de Over/Under con análisis contextual para todos los rangos"""
     np.random.seed(semilla + 2)
     goles_esperados = float(np.random.normal(2.7, 0.8))
     
@@ -96,29 +96,40 @@ def calcular_probabilidades_over_under(rendimiento_equipos: Optional[Dict[str, A
     
     goles_esperados = max(1.5, min(4.5, goles_esperados))
     
-    prob_over_25 = float(1 - stats.poisson.cdf(2, goles_esperados))
+    prob_over_05 = float(1 - stats.poisson.cdf(0, goles_esperados))
     prob_over_15 = float(1 - stats.poisson.cdf(1, goles_esperados))
+    prob_over_25 = float(1 - stats.poisson.cdf(2, goles_esperados))
+    prob_over_35 = float(1 - stats.poisson.cdf(3, goles_esperados))
+    prob_over_45 = float(1 - stats.poisson.cdf(4, goles_esperados))
+    prob_over_55 = float(1 - stats.poisson.cdf(5, goles_esperados))
     
     return {
-        "over_15": prob_over_15,
-        "under_15": 1 - prob_over_15,
-        "over_25": prob_over_25,
-        "under_25": 1 - prob_over_25,
+        "over_05": prob_over_05, "under_05": 1 - prob_over_05,
+        "over_15": prob_over_15, "under_15": 1 - prob_over_15,
+        "over_25": prob_over_25, "under_25": 1 - prob_over_25,
+        "over_35": prob_over_35, "under_35": 1 - prob_over_35,
+        "over_45": prob_over_45, "under_45": 1 - prob_over_45,
+        "over_55": prob_over_55, "under_55": 1 - prob_over_55,
         "goles_esperados": goles_esperados
     }
 
 def calcular_probabilidades_primera_mitad(semilla: int) -> Dict[str, float]:
-    """Calcula probabilidades de goles en primera mitad"""
+    """Calcula probabilidades de goles en primera mitad con rangos extendidos"""
     np.random.seed(semilla + 3)
     goles_primera_mitad = float(np.random.normal(1.2, 0.5))
     goles_primera_mitad = max(0.5, min(2.5, goles_primera_mitad))
     
     prob_over_05_1h = float(1 - stats.poisson.pmf(0, goles_primera_mitad))
     prob_over_15_1h = float(1 - stats.poisson.cdf(1, goles_primera_mitad))
+    prob_over_25_1h = float(1 - stats.poisson.cdf(2, goles_primera_mitad))
+    prob_over_35_1h = float(1 - stats.poisson.cdf(3, goles_primera_mitad))
     
     return {
-        "over_05_1h": prob_over_05_1h,
-        "over_15_1h": prob_over_15_1h,
+        "over_05_1h": prob_over_05_1h, "under_05_1h": 1 - prob_over_05_1h,
+        "over_15_1h": prob_over_15_1h, "under_15_1h": 1 - prob_over_15_1h,
+        "over_25_1h": prob_over_25_1h, "under_25_1h": 1 - prob_over_25_1h,
+        "over_35_1h": prob_over_35_1h, "under_35_1h": 1 - prob_over_35_1h,
+        "result_1_1h": 0.35, "result_x_1h": 0.45, "result_2_1h": 0.35,
         "goles_esperados_1h": goles_primera_mitad
     }
 
@@ -248,6 +259,22 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     prob_corners = calcular_probabilidades_corners(rendimiento, semilla)
     prob_handicap = calcular_probabilidades_handicap(cuotas, rendimiento)
     
+    prob_segunda_mitad = {
+        "over_05_2h": 0.5, "under_05_2h": 0.5,
+        "over_15_2h": 0.3, "under_15_2h": 0.7,
+        "over_25_2h": 0.1, "under_25_2h": 0.9,
+        "result_1_2h": prob_1x2["local"] * 0.6,
+        "result_x_2h": 0.3,
+        "result_2_2h": prob_1x2["visitante"] * 0.6,
+        "goles_2h_esperados": 1.3
+    }
+    
+    prob_double_chance = {
+        "dc_1x": prob_1x2["local"] + prob_1x2["empate"],
+        "dc_12": prob_1x2["local"] + prob_1x2["visitante"],
+        "dc_x2": prob_1x2["empate"] + prob_1x2["visitante"]
+    }
+    
     cuotas_disponibles = {}
     if 'cuotas_disponibles' in partido:
         cuotas_disponibles = partido['cuotas_disponibles'].copy()
@@ -266,6 +293,8 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
         "probabilidades_btts": prob_btts,
         "probabilidades_over_under": prob_over_under,
         "probabilidades_primera_mitad": prob_primera_mitad,
+        "probabilidades_segunda_mitad": prob_segunda_mitad,
+        "probabilidades_double_chance": prob_double_chance,
         "probabilidades_tarjetas": prob_tarjetas,
         "probabilidades_corners": prob_corners,
         "probabilidades_handicap": prob_handicap,
@@ -301,25 +330,77 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
         ("BTTS", "btts_si", analisis.get("probabilidades_btts", {}).get("btts_si", 0.5), cuotas_reales.get("btts_si", "0"), "Ambos equipos marcan - SÍ"),
         ("BTTS", "btts_no", analisis.get("probabilidades_btts", {}).get("btts_no", 0.5), cuotas_reales.get("btts_no", "0"), "Ambos equipos marcan - NO"),
         
+        ("Over/Under", "over_05", analisis.get("probabilidades_over_under", {}).get("over_05", 0.9), cuotas_reales.get("over_05", "0"), "Más de 0.5 goles"),
+        ("Over/Under", "under_05", analisis.get("probabilidades_over_under", {}).get("under_05", 0.1), cuotas_reales.get("under_05", "0"), "Menos de 0.5 goles"),
         ("Over/Under", "over_15", analisis.get("probabilidades_over_under", {}).get("over_15", 0.8), cuotas_reales.get("over_15", "0"), "Más de 1.5 goles"),
         ("Over/Under", "under_15", analisis.get("probabilidades_over_under", {}).get("under_15", 0.2), cuotas_reales.get("under_15", "0"), "Menos de 1.5 goles"),
         ("Over/Under", "over_25", analisis.get("probabilidades_over_under", {}).get("over_25", 0.6), cuotas_reales.get("over_25", "0"), "Más de 2.5 goles"),
         ("Over/Under", "under_25", analisis.get("probabilidades_over_under", {}).get("under_25", 0.4), cuotas_reales.get("under_25", "0"), "Menos de 2.5 goles"),
-        
-        ("Corners", "over_85", analisis.get("probabilidades_corners", {}).get("over_85_corners", 0.6), cuotas_reales.get("corners_over_85", "0"), "Más de 8.5 corners"),
-        ("Corners", "over_95", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.5), cuotas_reales.get("corners_over_95", "0"), "Más de 9.5 corners"),
-        ("Corners", "over_105", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.4), cuotas_reales.get("corners_over_105", "0"), "Más de 10.5 corners"),
+        ("Over/Under", "over_35", analisis.get("probabilidades_over_under", {}).get("over_35", 0.4), cuotas_reales.get("over_35", "0"), "Más de 3.5 goles"),
+        ("Over/Under", "under_35", analisis.get("probabilidades_over_under", {}).get("under_35", 0.6), cuotas_reales.get("under_35", "0"), "Menos de 3.5 goles"),
+        ("Over/Under", "over_45", analisis.get("probabilidades_over_under", {}).get("over_45", 0.2), cuotas_reales.get("over_45", "0"), "Más de 4.5 goles"),
+        ("Over/Under", "under_45", analisis.get("probabilidades_over_under", {}).get("under_45", 0.8), cuotas_reales.get("under_45", "0"), "Menos de 4.5 goles"),
+        ("Over/Under", "over_55", analisis.get("probabilidades_over_under", {}).get("over_55", 0.1), cuotas_reales.get("over_55", "0"), "Más de 5.5 goles"),
+        ("Over/Under", "under_55", analisis.get("probabilidades_over_under", {}).get("under_55", 0.9), cuotas_reales.get("under_55", "0"), "Menos de 5.5 goles"),
         
         ("1H", "over_05", analisis.get("probabilidades_primera_mitad", {}).get("over_05_1h", 0.6), cuotas_reales.get("1h_over_05", "0"), "Más de 0.5 goles 1H"),
+        ("1H", "under_05", analisis.get("probabilidades_primera_mitad", {}).get("under_05_1h", 0.4), cuotas_reales.get("1h_under_05", "0"), "Menos de 0.5 goles 1H"),
         ("1H", "over_15", analisis.get("probabilidades_primera_mitad", {}).get("over_15_1h", 0.3), cuotas_reales.get("1h_over_15", "0"), "Más de 1.5 goles 1H"),
+        ("1H", "under_15", analisis.get("probabilidades_primera_mitad", {}).get("under_15_1h", 0.7), cuotas_reales.get("1h_under_15", "0"), "Menos de 1.5 goles 1H"),
+        ("1H", "over_25", analisis.get("probabilidades_primera_mitad", {}).get("over_25_1h", 0.1), cuotas_reales.get("1h_over_25", "0"), "Más de 2.5 goles 1H"),
+        ("1H", "under_25", analisis.get("probabilidades_primera_mitad", {}).get("under_25_1h", 0.9), cuotas_reales.get("1h_under_25", "0"), "Menos de 2.5 goles 1H"),
+        ("1H", "result_1", analisis.get("probabilidades_primera_mitad", {}).get("result_1_1h", 0.35), cuotas_reales.get("1h_result_1", "0"), f"Victoria {analisis['partido'].split(' vs ')[0]} 1H"),
+        ("1H", "result_x", analisis.get("probabilidades_primera_mitad", {}).get("result_x_1h", 0.45), cuotas_reales.get("1h_result_x", "0"), "Empate 1H"),
+        ("1H", "result_2", analisis.get("probabilidades_primera_mitad", {}).get("result_2_1h", 0.35), cuotas_reales.get("1h_result_2", "0"), f"Victoria {analisis['partido'].split(' vs ')[1]} 1H"),
+        
+        ("2H", "over_05", analisis.get("probabilidades_segunda_mitad", {}).get("over_05_2h", 0.5), cuotas_reales.get("2h_over_05", "0"), "Más de 0.5 goles 2H"),
+        ("2H", "under_05", analisis.get("probabilidades_segunda_mitad", {}).get("under_05_2h", 0.5), cuotas_reales.get("2h_under_05", "0"), "Menos de 0.5 goles 2H"),
+        ("2H", "over_15", analisis.get("probabilidades_segunda_mitad", {}).get("over_15_2h", 0.3), cuotas_reales.get("2h_over_15", "0"), "Más de 1.5 goles 2H"),
+        ("2H", "under_15", analisis.get("probabilidades_segunda_mitad", {}).get("under_15_2h", 0.7), cuotas_reales.get("2h_under_15", "0"), "Menos de 1.5 goles 2H"),
+        ("2H", "over_25", analisis.get("probabilidades_segunda_mitad", {}).get("over_25_2h", 0.1), cuotas_reales.get("2h_over_25", "0"), "Más de 2.5 goles 2H"),
+        ("2H", "under_25", analisis.get("probabilidades_segunda_mitad", {}).get("under_25_2h", 0.9), cuotas_reales.get("2h_under_25", "0"), "Menos de 2.5 goles 2H"),
+        ("2H", "result_1", analisis.get("probabilidades_segunda_mitad", {}).get("result_1_2h", 0.3), cuotas_reales.get("2h_result_1", "0"), f"Victoria {analisis['partido'].split(' vs ')[0]} 2H"),
+        ("2H", "result_x", analisis.get("probabilidades_segunda_mitad", {}).get("result_x_2h", 0.3), cuotas_reales.get("2h_result_x", "0"), "Empate 2H"),
+        ("2H", "result_2", analisis.get("probabilidades_segunda_mitad", {}).get("result_2_2h", 0.3), cuotas_reales.get("2h_result_2", "0"), f"Victoria {analisis['partido'].split(' vs ')[1]} 2H"),
+        
+        ("DC", "1x", analisis.get("probabilidades_double_chance", {}).get("dc_1x", 0.7), cuotas_reales.get("dc_1x", "0"), f"{analisis['partido'].split(' vs ')[0]} o Empate"),
+        ("DC", "12", analisis.get("probabilidades_double_chance", {}).get("dc_12", 0.7), cuotas_reales.get("dc_12", "0"), f"{analisis['partido'].split(' vs ')[0]} o {analisis['partido'].split(' vs ')[1]}"),
+        ("DC", "x2", analisis.get("probabilidades_double_chance", {}).get("dc_x2", 0.7), cuotas_reales.get("dc_x2", "0"), f"Empate o {analisis['partido'].split(' vs ')[1]}"),
+        
+        ("Corners", "over_85", analisis.get("probabilidades_corners", {}).get("over_85_corners", 0.6), cuotas_reales.get("corners_over_85", "0"), "Más de 8.5 corners"),
+        ("Corners", "under_85", analisis.get("probabilidades_corners", {}).get("under_85_corners", 0.4), cuotas_reales.get("corners_under_85", "0"), "Menos de 8.5 corners"),
+        ("Corners", "over_95", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.5), cuotas_reales.get("corners_over_95", "0"), "Más de 9.5 corners"),
+        ("Corners", "under_95", analisis.get("probabilidades_corners", {}).get("under_105_corners", 0.5), cuotas_reales.get("corners_under_95", "0"), "Menos de 9.5 corners"),
+        ("Corners", "over_105", analisis.get("probabilidades_corners", {}).get("over_105_corners", 0.4), cuotas_reales.get("corners_over_105", "0"), "Más de 10.5 corners"),
+        ("Corners", "under_105", analisis.get("probabilidades_corners", {}).get("under_105_corners", 0.6), cuotas_reales.get("corners_under_105", "0"), "Menos de 10.5 corners"),
+        ("Corners", "over_115", analisis.get("probabilidades_corners", {}).get("over_115_corners", 0.3), cuotas_reales.get("corners_over_115", "0"), "Más de 11.5 corners"),
+        ("Corners", "under_115", analisis.get("probabilidades_corners", {}).get("under_115_corners", 0.7), cuotas_reales.get("corners_under_115", "0"), "Menos de 11.5 corners"),
+        
+        ("Tarjetas", "over_35", analisis.get("probabilidades_tarjetas", {}).get("over_35_cards", 0.6), cuotas_reales.get("cards_over_35", "0"), "Más de 3.5 tarjetas"),
+        ("Tarjetas", "under_35", analisis.get("probabilidades_tarjetas", {}).get("under_35_cards", 0.4), cuotas_reales.get("cards_under_35", "0"), "Menos de 3.5 tarjetas"),
+        ("Tarjetas", "over_45", analisis.get("probabilidades_tarjetas", {}).get("over_45_cards", 0.4), cuotas_reales.get("cards_over_45", "0"), "Más de 4.5 tarjetas"),
+        ("Tarjetas", "under_45", analisis.get("probabilidades_tarjetas", {}).get("under_45_cards", 0.6), cuotas_reales.get("cards_under_45", "0"), "Menos de 4.5 tarjetas"),
+        ("Tarjetas", "over_55", analisis.get("probabilidades_tarjetas", {}).get("over_55_cards", 0.3), cuotas_reales.get("cards_over_55", "0"), "Más de 5.5 tarjetas"),
+        ("Tarjetas", "under_55", analisis.get("probabilidades_tarjetas", {}).get("under_55_cards", 0.7), cuotas_reales.get("cards_under_55", "0"), "Menos de 5.5 tarjetas"),
+        
+        ("Handicap", "home_minus_05", analisis.get("probabilidades_handicap", {}).get("handicap_local_05", 0.5), cuotas_reales.get("handicap_home_minus_05", "0"), f"{analisis['partido'].split(' vs ')[0]} -0.5"),
+        ("Handicap", "home_plus_05", analisis.get("probabilidades_handicap", {}).get("handicap_local_05", 0.5), cuotas_reales.get("handicap_home_plus_05", "0"), f"{analisis['partido'].split(' vs ')[0]} +0.5"),
+        ("Handicap", "away_minus_05", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_05", 0.5), cuotas_reales.get("handicap_away_minus_05", "0"), f"{analisis['partido'].split(' vs ')[1]} -0.5"),
+        ("Handicap", "away_plus_05", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_05", 0.5), cuotas_reales.get("handicap_away_plus_05", "0"), f"{analisis['partido'].split(' vs ')[1]} +0.5"),
+        ("Handicap", "home_minus_10", analisis.get("probabilidades_handicap", {}).get("handicap_local_10", 0.4), cuotas_reales.get("handicap_home_minus_10", "0"), f"{analisis['partido'].split(' vs ')[0]} -1.0"),
+        ("Handicap", "home_plus_10", analisis.get("probabilidades_handicap", {}).get("handicap_local_10", 0.6), cuotas_reales.get("handicap_home_plus_10", "0"), f"{analisis['partido'].split(' vs ')[0]} +1.0"),
+        ("Handicap", "away_minus_10", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_10", 0.4), cuotas_reales.get("handicap_away_minus_10", "0"), f"{analisis['partido'].split(' vs ')[1]} -1.0"),
+        ("Handicap", "away_plus_10", analisis.get("probabilidades_handicap", {}).get("handicap_visitante_10", 0.6), cuotas_reales.get("handicap_away_plus_10", "0"), f"{analisis['partido'].split(' vs ')[1]} +1.0"),
     ]
     
     for tipo_mercado, mercado, probabilidad, cuota_str, descripcion in mercados_disponibles:
         try:
             cuota_real = float(cuota_str)
+            source = "api" if cuota_real > 1.0 else "calculated"
             
             if cuota_real <= 1.0:
-                continue
+                cuota_real = 1.0 / probabilidad if probabilidad > 0 else 2.0
+                source = "calculated"
                 
             if not bypass_filters and not (cuota_min <= cuota_real <= cuota_max):
                 continue
@@ -328,7 +409,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
             
             if bypass_filters or (es_value and ve >= valor_minimo):
                 edge_percentage = ve * 100
-                cumple_publicacion = es_value and ve >= 0.05 and (cuota_min <= cuota_real <= cuota_max)
+                cumple_publicacion = es_value and ve >= 0.05 and (cuota_min <= cuota_real <= cuota_max) and source == "api"
                 
                 mejores_apuestas.append({
                     "tipo": tipo_mercado,
@@ -341,6 +422,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
                     "cumple_publicacion": cumple_publicacion,
                     "confianza": probabilidad * 100,
                     "stake_recomendado": min(10, max(1, int(abs(ve) * 50))),
+                    "source": source,
                     "justificacion": generar_justificacion({
                         "tipo": tipo_mercado,
                         "mercado": mercado,
