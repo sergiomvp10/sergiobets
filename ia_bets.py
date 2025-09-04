@@ -248,6 +248,16 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     prob_corners = calcular_probabilidades_corners(rendimiento, semilla)
     prob_handicap = calcular_probabilidades_handicap(cuotas, rendimiento)
     
+    cuotas_disponibles = {}
+    if 'cuotas_disponibles' in partido:
+        cuotas_disponibles = partido['cuotas_disponibles'].copy()
+    else:
+        cuotas_disponibles = {
+            "local": float(cuotas.get("local", 1.0)),
+            "empate": float(cuotas.get("empate", 1.0)),
+            "visitante": float(cuotas.get("visitante", 1.0))
+        }
+    
     return {
         "partido": f"{local} vs {visitante}",
         "liga": partido.get("liga", "Desconocida"),
@@ -260,7 +270,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
         "probabilidades_corners": prob_corners,
         "probabilidades_handicap": prob_handicap,
         "rendimiento_equipos": rendimiento,
-        "cuotas_disponibles": cuotas
+        "cuotas_disponibles": cuotas_disponibles
     }
 
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
@@ -311,12 +321,15 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
             if cuota_real <= 1.0:
                 continue
                 
-            if not (cuota_min <= cuota_real <= cuota_max):
+            if not bypass_filters and not (cuota_min <= cuota_real <= cuota_max):
                 continue
                 
             ve, es_value = calcular_value_bet(probabilidad, cuota_real)
             
-            if bypass_filters or es_value:
+            if bypass_filters or (es_value and ve >= valor_minimo):
+                edge_percentage = ve * 100
+                cumple_publicacion = es_value and ve >= 0.05 and (cuota_min <= cuota_real <= cuota_max)
+                
                 mejores_apuestas.append({
                     "tipo": tipo_mercado,
                     "mercado": mercado,
@@ -324,8 +337,19 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
                     "probabilidad": probabilidad,
                     "cuota": cuota_real,
                     "valor_esperado": ve,
+                    "edge_percentage": edge_percentage,
+                    "cumple_publicacion": cumple_publicacion,
                     "confianza": probabilidad * 100,
-                    "ajuste": "ninguno"
+                    "stake_recomendado": min(10, max(1, int(abs(ve) * 50))),
+                    "justificacion": generar_justificacion({
+                        "tipo": tipo_mercado,
+                        "mercado": mercado,
+                        "descripcion": descripcion,
+                        "probabilidad": probabilidad,
+                        "cuota": cuota_real,
+                        "valor_esperado": ve,
+                        "confianza": probabilidad * 100
+                    }, analisis)
                 })
                 
         except (ValueError, TypeError):
