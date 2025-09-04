@@ -51,7 +51,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             mensaje_acceso = ""
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\n⚠️ Tu acceso premium ha expirado o no tienes acceso premium. ⚠️  \nContacta soporte para renovarlo o adquiere una membresía."
+    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
     
     keyboard = [
         [
@@ -68,7 +68,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    mensaje += "\n\n🔽 Selecciona una opción del menú:"
     
     await update.message.reply_text(mensaje, reply_markup=reply_markup)
 
@@ -373,7 +372,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     user = query.from_user
     first_name = user.first_name
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\n⚠️ Tu acceso premium ha expirado o no tienes acceso premium. ⚠️  \nContacta soporte para renovarlo o adquiere una membresía.\n\n🔽 Selecciona una opción del menú:"
+    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
     
     keyboard = [
         [
