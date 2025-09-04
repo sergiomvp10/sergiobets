@@ -75,6 +75,17 @@ class SergioBetsUnified:
             self.ngrok_process = None
             self.ngrok_url = None
             self.running = True
+            
+            try:
+                from daily_counter import reset_daily_counter, get_current_date, load_counter_data
+                counter_data = load_counter_data()
+                if counter_data.get("date") != get_current_date():
+                    reset_daily_counter()
+                    logger.info("✅ Daily counter reset for new day")
+            except ImportError:
+                logger.warning("⚠️ Daily counter module not available")
+                pass
+            
             logger.info("✅ SergioBetsUnified initialized successfully")
         except Exception as e:
             logger.error(f"❌ Error initializing SergioBetsUnified: {e}")
@@ -612,7 +623,8 @@ class SergioBetsUnified:
             self.mostrar_predicciones_con_checkboxes(predicciones_ia, liga_filtrada, titulo_extra)
             self.mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha)
 
-            self.mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha)
+            preview_counter_numbers = list(range(1, len(predicciones_ia) + 1))
+            self.mensaje_telegram = generar_mensaje_ia(predicciones_ia, fecha, preview_counter_numbers)
             if liga_filtrada == 'Todas':
                 self.mensaje_telegram += f"\n\n⚽ TODOS LOS PARTIDOS ({fecha})\n\n"
             else:
