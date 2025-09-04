@@ -145,11 +145,16 @@ def calcular_probabilidades_tarjetas(rendimiento_equipos: Optional[Dict[str, Any
     tarjetas_esperadas = max(2.0, min(8.0, tarjetas_esperadas))
     
     prob_over_35_cards = float(1 - stats.poisson.cdf(3, tarjetas_esperadas))
+    prob_over_45_cards = float(1 - stats.poisson.cdf(4, tarjetas_esperadas))
     prob_over_55_cards = float(1 - stats.poisson.cdf(5, tarjetas_esperadas))
     
     return {
         "over_35_cards": prob_over_35_cards,
+        "under_35_cards": 1 - prob_over_35_cards,
+        "over_45_cards": prob_over_45_cards,
+        "under_45_cards": 1 - prob_over_45_cards,
         "over_55_cards": prob_over_55_cards,
+        "under_55_cards": 1 - prob_over_55_cards,
         "tarjetas_esperadas": tarjetas_esperadas
     }
 
@@ -165,11 +170,19 @@ def calcular_probabilidades_corners(rendimiento_equipos: Optional[Dict[str, Any]
     corners_esperados = max(6.0, min(16.0, corners_esperados))
     
     prob_over_85_corners = float(1 - stats.poisson.cdf(8, corners_esperados))
+    prob_over_95_corners = float(1 - stats.poisson.cdf(9, corners_esperados))
     prob_over_105_corners = float(1 - stats.poisson.cdf(10, corners_esperados))
+    prob_over_115_corners = float(1 - stats.poisson.cdf(11, corners_esperados))
     
     return {
         "over_85_corners": prob_over_85_corners,
+        "under_85_corners": 1 - prob_over_85_corners,
+        "over_95_corners": prob_over_95_corners,
+        "under_95_corners": 1 - prob_over_95_corners,
         "over_105_corners": prob_over_105_corners,
+        "under_105_corners": 1 - prob_over_105_corners,
+        "over_115_corners": prob_over_115_corners,
+        "under_115_corners": 1 - prob_over_115_corners,
         "corners_esperados": corners_esperados
     }
 
@@ -187,21 +200,21 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
         prob_handicap_local_05 = prob_1x2["local"] * factor_forma
         prob_handicap_visitante_05 = 1 - prob_handicap_local_05
         
-        prob_handicap_local_15 = prob_1x2["local"] * 0.6 * factor_forma
-        prob_handicap_visitante_15 = 1 - prob_handicap_local_15
+        prob_handicap_local_10 = prob_1x2["local"] * 0.6 * factor_forma
+        prob_handicap_visitante_10 = 1 - prob_handicap_local_10
         
         return {
             "handicap_local_05": prob_handicap_local_05,
             "handicap_visitante_05": prob_handicap_visitante_05,
-            "handicap_local_15": prob_handicap_local_15,
-            "handicap_visitante_15": prob_handicap_visitante_15
+            "handicap_local_10": prob_handicap_local_10,
+            "handicap_visitante_10": prob_handicap_visitante_10
         }
     except:
         return {
             "handicap_local_05": 0.5,
             "handicap_visitante_05": 0.5,
-            "handicap_local_15": 0.35,
-            "handicap_visitante_15": 0.65
+            "handicap_local_10": 0.4,
+            "handicap_visitante_10": 0.6
         }
 
 def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
