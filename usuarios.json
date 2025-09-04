@@ -57,5 +57,14 @@
     "premium": false,
     "fecha_expiracion": null,
     "fecha_registro": "2025-08-04T18:21:51.354306"
+  },
+  {
+    "user_id": "test_traceability_123",
+    "username": "testuser",
+    "first_name": "Test User",
+    "premium": false,
+    "fecha_expiracion": null,
+    "fecha_registro": "2025-09-03T22:00:30.541833",
+    "bot_username": "BetGeniuXbot"
   }
 ]

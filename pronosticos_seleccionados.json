@@ -1,20 +1,20 @@
 {
-    "fecha": "2025-08-28",
+    "fecha": "2025-09-12",
     "predicciones": [
         {
-            "partido": "PAOK vs Rijeka",
-            "liga": "Champions League",
-            "hora": "10:30",
-            "prediccion": "Más de 2.5 goles",
-            "cuota": 2.0,
+            "partido": "Huracán vs Vélez Sarsfield",
+            "liga": "Liga Argentina",
+            "hora": "15:00",
+            "prediccion": "Más de 1.5 goles",
+            "cuota": 1.62,
             "stake_recomendado": 10,
-            "confianza": 79.3,
-            "valor_esperado": 0.585,
-            "razon": "Modelo predictivo estima 4.2 goles. Rendimiento ofensivo equipos favorece línea. VE: +58.5%",
+            "confianza": 93.9,
+            "valor_esperado": 0.521,
+            "razon": "Modelo predictivo estima 4.5 goles. Rendimiento ofensivo equipos favorece línea. VE: +52.1%",
             "opcion_numero": 1,
-            "total_opciones": 2,
+            "total_opciones": 1,
             "sent_to_telegram": true,
-            "fecha_envio_telegram": "2025-09-02T23:40:19.261939"
+            "fecha_envio_telegram": "2025-09-03T22:59:28.747920"
         }
     ]
 }

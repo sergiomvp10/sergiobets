@@ -51,15 +51,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             mensaje_acceso = ""
     
-    if es_nuevo:
-        mensaje = f"¡Hola {first_name}! 👋\n\nBienvenido a BetGeniuX 🎯\n\nTe has registrado exitosamente para recibir nuestros pronósticos de apuestas deportivas.\n\n¡Prepárate para ganar! 💰{mensaje_acceso}"
-    else:
-        mensaje = f"¡Hola de nuevo {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰{mensaje_acceso}"
+    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
     
     keyboard = [
-        [
-            InlineKeyboardButton("🎯 PRONÓSTICOS", callback_data="pronosticos")
-        ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
             InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
@@ -71,7 +65,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    mensaje += "\n\n🔽 Selecciona una opción del menú:"
     
     await update.message.reply_text(mensaje, reply_markup=reply_markup)
 
@@ -376,12 +369,9 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     user = query.from_user
     first_name = user.first_name
     
-    mensaje = f"¡Hola {first_name}! 👋\n\nYa estás registrado en BetGeniuX 🎯\n\n¡Listo para más pronósticos ganadores! 💰\n\n🔽 Selecciona una opción del menú:"
+    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
     
     keyboard = [
-        [
-            InlineKeyboardButton("🎯 PRONÓSTICOS", callback_data="pronosticos")
-        ],
         [
             InlineKeyboardButton("📊 ESTADÍSTICAS", callback_data="estadisticas"),
             InlineKeyboardButton("📢 ANUNCIOS", callback_data="novedades")
