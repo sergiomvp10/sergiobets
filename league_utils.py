@@ -6,6 +6,10 @@ def detectar_liga_por_imagen(home_image, away_image):
     """
     if home_image and 'colombia' in home_image.lower():
         return "Copa Colombia"
+    elif home_image and 'south-korea' in home_image.lower():
+        return "Liga Internacional"
+    elif home_image and 'el-salvador' in home_image.lower():
+        return "Liga Internacional"
     elif home_image and 'chile' in home_image.lower():
         return "Primera División Chile"
     elif home_image and 'spain' in home_image.lower():

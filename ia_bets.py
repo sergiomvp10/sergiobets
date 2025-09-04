@@ -13,8 +13,12 @@ LIGAS_CONOCIDAS = {
     "Primeira Liga", "Eredivisie", "Scottish Premiership", "MLS",
     "Copa Libertadores", "Copa Sudamericana", "Liga Argentina",
     "Brasileirão", "Liga Colombiana", "Primera División Chile",
-    "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana"
+    "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana",
+    "Liga Internacional"
 }
+
+ODDS_RANGE_ANALYZE = (1.25, 2.20)
+ODDS_RANGE_PUBLISH = (1.30, 1.75)
 
 def cargar_configuracion_cuotas():
     """Carga la configuración de cuotas desde config_app.json"""
@@ -25,8 +29,8 @@ def cargar_configuracion_cuotas():
     return config.get("odds_min", 1.30), config.get("odds_max", 1.60)
 
 def obtener_cuotas_configuradas():
-    """Obtiene las cuotas configuradas (función helper para usar en el código)"""
-    return cargar_configuracion_cuotas()
+    """Obtiene las cuotas configuradas para publicación general"""
+    return ODDS_RANGE_PUBLISH
 
 
 
@@ -266,10 +270,16 @@ def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tu
     
     return valor_esperado, es_value_bet
 
-def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) -> List[Dict[str, Any]]:
+def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, bypass_filters: bool = False) -> List[Dict[str, Any]]:
     """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado"""
     mejores_apuestas = []
-    cuota_min, cuota_max = obtener_cuotas_configuradas()
+    
+    if bypass_filters:
+        cuota_min, cuota_max = ODDS_RANGE_ANALYZE
+        valor_minimo = 0.0
+    else:
+        cuota_min, cuota_max = obtener_cuotas_configuradas()
+        valor_minimo = 0.05
     
     cuotas_reales = analisis["cuotas_disponibles"]
     
@@ -306,7 +316,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1) 
                 
             ve, es_value = calcular_value_bet(probabilidad, cuota_real)
             
-            if es_value:
+            if bypass_filters or es_value:
                 mejores_apuestas.append({
                     "tipo": tipo_mercado,
                     "mercado": mercado,
@@ -488,6 +498,124 @@ def generar_reporte_rendimiento() -> Dict[str, Any]:
     except Exception as e:
         print(f"Error generando reporte: {e}")
         return {"error": str(e)}
+
+def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = True) -> Dict[str, Any]:
+    """Analiza un partido individual con rango de análisis amplio"""
+    import json
+    from datetime import datetime
+    
+    try:
+        fecha = datetime.now().strftime('%Y-%m-%d')
+        partido_con_fecha = {**partido, 'fecha': fecha}
+        
+        analisis = analizar_partido_completo(partido_con_fecha)
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=True)
+        
+        if not mejores_apuestas:
+            log_data = {
+                "timestamp": datetime.now().isoformat(),
+                "action": "individual_analysis",
+                "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+                "liga": partido.get('liga', 'N/A'),
+                "success": False,
+                "error": "No se encontraron value bets en el rango de análisis",
+                "odds_range": ODDS_RANGE_ANALYZE
+            }
+            _log_to_file(log_data)
+            
+            return {
+                "success": False,
+                "error": "No se encontraron value bets en el rango de análisis",
+                "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+                "liga": partido.get('liga', 'N/A')
+            }
+        
+        mejor_pick = mejores_apuestas[0]
+        
+        cumple_publicacion = (
+            ODDS_RANGE_PUBLISH[0] <= mejor_pick["cuota"] <= ODDS_RANGE_PUBLISH[1] and
+            mejor_pick["valor_esperado"] >= 0.05
+        )
+        
+        edge_percentage = round(mejor_pick["valor_esperado"] * 100, 1)
+        
+        log_data = {
+            "timestamp": datetime.now().isoformat(),
+            "action": "individual_analysis",
+            "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+            "liga": partido.get('liga', 'N/A'),
+            "success": True,
+            "mejor_pick": {
+                "prediccion": mejor_pick["descripcion"],
+                "cuota": mejor_pick["cuota"],
+                "confianza": mejor_pick["confianza"],
+                "valor_esperado": mejor_pick["valor_esperado"],
+                "edge_percentage": edge_percentage
+            },
+            "cumple_criterios_publicacion": cumple_publicacion,
+            "odds_range_analisis": ODDS_RANGE_ANALYZE,
+            "odds_range_publicacion": ODDS_RANGE_PUBLISH,
+            "total_mercados": len(mejores_apuestas)
+        }
+        _log_to_file(log_data)
+        
+        return {
+            "success": True,
+            "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+            "liga": partido.get('liga', 'N/A'),
+            "hora": partido.get('hora', 'N/A'),
+            "mejor_pick": {
+                "prediccion": mejor_pick["descripcion"],
+                "cuota": mejor_pick["cuota"],
+                "confianza": round(mejor_pick["confianza"], 1),
+                "valor_esperado": round(mejor_pick["valor_esperado"], 3),
+                "edge_percentage": edge_percentage,
+                "stake_recomendado": mejor_pick["stake_recomendado"],
+                "justificacion": mejor_pick["justificacion"],
+                "cumple_publicacion": cumple_publicacion
+            },
+            "todos_mercados": mejores_apuestas,
+            "analisis_completo": analisis
+        }
+        
+    except Exception as e:
+        error_log = {
+            "timestamp": datetime.now().isoformat(),
+            "action": "individual_analysis",
+            "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+            "liga": partido.get('liga', 'N/A'),
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+        _log_to_file(error_log)
+        
+        print(f"Error en análisis individual: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+            "liga": partido.get('liga', 'N/A')
+        }
+
+def _log_to_file(log_data: Dict[str, Any]):
+    """Guarda logs detallados en archivo JSON"""
+    try:
+        log_file = "analysis_logs.json"
+        
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                logs = json.load(f)
+        else:
+            logs = []
+        
+        logs.append(log_data)
+        
+        with open(log_file, 'w', encoding='utf-8') as f:
+            json.dump(logs, f, ensure_ascii=False, indent=2)
+            
+    except Exception as e:
+        print(f"Error guardando log: {e}")
 
 def simular_datos_prueba() -> List[Dict[str, Any]]:
     partidos_simulados = [
