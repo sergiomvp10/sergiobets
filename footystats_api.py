@@ -1,11 +1,15 @@
 # footystats_api.py
 
+import os
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
 from api_cache import APICache
 from error_handler import safe_api_call
 
-API_KEY = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
+load_dotenv()
+
+API_KEY = os.getenv("FOOTYSTATS_API_KEY", "")
 BASE_URL = "https://api.football-data-api.com"
 
 api_cache = APICache(cache_duration_minutes=30)
