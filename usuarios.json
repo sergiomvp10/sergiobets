@@ -3,8 +3,8 @@
     "user_id": "7659029315",
     "username": "n3utro6",
     "first_name": "No",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-11-07T13:43:20.730095",
     "fecha_registro": "2025-08-04T17:07:53.343651",
     "bot_username": "BetGeniuXbot"
   },
@@ -37,18 +37,19 @@
     "user_id": "8316148869",
     "username": null,
     "first_name": "Juli",
-    "premium": false,
-    "fecha_expiracion": null,
+    "premium": true,
+    "fecha_expiracion": "2025-11-07T13:44:05.599405",
     "fecha_registro": "2025-08-04T17:07:53.343651",
     "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "7356807202",
-    "username": "sin_username",
+    "username": null,
     "first_name": "Catalina",
-    "premium": false,
-    "fecha_expiracion": null,
-    "fecha_registro": "2025-08-04T17:07:53.343651"
+    "premium": true,
+    "fecha_expiracion": "2025-11-07T13:44:35.324775",
+    "fecha_registro": "2025-08-04T17:07:53.343651",
+    "bot_username": "BetGeniuXbot"
   },
   {
     "user_id": "7755596745",

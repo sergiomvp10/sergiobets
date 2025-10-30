@@ -12,8 +12,8 @@ from json_storage import cargar_json, guardar_json
 from json_optimizer import JSONOptimizer
 from error_handler import safe_file_operation
 
-VALID_MATCH_STATUSES = ["complete", "finished", "ft", "full-time", "ended"]
-INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended"]
+VALID_MATCH_STATUSES = ["complete", "completed", "finished", "ft", "full-time", "full time", "ended", "played", "match finished", "match_finished"]
+INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended", "abandoned"]
 
 class TrackRecordManager:
     """Manages prediction tracking and performance analysis"""
@@ -23,41 +23,49 @@ class TrackRecordManager:
         self.base_url = base_url
         self.historial_file = "historial_predicciones.json"
     
-    def _try_flexible_team_matching(self, equipo_local: str, equipo_visitante: str, original_fecha: str, timeout: int = 10) -> Optional[Dict[str, Any]]:
+    def _normalize_team_name(self, name: str) -> str:
         """
-        Try flexible team matching across different dates when exact match is not found
+        Normalize team name by removing accents, punctuation, and extra spaces
         """
-        try:
-            flexible_mappings = {
-                'universidad chile': ('Universidad Chile', 'Cobresal', '2025-08-04'),
-                'athletic club': ('Athletic Club', 'Atlético GO', '2025-08-04'),
-                'cuiabá': ('Cuiabá', 'Volta Redonda', '2025-08-04'),
-                'cuiaba': ('Cuiabá', 'Volta Redonda', '2025-08-04'),
-                'atlético go': ('Athletic Club', 'Atlético GO', '2025-08-04'),
-                'atletico go': ('Athletic Club', 'Atlético GO', '2025-08-04'),
-                'cobresal': ('Universidad Chile', 'Cobresal', '2025-08-04')
-            }
-            
-            equipo_local_clean = equipo_local.lower().strip()
-            equipo_visitante_clean = equipo_visitante.lower().strip()
-            
-            for team_key, (api_local, api_visitante, api_fecha) in flexible_mappings.items():
-                if (team_key in equipo_local_clean or team_key in equipo_visitante_clean):
-                    print(f"  🔄 Flexible matching: {equipo_local} vs {equipo_visitante} -> {api_local} vs {api_visitante} ({api_fecha})")
-                    
-                    resultado = self.obtener_resultado_partido(
-                        api_fecha, api_local, api_visitante, timeout=timeout
-                    )
-                    
-                    if resultado:
-                        print(f"  ✅ Flexible match found: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
-                        return resultado
-            
-            return None
-            
-        except Exception as e:
-            print(f"  ❌ Error in flexible team matching: {e}")
-            return None
+        import unicodedata
+        import re
+        
+        name = unicodedata.normalize('NFD', name)
+        name = ''.join(char for char in name if unicodedata.category(char) != 'Mn')
+        
+        name = name.lower()
+        
+        name = re.sub(r'[^\w\s]', ' ', name)
+        name = ' '.join(name.split())
+        
+        return name
+    
+    def _get_team_tokens(self, name: str) -> set:
+        """
+        Get significant tokens from team name (words with 3+ characters)
+        """
+        normalized = self._normalize_team_name(name)
+        tokens = {token for token in normalized.split() if len(token) >= 3}
+        return tokens
+    
+    def _teams_match(self, pred_team: str, api_team: str, threshold: float = 0.5) -> bool:
+        """
+        Check if two team names match using token overlap
+        """
+        pred_tokens = self._get_team_tokens(pred_team)
+        api_tokens = self._get_team_tokens(api_team)
+        
+        if not pred_tokens or not api_tokens:
+            return False
+        
+        intersection = len(pred_tokens & api_tokens)
+        union = len(pred_tokens | api_tokens)
+        
+        if union == 0:
+            return False
+        
+        similarity = intersection / union
+        return similarity >= threshold
 
     def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
         """
@@ -98,34 +106,11 @@ class TrackRecordManager:
                     print(f"  Match {i+1}: {partido.get('home_name')} vs {partido.get('away_name')}")
                 
                 for partido in partidos:
-                    home_name = partido.get("home_name", "").lower()
-                    away_name = partido.get("away_name", "").lower()
+                    home_name = partido.get("home_name", "")
+                    away_name = partido.get("away_name", "")
                     
-                    equipo_local_clean = equipo_local.lower().strip()
-                    equipo_visitante_clean = equipo_visitante.lower().strip()
-                    home_name_clean = home_name.strip()
-                    away_name_clean = away_name.strip()
-                    
-                    local_match = (
-                        equipo_local_clean in home_name_clean or 
-                        home_name_clean in equipo_local_clean or
-                        any(word in home_name_clean for word in equipo_local_clean.split() if len(word) > 3) or
-                        (equipo_local_clean.startswith('athletic') and 'athletic' in home_name_clean) or
-                        (equipo_local_clean.startswith('atletico') and 'atletico' in home_name_clean) or
-                        ('athletic club' in equipo_local_clean and 'athletic' in home_name_clean) or
-                        ('athletic' in equipo_local_clean and 'athletic club' in home_name_clean) or
-                        ('deportivo cali' in equipo_local_clean and 'cali' in home_name_clean) or
-                        ('cali' in equipo_local_clean and 'deportivo cali' in home_name_clean)
-                    )
-                    
-                    visitante_match = (
-                        equipo_visitante_clean == away_name_clean or
-                        equipo_visitante_clean in away_name_clean or 
-                        away_name_clean in equipo_visitante_clean or
-                        any(word in away_name_clean for word in equipo_visitante_clean.split() if len(word) > 3) or
-                        (equipo_visitante_clean.startswith('atletico') and ('atletico' in away_name_clean or 'atlético' in away_name_clean)) or
-                        ('llaneros' in equipo_visitante_clean and 'llaneros' in away_name_clean)
-                    )
+                    local_match = self._teams_match(equipo_local, home_name)
+                    visitante_match = self._teams_match(equipo_visitante, away_name)
                     
                     if local_match and visitante_match:
                         
@@ -133,6 +118,9 @@ class TrackRecordManager:
                         print(f"Found match: {partido.get('home_name')} vs {partido.get('away_name')} on {date_to_try} - Status: {status}")
                         
                         if status in VALID_MATCH_STATUSES:
+                            home_goals = partido.get("homeGoalCount") or partido.get("home_goals", 0)
+                            away_goals = partido.get("awayGoalCount") or partido.get("away_goals", 0)
+                            
                             team_a_corners = partido.get("team_a_corners", -1)
                             team_b_corners = partido.get("team_b_corners", -1)
                             total_corner_count = partido.get("totalCornerCount", -1)
@@ -143,9 +131,9 @@ class TrackRecordManager:
                             return {
                                 "match_id": partido.get("id"),
                                 "status": status,
-                                "home_score": partido.get("home_goals", 0),
-                                "away_score": partido.get("away_goals", 0),
-                                "total_goals": partido.get("home_goals", 0) + partido.get("away_goals", 0),
+                                "home_score": home_goals,
+                                "away_score": away_goals,
+                                "total_goals": home_goals + away_goals,
                                 "corners_home": team_a_corners if team_a_corners != -1 else 0,
                                 "corners_away": team_b_corners if team_b_corners != -1 else 0,
                                 "total_corners": total_corner_count if total_corner_count != -1 else 0,
@@ -153,10 +141,7 @@ class TrackRecordManager:
                                 "cards_away": partido.get("away_cards", 0),
                                 "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
                                 "corner_data_available": total_corner_count != -1,
-                                "resultado_1x2": self._determinar_resultado_1x2(
-                                    partido.get("home_goals", 0), 
-                                    partido.get("away_goals", 0)
-                                )
+                                "resultado_1x2": self._determinar_resultado_1x2(home_goals, away_goals)
                             }
                         elif status in INVALID_MATCH_STATUSES:
                             print(f"Skipping incomplete match: {partido.get('home_name')} vs {partido.get('away_name')} - Status: {status}")
@@ -315,7 +300,7 @@ class TrackRecordManager:
             return {"error": str(e)}
 
     @safe_file_operation(default_return={"actualizados": 0, "errores": 0})
-    def actualizar_historial_con_resultados(self, max_matches=10, timeout_per_match=8) -> Dict[str, Any]:
+    def actualizar_historial_con_resultados(self, max_matches=50, timeout_per_match=8) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
         Optimizado para evitar colgados con límites y timeouts
@@ -331,7 +316,7 @@ class TrackRecordManager:
             partidos_incompletos = 0
             timeouts = 0
             
-            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None and p.get('sent_to_telegram', False)]
+            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
             
             if not predicciones_pendientes:
                 print("✅ No hay predicciones pendientes para actualizar")
@@ -345,7 +330,7 @@ class TrackRecordManager:
                     "matches_restantes": 0
                 }
             
-            print(f"🎯 Enfocándose SOLO en {len(predicciones_pendientes)} predicciones ENVIADAS A TELEGRAM")
+            print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes (todas, no solo las enviadas a Telegram)")
             
             matches_unicos = {}
             for prediccion in predicciones_pendientes:

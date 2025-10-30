@@ -1523,7 +1523,10 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             import os
             from datetime import datetime, timedelta
             
-            api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
+            api_key = os.getenv('FOOTYSTATS_API_KEY')
+            if not api_key:
+                messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
+                return
             tracker = TrackRecordManager(api_key)
             
             ventana_track = tk.Toplevel(self.root)
@@ -1875,7 +1878,7 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 
                 def update_in_thread():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=10, timeout_per_match=15)
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=50, timeout_per_match=15)
                         
                         def update_gui():
                             try:
@@ -2080,8 +2083,8 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 try:
                     usuarios = access_manager.listar_usuarios()
                     
-                    text_area.delete('1.0', tk.END)
                     text_area.config(state='normal')
+                    text_area.delete('1.0', tk.END)
                     
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
                         text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
@@ -2139,6 +2142,11 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 if not user_id:
                     return
                 
+                user_id = user_id.strip()
+                if not user_id:
+                    messagebox.showerror("Error", "❌ El ID del usuario no puede estar vacío")
+                    return
+                
                 dias = simpledialog.askinteger("Días de Acceso", "¿Cuántos días deseas otorgar de acceso premium?", 
                                               minvalue=1, maxvalue=365)
                 if not dias:
@@ -2150,12 +2158,17 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                         
                         try:
                             from telegram_utils import enviar_telegram
-                            exito_envio = enviar_telegram(chat_id=user_id, mensaje=mensaje_confirmacion)
+                            
+                            chat_id = user_id
+                            if user_id.isdigit() or (user_id.startswith('-') and user_id[1:].isdigit()):
+                                chat_id = int(user_id)
+                            
+                            exito_envio = enviar_telegram(chat_id=chat_id, mensaje=mensaje_confirmacion)
                             
                             if exito_envio:
                                 messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado y mensaje de confirmación enviado al usuario {user_id}")
                             else:
-                                messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje de confirmación al usuario {user_id}")
+                                messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero NO se pudo enviar el mensaje de confirmación.\n\n⚠️ Posibles causas:\n• El usuario no ha iniciado el bot en Telegram\n• El usuario bloqueó el bot\n• El ID del usuario es incorrecto\n\nRevisa la consola para más detalles del error.")
                         except Exception as telegram_error:
                             messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje: {telegram_error}")
                         

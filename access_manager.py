@@ -140,7 +140,7 @@ class AccessManager:
 
 👤 Hola {first_name}!
 
-✅ Tu membresía premium ha sido activada exitosamente
+✅ Hemos confirmado tu pago y tu membresía premium ha sido activada exitosamente
 
 📅 Días adquiridos: {dias_restantes} días
 🗓️ Fecha de activación: {fecha_activacion.strftime('%d/%m/%Y a las %H:%M')}
@@ -152,7 +152,7 @@ class AccessManager:
 • Estadísticas avanzadas
 • Soporte prioritario
 
-💎 ¡Gracias por confiar en SergioBets! 
+🤖 ¡Gracias por confiar en BetGeniuX! 
 Estamos comprometidos a brindarte los mejores pronósticos deportivos para maximizar tus ganancias.
 
 ¡Que tengas mucho éxito en tus apuestas! 🍀💰"""
