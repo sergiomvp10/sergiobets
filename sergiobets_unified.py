@@ -21,7 +21,10 @@ from tkinter.scrolledtext import ScrolledText
 from tkcalendar import DateEntry
 import pygame
 from datetime import date, timedelta, datetime
+from dotenv import load_dotenv
 from footystats_api import obtener_partidos_del_dia
+
+load_dotenv()
 from json_storage import guardar_json, cargar_json
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
