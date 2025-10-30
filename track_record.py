@@ -12,8 +12,8 @@ from json_storage import cargar_json, guardar_json
 from json_optimizer import JSONOptimizer
 from error_handler import safe_file_operation
 
-VALID_MATCH_STATUSES = ["complete", "finished", "ft", "full-time", "ended"]
-INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended"]
+VALID_MATCH_STATUSES = ["complete", "completed", "finished", "ft", "full-time", "full time", "ended", "played", "match finished", "match_finished"]
+INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended", "abandoned"]
 
 class TrackRecordManager:
     """Manages prediction tracking and performance analysis"""
@@ -315,7 +315,7 @@ class TrackRecordManager:
             return {"error": str(e)}
 
     @safe_file_operation(default_return={"actualizados": 0, "errores": 0})
-    def actualizar_historial_con_resultados(self, max_matches=10, timeout_per_match=8) -> Dict[str, Any]:
+    def actualizar_historial_con_resultados(self, max_matches=50, timeout_per_match=8) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
         Optimizado para evitar colgados con límites y timeouts
@@ -331,7 +331,7 @@ class TrackRecordManager:
             partidos_incompletos = 0
             timeouts = 0
             
-            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None and p.get('sent_to_telegram', False)]
+            predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
             
             if not predicciones_pendientes:
                 print("✅ No hay predicciones pendientes para actualizar")
@@ -345,7 +345,7 @@ class TrackRecordManager:
                     "matches_restantes": 0
                 }
             
-            print(f"🎯 Enfocándose SOLO en {len(predicciones_pendientes)} predicciones ENVIADAS A TELEGRAM")
+            print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes (todas, no solo las enviadas a Telegram)")
             
             matches_unicos = {}
             for prediccion in predicciones_pendientes:
