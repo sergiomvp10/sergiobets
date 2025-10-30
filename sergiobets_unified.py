@@ -536,6 +536,78 @@ class SergioBetsUnified:
                             "corners_over_105": str(partido.get("odds_corners_over_105", "0")),
                             "1h_over_05": str(partido.get("odds_1st_half_over05", "0")),
                             "1h_over_15": str(partido.get("odds_1st_half_over15", "0"))
+                        },
+                        "cuotas_disponibles": {
+                            "local": partido.get("odds_ft_1", 0),
+                            "empate": partido.get("odds_ft_x", 0),
+                            "visitante": partido.get("odds_ft_2", 0),
+                            
+                            "over_05": partido.get("odds_ft_over05", 0),
+                            "under_05": partido.get("odds_ft_under05", 0),
+                            "over_15": partido.get("odds_ft_over15", 0),
+                            "under_15": partido.get("odds_ft_under15", 0),
+                            "over_25": partido.get("odds_ft_over25", 0),
+                            "under_25": partido.get("odds_ft_under25", 0),
+                            "over_35": partido.get("odds_ft_over35", 0),
+                            "under_35": partido.get("odds_ft_under35", 0),
+                            "over_45": partido.get("odds_ft_over45", 0),
+                            "under_45": partido.get("odds_ft_under45", 0),
+                            "over_55": partido.get("odds_ft_over55", 0),
+                            "under_55": partido.get("odds_ft_under55", 0),
+                            
+                            "btts_si": partido.get("odds_btts_yes", 0),
+                            "btts_no": partido.get("odds_btts_no", 0),
+                            
+                            "1h_over_05": partido.get("odds_1st_half_over05", 0),
+                            "1h_under_05": partido.get("odds_1st_half_under05", 0),
+                            "1h_over_15": partido.get("odds_1st_half_over15", 0),
+                            "1h_under_15": partido.get("odds_1st_half_under15", 0),
+                            "1h_over_25": partido.get("odds_1st_half_over25", 0),
+                            "1h_under_25": partido.get("odds_1st_half_under25", 0),
+                            "1h_over_35": partido.get("odds_1st_half_over35", 0),
+                            "1h_under_35": partido.get("odds_1st_half_under35", 0),
+                            "1h_result_1": partido.get("odds_1st_half_result_1", 0),
+                            "1h_result_x": partido.get("odds_1st_half_result_x", 0),
+                            "1h_result_2": partido.get("odds_1st_half_result_2", 0),
+                            
+                            "2h_over_05": partido.get("odds_2nd_half_over05", 0),
+                            "2h_under_05": partido.get("odds_2nd_half_under05", 0),
+                            "2h_over_15": partido.get("odds_2nd_half_over15", 0),
+                            "2h_under_15": partido.get("odds_2nd_half_under15", 0),
+                            "2h_over_25": partido.get("odds_2nd_half_over25", 0),
+                            "2h_under_25": partido.get("odds_2nd_half_under25", 0),
+                            "2h_result_1": partido.get("odds_2nd_half_result_1", 0),
+                            "2h_result_x": partido.get("odds_2nd_half_result_x", 0),
+                            "2h_result_2": partido.get("odds_2nd_half_result_2", 0),
+                            
+                            "dc_1x": partido.get("odds_doublechance_1x", 0),
+                            "dc_12": partido.get("odds_doublechance_12", 0),
+                            "dc_x2": partido.get("odds_doublechance_x2", 0),
+                            
+                            "corners_over_85": partido.get("odds_corners_over_85", 0),
+                            "corners_under_85": partido.get("odds_corners_under_85", 0),
+                            "corners_over_95": partido.get("odds_corners_over_95", 0),
+                            "corners_under_95": partido.get("odds_corners_under_95", 0),
+                            "corners_over_105": partido.get("odds_corners_over_105", 0),
+                            "corners_under_105": partido.get("odds_corners_under_105", 0),
+                            "corners_over_115": partido.get("odds_corners_over_115", 0),
+                            "corners_under_115": partido.get("odds_corners_under_115", 0),
+                            
+                            "handicap_home_minus_05": partido.get("odds_handicap_home_-0_5", 0),
+                            "handicap_home_plus_05": partido.get("odds_handicap_home_+0_5", 0),
+                            "handicap_away_minus_05": partido.get("odds_handicap_away_-0_5", 0),
+                            "handicap_away_plus_05": partido.get("odds_handicap_away_+0_5", 0),
+                            "handicap_home_minus_10": partido.get("odds_handicap_home_-1_0", 0),
+                            "handicap_home_plus_10": partido.get("odds_handicap_home_+1_0", 0),
+                            "handicap_away_minus_10": partido.get("odds_handicap_away_-1_0", 0),
+                            "handicap_away_plus_10": partido.get("odds_handicap_away_+1_0", 0),
+                            
+                            "cards_over_35": partido.get("odds_cards_over_35", 0),
+                            "cards_under_35": partido.get("odds_cards_under_35", 0),
+                            "cards_over_45": partido.get("odds_cards_over_45", 0),
+                            "cards_under_45": partido.get("odds_cards_under_45", 0),
+                            "cards_over_55": partido.get("odds_cards_over_55", 0),
+                            "cards_under_55": partido.get("odds_cards_under_55", 0)
                         }
                     })
                 except Exception as partido_error:
@@ -759,6 +831,11 @@ class SergioBetsUnified:
             checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
             checkbox.pack(side=tk.LEFT)
             
+            analyze_btn = tk.Button(checkbox_frame, text="🔍 Analizar", bg="#3498db", fg="white",
+                                  font=('Segoe UI', 8), relief='flat', cursor='hand2',
+                                  command=lambda p=partido: self.analizar_partido_individual(p))
+            analyze_btn.pack(side=tk.LEFT, padx=5)
+            
             partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
             partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
                                    font=('Segoe UI', 9), anchor='w')
@@ -767,6 +844,509 @@ class SergioBetsUnified:
             casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}", bg="#B2F0E8", 
                                  font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
             casa_label.pack(fill='x', padx=25, pady=(0,3))
+
+    def analizar_partido_individual(self, partido):
+        """Analiza un partido individual y muestra el resultado con opciones detalladas"""
+        try:
+            from ia_bets import analizar_partido_individual
+            
+            resultado = analizar_partido_individual(partido, bypass_filters=True)
+            
+            if resultado["success"]:
+                self.mostrar_resultado_analisis_individual(resultado)
+            else:
+                import tkinter.messagebox as messagebox
+                messagebox.showwarning("Sin Predicción", 
+                                     f"No se pudo generar predicción para:\n{resultado['partido']}\n\nError: {resultado['error']}")
+                
+        except Exception as e:
+            import tkinter.messagebox as messagebox
+            messagebox.showerror("Error", f"Error en análisis: {str(e)}")
+    
+    def mostrar_resultado_analisis_individual(self, resultado):
+        """Muestra resultado de análisis individual con mejor pick + botones de acción"""
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        popup = tk.Toplevel(self.root)
+        popup.title("🔍 Análisis Individual")
+        popup.geometry("500x400")
+        popup.configure(bg="#ecf0f1")
+        popup.resizable(False, False)
+        
+        popup.transient(self.root)
+        popup.grab_set()
+        
+        header_frame = tk.Frame(popup, bg="#34495e")
+        header_frame.pack(fill='x', pady=(0,10))
+        
+        header_label = tk.Label(header_frame, text="🎯 ANÁLISIS INDIVIDUAL", 
+                               bg="#34495e", fg="white", font=('Segoe UI', 12, 'bold'), pady=10)
+        header_label.pack()
+        
+        match_frame = tk.Frame(popup, bg="#ecf0f1")
+        match_frame.pack(fill='x', padx=20, pady=5)
+        
+        match_label = tk.Label(match_frame, text=f"⚽️ {resultado['partido']}", 
+                              bg="#ecf0f1", font=('Segoe UI', 11, 'bold'))
+        match_label.pack()
+        
+        liga_label = tk.Label(match_frame, text=f"🏆 {resultado['liga']} | ⏰ {resultado['hora']}", 
+                             bg="#ecf0f1", font=('Segoe UI', 9), fg="#7f8c8d")
+        liga_label.pack()
+        
+        pick_frame = tk.Frame(popup, bg="#d5f4e6", relief='ridge', bd=2)
+        pick_frame.pack(fill='x', padx=20, pady=10)
+        
+        pick_title = tk.Label(pick_frame, text="🥇 MEJOR PICK", 
+                             bg="#d5f4e6", font=('Segoe UI', 10, 'bold'), pady=5)
+        pick_title.pack()
+        
+        mejor = resultado['mejor_pick']
+        edge_pct = mejor.get('edge_percentage', mejor['valor_esperado'] * 100)
+        
+        pick_text = f"🔮 {mejor['prediccion']}\n"
+        pick_text += f"💰 Cuota: {mejor['cuota']} | Stake: {mejor['stake_recomendado']}u\n"
+        pick_text += f"📊 Confianza: {mejor['confianza']}% | VE: +{mejor['valor_esperado']:.3f}\n"
+        
+        if edge_pct < 5:
+            pick_text += f"⚠️ Edge bajo: {edge_pct:.1f}% - no cumple criterio para publicación automática"
+        else:
+            pick_text += f"✅ Edge: {edge_pct:.1f}% - cumple criterios de publicación"
+        
+        pick_label = tk.Label(pick_frame, text=pick_text, bg="#d5f4e6", 
+                             font=('Segoe UI', 9), justify='left')
+        pick_label.pack(pady=5)
+        
+        buttons_frame = tk.Frame(popup, bg="#ecf0f1")
+        buttons_frame.pack(fill='x', padx=20, pady=10)
+        
+        detail_btn = tk.Button(buttons_frame, text="📊 Ver Detalle", bg="#9b59b6", fg="white",
+                              font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                              command=lambda: self.mostrar_detalle_mercados_individual(resultado))
+        detail_btn.pack(side=tk.LEFT, padx=5)
+        
+        save_btn = tk.Button(buttons_frame, text="💾 Guardar", bg="#27ae60", fg="white",
+                            font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                            command=lambda: self.guardar_analisis_manual_individual(resultado))
+        save_btn.pack(side=tk.LEFT, padx=5)
+        
+        close_btn = tk.Button(buttons_frame, text="❌ Cerrar", bg="#e74c3c", fg="white",
+                             font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                             command=popup.destroy)
+        close_btn.pack(side=tk.RIGHT, padx=5)
+        
+        print(f"📋 ANÁLISIS INDIVIDUAL: {resultado['partido']}")
+        print(f"   Mejor pick: {mejor['prediccion']} @ {mejor['cuota']}")
+        print(f"   Edge: {edge_pct:.1f}% | Cumple publicación: {'Sí' if mejor.get('cumple_publicacion', False) else 'No'}")
+        print(f"   Mercados analizados: {len(resultado['todos_mercados'])}")
+    
+    def mostrar_detalle_mercados_individual(self, resultado):
+        """Muestra tabla detallada de todos los mercados analizados"""
+        import tkinter as tk
+        from tkinter import ttk
+        
+        detail_popup = tk.Toplevel(self.root)
+        detail_popup.title("📊 Detalle de Mercados")
+        detail_popup.geometry("700x500")
+        detail_popup.configure(bg="#ecf0f1")
+        
+        header_label = tk.Label(detail_popup, text=f"📊 TODOS LOS MERCADOS - {resultado['partido']}", 
+                               bg="#34495e", fg="white", font=('Segoe UI', 11, 'bold'), pady=10)
+        header_label.pack(fill='x')
+        
+        tree_frame = tk.Frame(detail_popup, bg="#ecf0f1")
+        tree_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        columns = ('Mercado', 'Cuota', 'Edge %', 'Cumple', 'Stake')
+        tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=15)
+        
+        tree.heading('Mercado', text='Mercado')
+        tree.heading('Cuota', text='Cuota')
+        tree.heading('Edge %', text='Edge %')
+        tree.heading('Cumple', text='Cumple Pub.')
+        tree.heading('Stake', text='Stake')
+        
+        tree.column('Mercado', width=250)
+        tree.column('Cuota', width=80)
+        tree.column('Edge %', width=100)
+        tree.column('Cumple', width=100)
+        tree.column('Stake', width=80)
+        
+        for i, mercado in enumerate(resultado['todos_mercados']):
+            edge_pct = mercado.get('edge_percentage', mercado['valor_esperado'] * 100)
+            cumple = "✅ Sí" if mercado.get('cumple_publicacion', False) else "⚠️ No"
+            
+            tree.insert('', 'end', values=(
+                mercado['descripcion'],
+                f"{mercado['cuota']:.2f}",
+                f"{edge_pct:.1f}%",
+                cumple,
+                f"{mercado['stake_recomendado']}u"
+            ))
+        
+        tree.pack(fill='both', expand=True)
+        
+        close_btn = tk.Button(detail_popup, text="❌ Cerrar", bg="#e74c3c", fg="white",
+                             font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                             command=detail_popup.destroy)
+        close_btn.pack(pady=10)
+        
+        print(f"📊 DETALLE COMPLETO: {resultado['partido']}")
+        for i, mercado in enumerate(resultado['todos_mercados']):
+            edge_pct = mercado.get('edge_percentage', mercado['valor_esperado'] * 100)
+            cumple = "✅" if mercado.get('cumple_publicacion', False) else "⚠️"
+            print(f"   {cumple} {i+1}. {mercado['descripcion']} @ {mercado['cuota']:.2f} (Edge: {edge_pct:.1f}%)")
+    
+    def guardar_analisis_manual_individual(self, resultado):
+        """Guarda el análisis manual en el historial con source=manual"""
+        try:
+            from ia_bets import guardar_prediccion_historica
+            from datetime import datetime
+            
+            mejor = resultado['mejor_pick']
+            prediccion_data = {
+                "partido": resultado['partido'],
+                "liga": resultado['liga'],
+                "prediccion": mejor['prediccion'],
+                "cuota": mejor['cuota'],
+                "stake_recomendado": mejor['stake_recomendado'],
+                "valor_esperado": mejor['valor_esperado'],
+                "confianza": mejor['confianza'],
+                "source": "manual"  # Mark as manual analysis
+            }
+            
+            fecha = datetime.now().strftime('%Y-%m-%d')
+            guardar_prediccion_historica(prediccion_data, fecha)
+            
+            import tkinter.messagebox as messagebox
+            messagebox.showinfo("Guardado", f"Análisis guardado en historial:\n{mejor['prediccion']}")
+            
+            print(f"💾 GUARDADO MANUAL: {resultado['partido']} - {mejor['prediccion']}")
+            
+        except Exception as e:
+            import tkinter.messagebox as messagebox
+            messagebox.showerror("Error", f"Error guardando análisis: {str(e)}")
+    
+    def mostrar_resultado_analisis(self, resultado):
+        """Muestra resultado de análisis con mejor pick + botones de acción"""
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        popup = tk.Toplevel(self.root)
+        popup.title("🔍 Análisis Individual")
+        popup.geometry("500x400")
+        popup.configure(bg="#ecf0f1")
+        popup.resizable(False, False)
+        
+        popup.transient(self.root)
+        popup.grab_set()
+        
+        header_frame = tk.Frame(popup, bg="#34495e")
+        header_frame.pack(fill='x', pady=(0,10))
+        
+        header_label = tk.Label(header_frame, text="🎯 ANÁLISIS INDIVIDUAL", 
+                               bg="#34495e", fg="white", font=('Segoe UI', 12, 'bold'), pady=10)
+        header_label.pack()
+        
+        match_frame = tk.Frame(popup, bg="#ecf0f1")
+        match_frame.pack(fill='x', padx=20, pady=5)
+        
+        match_label = tk.Label(match_frame, text=f"⚽️ {resultado['partido']}", 
+                              bg="#ecf0f1", font=('Segoe UI', 11, 'bold'))
+        match_label.pack()
+        
+        liga_label = tk.Label(match_frame, text=f"🏆 {resultado['liga']} | ⏰ {resultado['hora']}", 
+                             bg="#ecf0f1", font=('Segoe UI', 9), fg="#7f8c8d")
+        liga_label.pack()
+        
+        pick_frame = tk.Frame(popup, bg="#d5f4e6", relief='ridge', bd=2)
+        pick_frame.pack(fill='x', padx=20, pady=10)
+        
+        pick_title = tk.Label(pick_frame, text="🥇 MEJOR PICK", 
+                             bg="#d5f4e6", font=('Segoe UI', 10, 'bold'), pady=5)
+        pick_title.pack()
+        
+        mejor = resultado['mejor_pick']
+        pick_text = f"🎯 Pick: {mejor['prediccion']} @ {mejor['cuota']}\n"
+        pick_text += f"💰 Stake: {mejor['stake_recomendado']}u | 📊 Confianza: {mejor['confianza']}%\n"
+        
+        edge_percentage = mejor.get('edge_percentage', round(mejor['valor_esperado'] * 100, 1))
+        
+        if mejor.get('cumple_publicacion', False):
+            pick_text += f"✅ Edge: {edge_percentage}% (cumple criterio para publicación)"
+        else:
+            if edge_percentage < 5:
+                pick_text += f"⚠️ Edge bajo: {edge_percentage}% (no cumple criterio para publicación automática)"
+            else:
+                pick_text += f"⚠️ Edge: {edge_percentage}% (cuota fuera de rango de publicación)"
+        
+        pick_label = tk.Label(pick_frame, text=pick_text, bg="#d5f4e6", 
+                             font=('Segoe UI', 9), justify='left')
+        pick_label.pack(pady=5)
+        
+        buttons_frame = tk.Frame(popup, bg="#ecf0f1")
+        buttons_frame.pack(fill='x', padx=20, pady=10)
+        
+        detail_btn = tk.Button(buttons_frame, text="📊 Ver Detalle", bg="#9b59b6", fg="white",
+                              font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                              command=lambda: self.mostrar_detalle_mercados(resultado))
+        detail_btn.pack(side=tk.LEFT, padx=5)
+        
+        save_btn = tk.Button(buttons_frame, text="💾 Guardar", bg="#27ae60", fg="white",
+                            font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                            command=lambda: self.guardar_analisis_manual(resultado))
+        save_btn.pack(side=tk.LEFT, padx=5)
+        
+        close_btn = tk.Button(buttons_frame, text="❌ Cerrar", bg="#e74c3c", fg="white",
+                             font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                             command=popup.destroy)
+        close_btn.pack(side=tk.RIGHT, padx=5)
+        
+        edge_percentage = mejor.get('edge_percentage', round(mejor['valor_esperado'] * 100, 1))
+        print(f"📋 ANÁLISIS TÉCNICO: {resultado['partido']}")
+        print(f"   Mejor pick: {mejor['prediccion']} @ {mejor['cuota']} (Edge: {edge_percentage}%)")
+        print(f"   Mercados analizados: {len(resultado['todos_mercados'])}")
+        print(f"   Cumple publicación: {'Sí' if mejor.get('cumple_publicacion', False) else 'No'}")
+    
+    def mostrar_detalle_mercados(self, resultado):
+        """Muestra tabla detallada de todos los mercados analizados"""
+        import tkinter as tk
+        from tkinter import ttk
+        
+        detail_popup = tk.Toplevel(self.root)
+        detail_popup.title("📊 Detalle de Mercados")
+        detail_popup.geometry("700x500")
+        detail_popup.configure(bg="#ecf0f1")
+        
+        header_label = tk.Label(detail_popup, text=f"📊 TODOS LOS MERCADOS - {resultado['partido']}", 
+                               bg="#34495e", fg="white", font=('Segoe UI', 11, 'bold'), pady=10)
+        header_label.pack(fill='x')
+        
+        tree_frame = tk.Frame(detail_popup, bg="#ecf0f1")
+        tree_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        columns = ('Mercado', 'Cuota', 'Confianza', 'VE', 'Stake')
+        tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=15)
+        
+        tree.heading('Mercado', text='Mercado')
+        tree.heading('Cuota', text='Cuota')
+        tree.heading('Confianza', text='Confianza %')
+        tree.heading('VE', text='Edge %')
+        tree.heading('Stake', text='Stake')
+        
+        tree.column('Mercado', width=250)
+        tree.column('Cuota', width=80)
+        tree.column('Confianza', width=100)
+        tree.column('VE', width=120)
+        tree.column('Stake', width=80)
+        
+        for i, mercado in enumerate(resultado['todos_mercados']):
+            edge_pct = round(mercado['valor_esperado'] * 100, 1)
+            tree.insert('', 'end', values=(
+                mercado['descripcion'],
+                f"{mercado['cuota']:.2f}",
+                f"{mercado['confianza']:.1f}%",
+                f"{edge_pct}%",
+                f"{mercado['stake_recomendado']}u"
+            ))
+        
+        tree.pack(fill='both', expand=True)
+        
+        close_btn = tk.Button(detail_popup, text="❌ Cerrar", bg="#e74c3c", fg="white",
+                             font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                             command=detail_popup.destroy)
+        close_btn.pack(pady=10)
+    
+    def guardar_analisis_manual(self, resultado):
+        """Guarda el análisis manual en el historial con source=manual"""
+        try:
+            from ia_bets import guardar_prediccion_historica
+            from datetime import datetime
+            
+            mejor = resultado['mejor_pick']
+            prediccion_data = {
+                "partido": resultado['partido'],
+                "liga": resultado['liga'],
+                "prediccion": mejor['prediccion'],
+                "cuota": mejor['cuota'],
+                "stake_recomendado": mejor['stake_recomendado'],
+                "valor_esperado": mejor['valor_esperado'],
+                "confianza": mejor['confianza'],
+                "source": "manual"
+            }
+            
+            fecha = datetime.now().strftime('%Y-%m-%d')
+            guardar_prediccion_historica(prediccion_data, fecha)
+            
+            import tkinter.messagebox as messagebox
+            messagebox.showinfo("Guardado", f"Análisis guardado en historial:\n{mejor['prediccion']}")
+            
+            print(f"💾 GUARDADO MANUAL: {resultado['partido']} - {mejor['prediccion']}")
+            
+        except Exception as e:
+            import tkinter.messagebox as messagebox
+            messagebox.showerror("Error", f"Error guardando análisis: {str(e)}")
+    
+    def mostrar_resultado_analisis(self, resultado):
+        """Muestra resultado de análisis con mejor pick + botones de acción"""
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        popup = tk.Toplevel(self.root)
+        popup.title("🔍 Análisis Individual")
+        popup.geometry("500x400")
+        popup.configure(bg="#ecf0f1")
+        popup.resizable(False, False)
+        
+        popup.transient(self.root)
+        popup.grab_set()
+        
+        header_frame = tk.Frame(popup, bg="#34495e")
+        header_frame.pack(fill='x', pady=(0,10))
+        
+        header_label = tk.Label(header_frame, text="🎯 ANÁLISIS INDIVIDUAL", 
+                               bg="#34495e", fg="white", font=('Segoe UI', 12, 'bold'), pady=10)
+        header_label.pack()
+        
+        match_frame = tk.Frame(popup, bg="#ecf0f1")
+        match_frame.pack(fill='x', padx=20, pady=5)
+        
+        match_label = tk.Label(match_frame, text=f"⚽️ {resultado['partido']}", 
+                              bg="#ecf0f1", font=('Segoe UI', 11, 'bold'))
+        match_label.pack()
+        
+        liga_label = tk.Label(match_frame, text=f"🏆 {resultado['liga']} | ⏰ {resultado['hora']}", 
+                             bg="#ecf0f1", font=('Segoe UI', 9), fg="#7f8c8d")
+        liga_label.pack()
+        
+        pick_frame = tk.Frame(popup, bg="#d5f4e6", relief='ridge', bd=2)
+        pick_frame.pack(fill='x', padx=20, pady=10)
+        
+        pick_title = tk.Label(pick_frame, text="🥇 MEJOR PICK", 
+                             bg="#d5f4e6", font=('Segoe UI', 10, 'bold'), pady=5)
+        pick_title.pack()
+        
+        mejor = resultado['mejor_pick']
+        pick_text = f"🎯 Pick: {mejor['prediccion']} @ {mejor['cuota']}\n"
+        pick_text += f"💰 Stake: {mejor['stake_recomendado']}u | 📊 Confianza: {mejor['confianza']}%\n"
+        
+        edge_percentage = mejor.get('edge_percentage', round(mejor['valor_esperado'] * 100, 1))
+        
+        if mejor.get('cumple_publicacion', False):
+            pick_text += f"✅ Edge: {edge_percentage}% (cumple criterio para publicación)"
+        else:
+            if edge_percentage < 5:
+                pick_text += f"⚠️ Edge bajo: {edge_percentage}% (no cumple criterio para publicación automática)"
+            else:
+                pick_text += f"⚠️ Edge: {edge_percentage}% (cuota fuera de rango de publicación)"
+        
+        pick_label = tk.Label(pick_frame, text=pick_text, bg="#d5f4e6", 
+                             font=('Segoe UI', 9), justify='left')
+        pick_label.pack(pady=5)
+        
+        buttons_frame = tk.Frame(popup, bg="#ecf0f1")
+        buttons_frame.pack(fill='x', padx=20, pady=10)
+        
+        detail_btn = tk.Button(buttons_frame, text="📊 Ver Detalle", bg="#9b59b6", fg="white",
+                              font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                              command=lambda: self.mostrar_detalle_mercados(resultado))
+        detail_btn.pack(side=tk.LEFT, padx=5)
+        
+        save_btn = tk.Button(buttons_frame, text="💾 Guardar", bg="#27ae60", fg="white",
+                            font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                            command=lambda: self.guardar_analisis_manual(resultado))
+        save_btn.pack(side=tk.LEFT, padx=5)
+        
+        close_btn = tk.Button(buttons_frame, text="❌ Cerrar", bg="#e74c3c", fg="white",
+                             font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                             command=popup.destroy)
+        close_btn.pack(side=tk.RIGHT, padx=5)
+        
+        edge_percentage = mejor.get('edge_percentage', round(mejor['valor_esperado'] * 100, 1))
+        print(f"📋 ANÁLISIS TÉCNICO: {resultado['partido']}")
+        print(f"   Mejor pick: {mejor['prediccion']} @ {mejor['cuota']} (Edge: {edge_percentage}%)")
+        print(f"   Mercados analizados: {len(resultado['todos_mercados'])}")
+        print(f"   Cumple publicación: {'Sí' if mejor.get('cumple_publicacion', False) else 'No'}")
+    
+    def mostrar_detalle_mercados(self, resultado):
+        """Muestra tabla detallada de todos los mercados analizados"""
+        import tkinter as tk
+        from tkinter import ttk
+        
+        detail_popup = tk.Toplevel(self.root)
+        detail_popup.title("📊 Detalle de Mercados")
+        detail_popup.geometry("700x500")
+        detail_popup.configure(bg="#ecf0f1")
+        
+        header_label = tk.Label(detail_popup, text=f"📊 TODOS LOS MERCADOS - {resultado['partido']}", 
+                               bg="#34495e", fg="white", font=('Segoe UI', 11, 'bold'), pady=10)
+        header_label.pack(fill='x')
+        
+        tree_frame = tk.Frame(detail_popup, bg="#ecf0f1")
+        tree_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        columns = ('Mercado', 'Cuota', 'Confianza', 'VE', 'Stake')
+        tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=15)
+        
+        tree.heading('Mercado', text='Mercado')
+        tree.heading('Cuota', text='Cuota')
+        tree.heading('Confianza', text='Confianza %')
+        tree.heading('VE', text='Edge %')
+        tree.heading('Stake', text='Stake')
+        
+        tree.column('Mercado', width=250)
+        tree.column('Cuota', width=80)
+        tree.column('Confianza', width=100)
+        tree.column('VE', width=120)
+        tree.column('Stake', width=80)
+        
+        for i, mercado in enumerate(resultado['todos_mercados']):
+            edge_pct = round(mercado['valor_esperado'] * 100, 1)
+            tree.insert('', 'end', values=(
+                mercado['descripcion'],
+                f"{mercado['cuota']:.2f}",
+                f"{mercado['confianza']:.1f}%",
+                f"{edge_pct}%",
+                f"{mercado['stake_recomendado']}u"
+            ))
+        
+        tree.pack(fill='both', expand=True)
+        
+        close_btn = tk.Button(detail_popup, text="❌ Cerrar", bg="#e74c3c", fg="white",
+                             font=('Segoe UI', 9), relief='flat', cursor='hand2',
+                             command=detail_popup.destroy)
+        close_btn.pack(pady=10)
+    
+    def guardar_analisis_manual(self, resultado):
+        """Guarda el análisis manual en el historial con source=manual"""
+        try:
+            from ia_bets import guardar_prediccion_historica
+            from datetime import datetime
+            
+            mejor = resultado['mejor_pick']
+            prediccion_data = {
+                "partido": resultado['partido'],
+                "liga": resultado['liga'],
+                "prediccion": mejor['prediccion'],
+                "cuota": mejor['cuota'],
+                "stake_recomendado": mejor['stake_recomendado'],
+                "valor_esperado": mejor['valor_esperado'],
+                "confianza": mejor['confianza'],
+                "source": "manual"
+            }
+            
+            fecha = datetime.now().strftime('%Y-%m-%d')
+            guardar_prediccion_historica(prediccion_data, fecha)
+            
+            import tkinter.messagebox as messagebox
+            messagebox.showinfo("Guardado", f"Análisis guardado en historial:\n{mejor['prediccion']}")
+            
+            print(f"💾 GUARDADO MANUAL: {resultado['partido']} - {mejor['prediccion']}")
+            
+        except Exception as e:
+            import tkinter.messagebox as messagebox
+            messagebox.showerror("Error", f"Error guardando análisis: {str(e)}")
 
     def reproducir_sonido_exito(self):
         """Reproducir sonido MP3 cuando se envía exitosamente a Telegram"""
@@ -1559,6 +2139,11 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 if not user_id:
                     return
                 
+                user_id = user_id.strip()
+                if not user_id:
+                    messagebox.showerror("Error", "❌ El ID del usuario no puede estar vacío")
+                    return
+                
                 dias = simpledialog.askinteger("Días de Acceso", "¿Cuántos días deseas otorgar de acceso premium?", 
                                               minvalue=1, maxvalue=365)
                 if not dias:
@@ -1570,12 +2155,17 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                         
                         try:
                             from telegram_utils import enviar_telegram
-                            exito_envio = enviar_telegram(chat_id=user_id, mensaje=mensaje_confirmacion)
+                            
+                            chat_id = user_id
+                            if user_id.isdigit() or (user_id.startswith('-') and user_id[1:].isdigit()):
+                                chat_id = int(user_id)
+                            
+                            exito_envio = enviar_telegram(chat_id=chat_id, mensaje=mensaje_confirmacion)
                             
                             if exito_envio:
                                 messagebox.showinfo("Éxito", f"✅ Acceso premium otorgado y mensaje de confirmación enviado al usuario {user_id}")
                             else:
-                                messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje de confirmación al usuario {user_id}")
+                                messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero NO se pudo enviar el mensaje de confirmación.\n\n⚠️ Posibles causas:\n• El usuario no ha iniciado el bot en Telegram\n• El usuario bloqueó el bot\n• El ID del usuario es incorrecto\n\nRevisa la consola para más detalles del error.")
                         except Exception as telegram_error:
                             messagebox.showwarning("Parcial", f"✅ Acceso premium otorgado pero error enviando mensaje: {telegram_error}")
                         

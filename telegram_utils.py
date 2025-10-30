@@ -4,8 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
-TELEGRAM_CHAT_ID = '7659029315'
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN no está configurado en el archivo .env")
+
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '7659029315')
 USUARIOS_FILE = 'usuarios.txt'
 
 def cargar_usuarios_registrados(bot_username="BetGeniuXbot"):
@@ -73,25 +76,37 @@ def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot"):
             
             url = f"https://api.telegram.org/bot{token}/sendMessage"
             payload = {
-                "chat_id": user_id,
+                "chat_id": str(user_id).strip(),
                 "text": mensaje
             }
             
             response = requests.post(url, data=payload, timeout=10)
-            response.raise_for_status()
             
-            resultados["enviados_exitosos"] += 1
-            print(f"  ✅ Enviado a {first_name} (@{username})")
-            
-        except requests.exceptions.HTTPError as e:
-            if "403" in str(e) or "blocked" in str(e).lower():
-                resultados["usuarios_bloqueados"] += 1
-                print(f"  🚫 Usuario bloqueó el bot: {first_name} (@{username})")
-            else:
+            try:
+                data = response.json()
+            except ValueError:
                 resultados["errores"] += 1
-                error_msg = f"Error HTTP enviando a {first_name}: {e}"
+                error_msg = f"Respuesta no-JSON de Telegram para {first_name}"
                 resultados["detalles_errores"].append(error_msg)
                 print(f"  ❌ {error_msg}")
+                continue
+            
+            ok = bool(data.get("ok"))
+            if ok:
+                resultados["enviados_exitosos"] += 1
+                print(f"  ✅ Enviado a {first_name} (@{username})")
+            else:
+                desc = data.get("description", "sin descripción")
+                code = data.get("error_code", response.status_code)
+                
+                if code == 403 or "blocked" in desc.lower() or "forbidden" in desc.lower():
+                    resultados["usuarios_bloqueados"] += 1
+                    print(f"  🚫 Usuario bloqueó el bot: {first_name} (@{username})")
+                else:
+                    resultados["errores"] += 1
+                    error_msg = f"Telegram error {code} para {first_name}: {desc}"
+                    resultados["detalles_errores"].append(error_msg)
+                    print(f"  ❌ {error_msg}")
                 
         except requests.exceptions.RequestException as e:
             resultados["errores"] += 1
@@ -110,7 +125,7 @@ def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot"):
     resultados["exito"] = resultados["enviados_exitosos"] > 0
     return resultados
 
-def enviar_telegram(token=None, chat_id=None, mensaje=None):
+def enviar_telegram(token=None, chat_id=None, mensaje=None, parse_mode=None, timeout=10):
     """Función original para compatibilidad - envía a un chat_id específico"""
     if mensaje is None:
         return False
@@ -120,18 +135,38 @@ def enviar_telegram(token=None, chat_id=None, mensaje=None):
     if chat_id is None:
         chat_id = TELEGRAM_CHAT_ID
     
+    chat_id = str(chat_id).strip()
+    
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = {
             "chat_id": chat_id,
             "text": mensaje
         }
-        response = requests.post(url, data=payload, timeout=10)
-        response.raise_for_status()
-        return True
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
+            
+        response = requests.post(url, data=payload, timeout=timeout)
+        
+        try:
+            data = response.json()
+        except ValueError:
+            print(f"❌ Telegram non-JSON response: {response.status_code} {response.text[:200]}")
+            return False
+        
+        ok = bool(data.get("ok"))
+        if ok:
+            print(f"✅ Mensaje enviado exitosamente a chat_id: {chat_id}")
+            return True
+        
+        desc = data.get("description", "sin descripción")
+        code = data.get("error_code", response.status_code)
+        print(f"❌ Telegram error {code}: {desc} (chat_id: {chat_id})")
+        return False
+        
     except requests.exceptions.RequestException as e:
-        print(f"Error de conexión enviando mensaje a Telegram: {e}")
+        print(f"❌ Error de conexión enviando mensaje a Telegram: {e}")
         return False
     except Exception as e:
-        print(f"Error enviando mensaje a Telegram: {e}")
+        print(f"❌ Error enviando mensaje a Telegram: {e}")
         return False
