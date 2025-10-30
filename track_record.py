@@ -66,6 +66,90 @@ class TrackRecordManager:
         
         similarity = intersection / union
         return similarity >= threshold
+    
+    def _try_flexible_team_matching(self, equipo_local: str, equipo_visitante: str, fecha: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
+        """
+        Intenta encontrar un partido donde al menos uno de los equipos coincida.
+        Útil cuando el oponente cambió pero necesitamos el resultado del equipo principal.
+        """
+        try:
+            endpoint = f"{self.base_url}/todays-matches"
+            
+            dates_to_try = [fecha]
+            try:
+                fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
+                for days_offset in [-1, 1, -2, 2, -3, 3]:
+                    dates_to_try.append((fecha_obj + timedelta(days=days_offset)).strftime('%Y-%m-%d'))
+            except:
+                pass
+            
+            for date_to_try in dates_to_try:
+                params = {
+                    "key": self.api_key,
+                    "date": date_to_try,
+                    "timezone": "America/Bogota"
+                }
+                
+                try:
+                    response = requests.get(endpoint, params=params, timeout=timeout)
+                    if response.status_code != 200:
+                        continue
+                    
+                    data = response.json()
+                    partidos = data.get("data", [])
+                    
+                    for partido in partidos:
+                        home_name = partido.get("home_name", "")
+                        away_name = partido.get("away_name", "")
+                        
+                        local_match_home = self._teams_match(equipo_local, home_name)
+                        local_match_away = self._teams_match(equipo_local, away_name)
+                        visitante_match_home = self._teams_match(equipo_visitante, home_name)
+                        visitante_match_away = self._teams_match(equipo_visitante, away_name)
+                        
+                        if local_match_home or local_match_away or visitante_match_home or visitante_match_away:
+                            status = partido.get("status", "").lower().strip()
+                            
+                            if status in VALID_MATCH_STATUSES:
+                                home_goals = partido.get("homeGoalCount") or partido.get("home_goals", 0)
+                                away_goals = partido.get("awayGoalCount") or partido.get("away_goals", 0)
+                                
+                                team_a_corners = partido.get("team_a_corners", -1)
+                                team_b_corners = partido.get("team_b_corners", -1)
+                                total_corner_count = partido.get("totalCornerCount", -1)
+                                
+                                if total_corner_count == -1 and team_a_corners != -1 and team_b_corners != -1:
+                                    total_corner_count = team_a_corners + team_b_corners
+                                
+                                print(f"  ✅ Flexible match found: predicted {equipo_local} vs {equipo_visitante}, found {home_name} vs {away_name} on {date_to_try}")
+                                
+                                return {
+                                    "match_id": partido.get("id"),
+                                    "status": status,
+                                    "home_score": home_goals,
+                                    "away_score": away_goals,
+                                    "total_goals": home_goals + away_goals,
+                                    "corners_home": team_a_corners if team_a_corners != -1 else 0,
+                                    "corners_away": team_b_corners if team_b_corners != -1 else 0,
+                                    "total_corners": total_corner_count if total_corner_count != -1 else 0,
+                                    "cards_home": partido.get("home_cards", 0),
+                                    "cards_away": partido.get("away_cards", 0),
+                                    "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
+                                    "corner_data_available": total_corner_count != -1,
+                                    "resultado_1x2": self._determinar_resultado_1x2(home_goals, away_goals),
+                                    "flexible_match": True,
+                                    "actual_home": home_name,
+                                    "actual_away": away_name
+                                }
+                except:
+                    continue
+            
+            print(f"  ❌ No flexible match found for {equipo_local} or {equipo_visitante}")
+            return None
+            
+        except Exception as e:
+            print(f"Error in flexible matching: {e}")
+            return None
 
     def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
         """
@@ -80,7 +164,9 @@ class TrackRecordManager:
                 fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
                 dates_to_try.extend([
                     (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d'),
-                    (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+                    (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d'),
+                    (fecha_obj - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    (fecha_obj + timedelta(days=2)).strftime('%Y-%m-%d')
                 ])
             except:
                 pass
@@ -150,8 +236,8 @@ class TrackRecordManager:
                             print(f"Unknown match status: {status} for {partido.get('home_name')} vs {partido.get('away_name')}")
                             return None
             
-            print(f"No match found for {equipo_local} vs {equipo_visitante} on any date")
-            return None
+            print(f"No exact match found for {equipo_local} vs {equipo_visitante}, trying flexible matching...")
+            return self._try_flexible_team_matching(equipo_local, equipo_visitante, fecha, timeout)
             
         except requests.exceptions.Timeout:
             print(f"Timeout obteniendo resultado del partido {equipo_local} vs {equipo_visitante}")
