@@ -1500,8 +1500,8 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 try:
                     usuarios = access_manager.listar_usuarios()
                     
-                    text_area.delete('1.0', tk.END)
                     text_area.config(state='normal')
+                    text_area.delete('1.0', tk.END)
                     
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
                         text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
