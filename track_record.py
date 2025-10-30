@@ -419,10 +419,26 @@ class TrackRecordManager:
             if from_date or to_date:
                 original_count = len(predicciones_pendientes)
                 if from_date and to_date:
-                    predicciones_pendientes = [p for p in predicciones_pendientes 
-                                              if from_date <= p.get("fecha", "") <= to_date]
-                    print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
-                    print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
+                    from datetime import datetime, timedelta
+                    if from_date == to_date:
+                        try:
+                            fecha_obj = datetime.strptime(from_date, '%Y-%m-%d')
+                            expanded_from = (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d')
+                            expanded_to = (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+                            predicciones_pendientes = [p for p in predicciones_pendientes 
+                                                      if expanded_from <= p.get("fecha", "") <= expanded_to]
+                            print(f"🔍 Filtrando por fecha: {from_date} (expandido a ±1 día: {expanded_from} a {expanded_to})")
+                            print(f"   Predicciones en rango expandido: {len(predicciones_pendientes)} de {original_count}")
+                        except:
+                            predicciones_pendientes = [p for p in predicciones_pendientes 
+                                                      if from_date <= p.get("fecha", "") <= to_date]
+                            print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
+                            print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
+                    else:
+                        predicciones_pendientes = [p for p in predicciones_pendientes 
+                                                  if from_date <= p.get("fecha", "") <= to_date]
+                        print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
+                        print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
                 elif from_date:
                     predicciones_pendientes = [p for p in predicciones_pendientes 
                                               if p.get("fecha", "") >= from_date]
