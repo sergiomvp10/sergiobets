@@ -271,6 +271,12 @@ class TrackRecordManager:
             if "más de" in tipo_prediccion and "goles" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" goles")[0])
                 acierto = resultado["total_goals"] > umbral
+                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold (over) = {'WIN' if acierto else 'LOSS'}")
+                
+            elif "menos de" in tipo_prediccion and "goles" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" goles")[0])
+                acierto = resultado["total_goals"] < umbral
+                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold (under) = {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
@@ -291,6 +297,10 @@ class TrackRecordManager:
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
                 acierto = resultado["total_cards"] > umbral
+                
+            elif "menos de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" tarjetas")[0])
+                acierto = resultado["total_cards"] < umbral
                 
             elif "btts" in tipo_prediccion or "ambos equipos marcan" in tipo_prediccion:
                 acierto = resultado["home_score"] > 0 and resultado["away_score"] > 0
@@ -319,12 +329,12 @@ class TrackRecordManager:
                     else:
                         acierto = False
                         
-            elif any(x in tipo_prediccion for x in ["1", "x", "2", "local", "empate", "visitante"]):
-                if "local" in tipo_prediccion or "1" in tipo_prediccion:
+            elif any(x in tipo_prediccion for x in ["local", "empate", "visitante"]):
+                if "local" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "1"
-                elif "empate" in tipo_prediccion or "x" in tipo_prediccion:
+                elif "empate" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "X"
-                elif "visitante" in tipo_prediccion or "2" in tipo_prediccion:
+                elif "visitante" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "2"
             
             if acierto:
