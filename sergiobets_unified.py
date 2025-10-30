@@ -24,8 +24,8 @@ from datetime import date, timedelta, datetime
 from dotenv import load_dotenv, find_dotenv
 
 env_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path=env_path, override=False)
-load_dotenv(find_dotenv(filename=".env", usecwd=True), override=False)
+load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(find_dotenv(filename=".env", usecwd=True), override=True)
 
 from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
@@ -1531,7 +1531,20 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             
             api_key = os.getenv('FOOTYSTATS_API_KEY')
             if not api_key:
-                messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
+                cwd = os.getcwd()
+                script_dir = Path(__file__).resolve().parent
+                env_in_cwd = Path(cwd) / ".env"
+                env_in_script = script_dir / ".env"
+                
+                error_msg = f"FOOTYSTATS_API_KEY no encontrada en .env\n\n"
+                error_msg += f"Directorio actual (CWD): {cwd}\n"
+                error_msg += f"Directorio del script: {script_dir}\n"
+                error_msg += f".env en CWD existe: {env_in_cwd.exists()}\n"
+                error_msg += f".env en script existe: {env_in_script.exists()}\n\n"
+                error_msg += "Asegúrate de que el archivo .env está en la raíz del proyecto\n"
+                error_msg += "y contiene: FOOTYSTATS_API_KEY=tu_api_key"
+                
+                messagebox.showerror("Error", error_msg)
                 return
             tracker = TrackRecordManager(api_key)
             
