@@ -522,11 +522,6 @@ class TrackRecordManager:
                             timeout=timeout_per_match
                         )
                         
-                        if not resultado:
-                            resultado = self._try_flexible_team_matching(
-                                equipo_local, equipo_visitante, match_data["fecha"], timeout_per_match
-                            )
-                        
                         if resultado:
                             print(f"  ✅ Resultado encontrado: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
                             for prediccion in match_data["predicciones"]:
