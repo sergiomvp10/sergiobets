@@ -6427,5 +6427,61 @@
         "sent_to_telegram": true,
         "resultado_real": null,
         "ganancia": null
+    },
+    {
+        "fecha": "2025-09-04",
+        "partido": "Colombia vs Bolivia",
+        "liga": "Copa Colombia",
+        "prediccion": "Más de 2.5 goles",
+        "cuota": 1.47,
+        "stake": 1,
+        "valor_esperado": -0.005,
+        "confianza": 67.7,
+        "timestamp": "2025-09-04T14:50:38.451174",
+        "sent_to_telegram": true,
+        "resultado_real": null,
+        "ganancia": null
+    },
+    {
+        "fecha": "2025-10-30",
+        "partido": "Cagliari vs Sassuolo",
+        "liga": "Serie A",
+        "prediccion": "Más de 8.5 corners",
+        "cuota": 1.66,
+        "stake": 10,
+        "valor_esperado": 0.624,
+        "confianza": 97.8,
+        "timestamp": "2025-10-30T12:38:59.197987",
+        "sent_to_telegram": true,
+        "resultado_real": null,
+        "ganancia": null
+    },
+    {
+        "fecha": "2025-10-30",
+        "partido": "Palmeiras vs LDU Quito",
+        "liga": "Brasileirão",
+        "prediccion": "Más de 2.5 goles",
+        "cuota": 1.63,
+        "stake": 10,
+        "valor_esperado": 0.159,
+        "confianza": 71.1,
+        "timestamp": "2025-10-30T12:39:10.334376",
+        "sent_to_telegram": true,
+        "resultado_real": null,
+        "ganancia": null
+    },
+    {
+        "fecha": "2025-10-30",
+        "partido": "Pisa vs Lazio",
+        "liga": "Serie A",
+        "prediccion": "Más de 8.5 corners",
+        "cuota": 1.56,
+        "stake": 10,
+        "valor_esperado": 0.502,
+        "confianza": 96.3,
+        "timestamp": "2025-10-30T12:39:24.419224",
+        "sent_to_telegram": true,
+        "resultado_real": null,
+        "ganancia": null
     }
 ]

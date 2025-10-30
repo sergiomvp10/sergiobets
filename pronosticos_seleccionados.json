@@ -1,20 +1,20 @@
 {
-    "fecha": "2025-09-12",
+    "fecha": "2025-10-30",
     "predicciones": [
         {
-            "partido": "Huracán vs Vélez Sarsfield",
-            "liga": "Liga Argentina",
-            "hora": "15:00",
-            "prediccion": "Más de 1.5 goles",
-            "cuota": 1.62,
+            "partido": "Pisa vs Lazio",
+            "liga": "Serie A",
+            "hora": "12:45",
+            "prediccion": "Más de 8.5 corners",
+            "cuota": 1.56,
             "stake_recomendado": 10,
-            "confianza": 93.9,
-            "valor_esperado": 0.521,
-            "razon": "Modelo predictivo estima 4.5 goles. Rendimiento ofensivo equipos favorece línea. VE: +52.1%",
+            "confianza": 96.3,
+            "valor_esperado": 0.502,
+            "razon": "Promedio corners equipos: 1.4x media liga. Estilo de juego favorece línea. VE: +50.2%",
             "opcion_numero": 1,
-            "total_opciones": 1,
+            "total_opciones": 2,
             "sent_to_telegram": true,
-            "fecha_envio_telegram": "2025-09-03T22:59:28.747920"
+            "fecha_envio_telegram": "2025-10-30T12:39:24.417218"
         }
     ]
 }

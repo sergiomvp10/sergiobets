@@ -5,7 +5,7 @@ from datetime import datetime
 from api_cache import APICache
 from error_handler import safe_api_call
 
-API_KEY = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
+API_KEY = "1d19b51cc6be6520d3b96a60c3d0fb862b120d9826886671c28dd796989048ee"
 BASE_URL = "https://api.football-data-api.com"
 
 api_cache = APICache(cache_duration_minutes=30)
