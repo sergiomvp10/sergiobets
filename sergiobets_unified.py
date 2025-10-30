@@ -2058,7 +2058,7 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
         """Abrir ventana de gestión de usuarios VIP"""
         try:
             import tkinter as tk
-            from tkinter import messagebox, scrolledtext, simpledialog
+            from tkinter import messagebox, simpledialog, ttk
             
             try:
                 from access_manager import access_manager
@@ -2074,28 +2074,99 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             
             ventana_usuarios = tk.Toplevel(self.root)
             ventana_usuarios.title("👥 Gestión de Usuarios VIP")
-            ventana_usuarios.geometry("900x700")
+            ventana_usuarios.geometry("1100x700")
             ventana_usuarios.configure(bg="#2c3e50")
             
-            frame_principal = tk.Frame(ventana_usuarios, bg="#2c3e50")
-            frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
+            ventana_usuarios.grid_rowconfigure(1, weight=1)
+            ventana_usuarios.grid_columnconfigure(0, weight=1)
             
-            tk.Label(frame_principal, text="👥 GESTIÓN DE USUARIOS VIP", 
+            frame_header = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_header.grid(row=0, column=0, sticky='ew', padx=10, pady=(10, 0))
+            
+            tk.Label(frame_header, text="👥 GESTIÓN DE USUARIOS VIP", 
                     bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold')).pack(pady=(0, 10))
             
-            frame_stats = tk.Frame(frame_principal, bg="#34495e", relief='raised', bd=2)
+            frame_stats = tk.Frame(frame_header, bg="#34495e", relief='raised', bd=2)
             frame_stats.pack(fill='x', pady=(0, 10))
             
             stats_label = tk.Label(frame_stats, text="📊 Cargando estadísticas...", 
                                   bg="#34495e", fg="white", font=('Segoe UI', 12))
             stats_label.pack(pady=10)
             
-            text_area = scrolledtext.ScrolledText(frame_principal, wrap=tk.WORD, 
-                                                 font=('Consolas', 10), bg="white", fg="black")
-            text_area.pack(fill='both', expand=True, pady=(0, 10))
+            frame_table = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_table.grid(row=1, column=0, sticky='nsew', padx=10, pady=10)
+            frame_table.grid_rowconfigure(0, weight=1)
+            frame_table.grid_columnconfigure(0, weight=1)
             
-            frame_botones = tk.Frame(frame_principal, bg="#2c3e50")
-            frame_botones.pack(fill='x')
+            style = ttk.Style()
+            style.theme_use('clam')
+            style.configure("Treeview", 
+                          background="white",
+                          foreground="black",
+                          rowheight=30,
+                          fieldbackground="white",
+                          font=('Segoe UI', 10))
+            style.configure("Treeview.Heading",
+                          background="#34495e",
+                          foreground="white",
+                          font=('Segoe UI', 11, 'bold'),
+                          relief='raised')
+            style.map('Treeview', background=[('selected', '#3498db')])
+            
+            columns = ('id', 'usuario', 'nombre', 'premium', 'expira')
+            tree = ttk.Treeview(frame_table, columns=columns, show='headings', selectmode='browse')
+            
+            tree.heading('id', text='ID', anchor='center')
+            tree.heading('usuario', text='Usuario', anchor='w')
+            tree.heading('nombre', text='Nombre', anchor='w')
+            tree.heading('premium', text='Premium', anchor='center')
+            tree.heading('expira', text='Expira', anchor='center')
+            
+            tree.column('id', width=120, minwidth=100, anchor='center')
+            tree.column('usuario', width=200, minwidth=150, anchor='w')
+            tree.column('nombre', width=200, minwidth=150, anchor='w')
+            tree.column('premium', width=100, minwidth=80, anchor='center')
+            tree.column('expira', width=180, minwidth=150, anchor='center')
+            
+            tree.tag_configure('odd', background='#f0f0f0')
+            tree.tag_configure('even', background='white')
+            
+            scrollbar_y = ttk.Scrollbar(frame_table, orient='vertical', command=tree.yview)
+            scrollbar_x = ttk.Scrollbar(frame_table, orient='horizontal', command=tree.xview)
+            tree.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+            
+            tree.grid(row=0, column=0, sticky='nsew')
+            scrollbar_y.grid(row=0, column=1, sticky='ns')
+            scrollbar_x.grid(row=1, column=0, sticky='ew')
+            
+            sort_reverse = {}
+            
+            def sort_column(col):
+                data = [(tree.set(child, col), child) for child in tree.get_children('')]
+                
+                if col == 'expira':
+                    def sort_key(item):
+                        val = item[0]
+                        if val == 'N/A' or val == 'Error fecha':
+                            return ('9999-99-99 99:99', item[1])
+                        return (val, item[1])
+                    data.sort(key=sort_key, reverse=sort_reverse.get(col, False))
+                elif col == 'premium':
+                    data.sort(key=lambda x: (0 if '✅' in x[0] else 1, x[1]), reverse=sort_reverse.get(col, False))
+                else:
+                    data.sort(reverse=sort_reverse.get(col, False))
+                
+                for index, (val, child) in enumerate(data):
+                    tree.move(child, '', index)
+                    tree.item(child, tags=('even',) if index % 2 == 0 else ('odd',))
+                
+                sort_reverse[col] = not sort_reverse.get(col, False)
+            
+            for col in columns:
+                tree.heading(col, command=lambda c=col: sort_column(c))
+            
+            frame_botones = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_botones.grid(row=2, column=0, sticky='ew', padx=10, pady=(0, 10))
             
             def actualizar_estadisticas():
                 try:
@@ -2124,18 +2195,15 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 try:
                     usuarios = access_manager.listar_usuarios()
                     
-                    text_area.config(state='normal')
-                    text_area.delete('1.0', tk.END)
+                    for item in tree.get_children():
+                        tree.delete(item)
                     
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
-                        text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
-                        text_area.insert(tk.END, "="*90 + "\n")
-                        
-                        for usuario in usuarios:
+                        for index, usuario in enumerate(usuarios):
                             if usuario and isinstance(usuario, dict):
-                                user_id = usuario.get('user_id', 'N/A')
-                                username = usuario.get('username', 'N/A')[:19] if usuario.get('username') else 'N/A'
-                                first_name = usuario.get('first_name', 'N/A')[:19] if usuario.get('first_name') else 'N/A'
+                                user_id = str(usuario.get('user_id', 'N/A'))
+                                username = usuario.get('username', 'N/A') if usuario.get('username') else 'N/A'
+                                first_name = usuario.get('first_name', 'N/A') if usuario.get('first_name') else 'N/A'
                                 premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
                                 
                                 expira = "N/A"
@@ -2147,33 +2215,18 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                                     except:
                                         expira = "Error fecha"
                                 
-                                linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
-                                text_area.insert(tk.END, linea)
-                    else:
-                        text_area.insert('1.0', "No hay usuarios registrados o datos no disponibles.")
+                                tag = 'even' if index % 2 == 0 else 'odd'
+                                tree.insert('', 'end', values=(user_id, username, first_name, premium, expira), tags=(tag,))
                     
-                    text_area.config(state='disabled')
                     actualizar_estadisticas()
                 except AttributeError as e:
                     messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
-                    text_area.insert('1.0', f"Error: Módulo access_manager no configurado - {e}")
-                    text_area.config(state='disabled')
                     print(f"AttributeError en refrescar_usuarios: {e}")
                 except TypeError as e:
                     messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
-                    text_area.insert('1.0', f"Error: Datos de usuarios inválidos - {e}")
-                    text_area.config(state='disabled')
                     print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
-                    text_area.insert('1.0', f"Error cargando usuarios: {e}")
-                    text_area.config(state='disabled')
                     print(f"Error en refrescar_usuarios: {e}")
                     import traceback
                     print(f"Traceback: {traceback.format_exc()}")
