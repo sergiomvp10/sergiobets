@@ -1897,7 +1897,14 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 
                 def update_in_thread():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=50, timeout_per_match=15)
+                        from_date = fecha_inicio.get() if fecha_inicio.get() else None
+                        to_date = fecha_fin.get() if fecha_fin.get() else None
+                        resultado = tracker.actualizar_historial_con_resultados(
+                            max_matches=50, 
+                            timeout_per_match=15,
+                            from_date=from_date,
+                            to_date=to_date
+                        )
                         
                         def update_gui():
                             try:

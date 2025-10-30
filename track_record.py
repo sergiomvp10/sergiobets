@@ -21,7 +21,9 @@ class TrackRecordManager:
     def __init__(self, api_key: str, base_url: str = "https://api.football-data-api.com"):
         self.api_key = api_key
         self.base_url = base_url
-        self.historial_file = "historial_predicciones.json"
+        from pathlib import Path
+        self.historial_file = str(Path(__file__).resolve().parent / "historial_predicciones.json")
+        print(f"📁 Track Record usando archivo: {self.historial_file}")
     
     def _normalize_team_name(self, name: str) -> str:
         """
@@ -386,7 +388,7 @@ class TrackRecordManager:
             return {"error": str(e)}
 
     @safe_file_operation(default_return={"actualizados": 0, "errores": 0})
-    def actualizar_historial_con_resultados(self, max_matches=50, timeout_per_match=8) -> Dict[str, Any]:
+    def actualizar_historial_con_resultados(self, max_matches=50, timeout_per_match=8, from_date=None, to_date=None) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
         Optimizado para evitar colgados con límites y timeouts
@@ -404,6 +406,24 @@ class TrackRecordManager:
             
             predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
             
+            if from_date or to_date:
+                original_count = len(predicciones_pendientes)
+                if from_date and to_date:
+                    predicciones_pendientes = [p for p in predicciones_pendientes 
+                                              if from_date <= p.get("fecha", "") <= to_date]
+                    print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
+                    print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
+                elif from_date:
+                    predicciones_pendientes = [p for p in predicciones_pendientes 
+                                              if p.get("fecha", "") >= from_date]
+                    print(f"🔍 Filtrando desde: {from_date}")
+                    print(f"   Predicciones filtradas: {len(predicciones_pendientes)} de {original_count}")
+                elif to_date:
+                    predicciones_pendientes = [p for p in predicciones_pendientes 
+                                              if p.get("fecha", "") <= to_date]
+                    print(f"🔍 Filtrando hasta: {to_date}")
+                    print(f"   Predicciones filtradas: {len(predicciones_pendientes)} de {original_count}")
+            
             if not predicciones_pendientes:
                 print("✅ No hay predicciones pendientes para actualizar")
                 return {
@@ -416,7 +436,10 @@ class TrackRecordManager:
                     "matches_restantes": 0
                 }
             
-            print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes (todas, no solo las enviadas a Telegram)")
+            if from_date or to_date:
+                print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes en el rango de fechas seleccionado")
+            else:
+                print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes (todas las fechas)")
             
             matches_unicos = {}
             for prediccion in predicciones_pendientes:
@@ -444,40 +467,18 @@ class TrackRecordManager:
             
             def prioridad_match(item):
                 key, match_data = item
-                partido = match_data["partido"].lower()
                 fecha = match_data["fecha"]
                 
-                if " vs " in partido:
-                    teams = partido.split(" vs ")
-                    equipo_local = teams[0].strip() if len(teams) > 0 else ""
-                    equipo_visitante = teams[1].strip() if len(teams) > 1 else ""
-                else:
-                    equipo_local = ""
-                    equipo_visitante = ""
-                
-                has_confirmed_api_data = (
-                    (("athletic" in equipo_local and "club" in equipo_local) and 
-                     ("atlético" in equipo_visitante and "go" in equipo_visitante)) or
-                    ("cuiabá" in equipo_local and ("volta" in equipo_visitante or "redonda" in equipo_visitante)) or
-                    (("universidad" in equipo_local and "chile" in equipo_local) and "cobresal" in equipo_visitante) or
-                    ("athletic club" in partido and "atlético go" in partido) or
-                    ("cuiabá" in partido and "volta redonda" in partido) or
-                    ("universidad chile" in partido and "cobresal" in partido) or
-                    ("deportivo cali" in partido and "llaneros" in partido)
-                )
-                
-                if has_confirmed_api_data:
-                    return 0
-                
-                if fecha in ["2025-08-04", "2025-08-05", "2025-08-06"]:
-                    return 1
-                
-                if fecha in ["2025-08-03", "2025-08-02"]:
-                    return 2
-                    
-                return 3
+                try:
+                    from datetime import datetime
+                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
+                    today = datetime.now()
+                    days_diff = abs((today - fecha_obj).days)
+                    return days_diff
+                except:
+                    return 999
             
-            print(f"🔄 Aplicando priorización universal con detección inteligente de datos API...")
+            print(f"🔄 Priorizando partidos por proximidad a hoy (más recientes primero)...")
             
             priority_matches = []
             other_matches = []
@@ -653,6 +654,7 @@ class TrackRecordManager:
                     continue
             
             guardar_json(self.historial_file, historial)
+            print(f"✅ Guardado en: {self.historial_file}")
             
             remaining_matches = len(matches_unicos) - len(matches_to_process)
             print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos, {timeouts} timeouts")
