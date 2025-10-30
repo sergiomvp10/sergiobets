@@ -1952,19 +1952,34 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 thread.start()
             
             def actualizar_automatico():
-                """Actualiza resultados automáticamente al abrir track record"""
+                """Actualiza resultados automáticamente cada 4 horas"""
                 import threading
                 
                 def update_in_background():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=3, timeout_per_match=8)
+                        from_date = fecha_inicio.get() if fecha_inicio.get() else None
+                        to_date = fecha_fin.get() if fecha_fin.get() else None
+                        resultado = tracker.actualizar_historial_con_resultados(
+                            max_matches=50, 
+                            timeout_per_match=15,
+                            from_date=from_date,
+                            to_date=to_date
+                        )
                         if resultado.get('actualizaciones', 0) > 0:
                             ventana_track.after(0, cargar_datos_filtrados)
+                            print(f"✅ Auto-actualización: {resultado.get('actualizaciones', 0)} predicciones actualizadas")
                     except Exception as e:
-                        pass
+                        print(f"❌ Error en auto-actualización: {e}")
+                
+                def schedule_next_update():
+                    """Programa la próxima actualización en 4 horas"""
+                    thread = threading.Thread(target=update_in_background, daemon=True)
+                    thread.start()
+                    ventana_track.after(14400000, schedule_next_update)
                 
                 thread = threading.Thread(target=update_in_background, daemon=True)
                 thread.start()
+                ventana_track.after(14400000, schedule_next_update)
             
             def limpiar_historial():
                 """Limpia todo el historial"""
