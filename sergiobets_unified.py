@@ -1523,7 +1523,10 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             import os
             from datetime import datetime, timedelta
             
-            api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
+            api_key = os.getenv('FOOTYSTATS_API_KEY')
+            if not api_key:
+                messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
+                return
             tracker = TrackRecordManager(api_key)
             
             ventana_track = tk.Toplevel(self.root)
@@ -1875,7 +1878,7 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 
                 def update_in_thread():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=10, timeout_per_match=15)
+                        resultado = tracker.actualizar_historial_con_resultados(max_matches=50, timeout_per_match=15)
                         
                         def update_gui():
                             try:
