@@ -419,7 +419,7 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
         else:
             mensaje_acceso = ""
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏\n\n¡Prepárate para ganar!{mensaje_acceso}"
+    mensaje = f"𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼 𝗮 𝗕𝗲𝘁𝗴𝗲𝗻𝗶𝘂𝘅\n¡Prepárate para ganar! 🤑{mensaje_acceso}"
     
     keyboard = [
         [
