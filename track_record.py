@@ -704,9 +704,12 @@ class TrackRecordManager:
             traceback.print_exc()
             return {"error": str(e)}
     
-    def calcular_metricas_rendimiento(self) -> Dict[str, Any]:
+    def calcular_metricas_rendimiento(self, window_size: int = 100) -> Dict[str, Any]:
         """
         Calcula métricas de rendimiento del sistema de predicciones
+        
+        Args:
+            window_size: Número máximo de predicciones resueltas a considerar (últimas N)
         """
         try:
             historial = cargar_json(self.historial_file) or []
@@ -719,13 +722,18 @@ class TrackRecordManager:
             if not historial:
                 return {"error": "No hay predicciones enviadas a Telegram"}
             
-            con_resultado = [p for p in historial if p.get("resultado_real") is not None]
+            # Separar resueltas y pendientes
+            con_resultado = [p for p in historial if p.get("resultado_real") is not None and p.get("resultado_real") != "pendiente"]
+            pendientes = [p for p in historial if p.get("resultado_real") is None or p.get("resultado_real") == "pendiente"]
+            
+            con_resultado_sorted = sorted(con_resultado, key=lambda x: x.get('fecha', ''), reverse=True)
+            con_resultado = con_resultado_sorted[:window_size]
             
             if not con_resultado:
                 return {
-                    "total_predicciones": len(historial),
+                    "total_predicciones": len(pendientes),
                     "predicciones_resueltas": 0,
-                    "predicciones_pendientes": len(historial),
+                    "predicciones_pendientes": len(pendientes),
                     "aciertos": 0,
                     "tasa_acierto": 0,
                     "total_apostado": 0,
@@ -734,7 +742,7 @@ class TrackRecordManager:
                     "mensaje": "No hay predicciones resueltas aún"
                 }
             
-            total_predicciones = len(historial)
+            total_predicciones = len(con_resultado) + len(pendientes)
             predicciones_resueltas = len(con_resultado)
             aciertos = [p for p in con_resultado if p.get("acierto", False)]
             
@@ -758,7 +766,7 @@ class TrackRecordManager:
                 aciertos_tipo = tipos_apuesta[tipo]["aciertos"]
                 tipos_apuesta[tipo]["win_rate"] = (aciertos_tipo / total * 100) if total > 0 else 0
             
-            predicciones_pendientes = total_predicciones - predicciones_resueltas
+            predicciones_pendientes = len(pendientes)
             
             predicciones_con_ve = [p for p in historial if "valor_esperado" in p]
             valor_esperado_promedio = 0
