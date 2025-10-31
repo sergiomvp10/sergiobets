@@ -43,10 +43,11 @@ Click en **"Advanced"** y agrega estas variables de entorno:
 ```
 TELEGRAM_BOT_TOKEN=8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c
 ADMIN_TELEGRAM_ID=7659029315
-PAYMENTS_GROUP_ID=7659029315
+PAYMENTS_GROUP_ID=-4938921599
 DATABASE_URL=(copiar del scheduler betgeniux-scheduler)
 TIMEZONE=America/Phoenix
 FOOTYSTATS_API_KEY=1d19b51cc6be6520d3b96a60c3d0fb862b120d9826886671c28dd796989048ee
+PYTHON_VERSION=3.12.6
 ```
 
 **IMPORTANTE:** Copia el `DATABASE_URL` del servicio **betgeniux-scheduler** (mismo valor).
