@@ -514,7 +514,6 @@ class SergioBetsUnified:
         """Setup the Tkinter GUI interface with modern theme and responsive layout"""
         import tkinter as tk
         from tkinter import ttk, messagebox
-        from tkinter.scrolledtext import ScrolledText
         from tkcalendar import DateEntry
         
         self.root = tk.Tk()
@@ -537,7 +536,6 @@ class SergioBetsUnified:
         self.combo_ligas = None
         self.frame_predicciones = None
         self.frame_partidos = None
-        self.output = None
         self.ligas_disponibles = set()
         self.checkboxes_predicciones = []
         self.checkboxes_partidos = []
@@ -559,7 +557,6 @@ class SergioBetsUnified:
         self.tab_principal.grid_rowconfigure(1, weight=0)  # Separator
         self.tab_principal.grid_rowconfigure(2, weight=1)  # Predicciones (scrollable)
         self.tab_principal.grid_rowconfigure(3, weight=1)  # Partidos (scrollable)
-        self.tab_principal.grid_rowconfigure(4, weight=1)  # Output
         self.tab_principal.grid_columnconfigure(0, weight=1)
         
         toolbar = ttk.Frame(self.tab_principal, style='Toolbar.TFrame', padding=10)
@@ -633,12 +630,6 @@ class SergioBetsUnified:
         self.frame_predicciones = self.sf_predicciones.inner
         self.frame_partidos = self.sf_partidos.inner
         
-        # Output con ScrolledText
-        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, 
-                                   font=('Segoe UI', 9), bg=palette['output_bg'], 
-                                   fg=palette['fg'], relief='flat', borderwidth=0)
-        self.output.grid(row=4, column=0, sticky='nsew', padx=10, pady=10)
-        
         self.setup_settings_tab()
         
         print("✅ GUI setup completed with modern theme")
@@ -646,8 +637,6 @@ class SergioBetsUnified:
     def update_custom_widgets_theme(self, palette):
         """Actualiza widgets personalizados que no usan ttk"""
         try:
-            if hasattr(self, 'output') and self.output:
-                self.output.config(bg=palette['output_bg'], fg=palette['fg'])
             if hasattr(self, 'sf_predicciones') and self.sf_predicciones:
                 self.sf_predicciones.update_theme(palette['bg'])
             if hasattr(self, 'sf_partidos') and self.sf_partidos:
@@ -886,8 +875,6 @@ class SergioBetsUnified:
         """Buscar partidos y predicciones"""
         try:
             fecha = self.entry_fecha.get()
-            self.output.delete('1.0', tk.END)
-
             self.ligas_disponibles.clear()
             
             if opcion_numero == 1:
@@ -899,10 +886,9 @@ class SergioBetsUnified:
             self.limpiar_frame_partidos()
 
             if not partidos or len(partidos) == 0:
-                self.output.insert(tk.END, f"ℹ️ No hay partidos disponibles para {fecha}\n")
-                self.output.insert(tk.END, f"📅 Intenta con otra fecha que tenga partidos programados\n")
                 self.actualizar_ligas()  # Actualizar con lista vacía
                 self.mensaje_telegram = f"No hay partidos disponibles para {fecha}"
+                messagebox.showinfo("Sin partidos", f"ℹ️ No hay partidos disponibles para {fecha}\n📅 Intenta con otra fecha que tenga partidos programados")
                 return
 
             for partido in partidos:
@@ -956,7 +942,6 @@ class SergioBetsUnified:
             
         except Exception as e:
             error_msg = f"❌ Error al buscar partidos: {e}"
-            self.output.insert(tk.END, error_msg)
             print(error_msg)
             messagebox.showerror("Error", f"Error al cargar partidos: {e}")
 
