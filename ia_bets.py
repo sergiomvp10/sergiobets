@@ -318,7 +318,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > 0.05  # Mínimo 5% de valor esperado
+    es_value_bet = True  # Sin filtro de valor esperado mínimo
     
     return valor_esperado, es_value_bet
 
@@ -328,10 +328,8 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
     
     if bypass_filters:
         cuota_min, cuota_max = ODDS_RANGE_ANALYZE
-        valor_minimo = 0.0
     else:
         cuota_min, cuota_max = obtener_cuotas_configuradas()
-        valor_minimo = 0.05
     
     cuotas_reales = analisis["cuotas_disponibles"]
     
@@ -420,7 +418,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
                 
             ve, es_value = calcular_value_bet(probabilidad, cuota_real)
             
-            if bypass_filters or (es_value and ve >= valor_minimo):
+            if cuota_min <= cuota_real <= cuota_max:
                 edge_percentage = ve * 100
                 cumple_publicacion = es_value and ve >= 0.05 and (cuota_min <= cuota_real <= cuota_max) and source == "api"
                 
@@ -573,7 +571,9 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
         mensaje += f"⚽️ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
-        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
+        ve_pct = round(pred['valor_esperado'] * 100, 1)
+        ve_sign = '+' if ve_pct >= 0 else ''
+        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: {ve_sign}{ve_pct}%\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
     mensaje += "⚠️ Apostar con responsabilidad"
