@@ -397,6 +397,7 @@ def iniciar_bot_listener():
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
+        application.add_handler(CommandHandler("get_chat_id", get_chat_id_command))
         application.add_handler(CallbackQueryHandler(button_callback, pattern="^(pronosticos|estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
         application.add_handler(CallbackQueryHandler(confirmar_pago_nequi_admin, pattern="^(nequi_confirm|nequi_reject):"))
