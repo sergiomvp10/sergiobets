@@ -60,7 +60,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             mensaje_acceso = ""
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏\n\n¡Prepárate para ganar!{mensaje_acceso}"
+    mensaje = f"𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼 𝗮 𝗕𝗲𝘁𝗴𝗲𝗻𝗶𝘂𝘅\n¡Prepárate para ganar! 🤑{mensaje_acceso}"
     
     keyboard = [
         [
@@ -311,9 +311,9 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ngrok_url = get_current_ngrok_url()
     
     if ngrok_url:
-        mensaje = f"""MEMBRESÍA VIP BETGENIUX
+        mensaje = f"""MEMBRESÍA BETGENIUX
 
-⭐ ACCESO VIP 7 DÍAS ⭐
+⭐️ ACCESO VIP 7 DÍAS ⭐️
 
 • Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
@@ -326,14 +326,14 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔐 MÉTODOS DE PAGO DISPONIBLES:
 
 • USDT (TRC20)
-• Litecoin (LTC)
+• PAYPAL (USD)
 • NEQUI (Colombia)
 
 🚀 ¡Selecciona tu método de pago preferido!"""
     else:
-        mensaje = """MEMBRESÍA VIP BETGENIUX
+        mensaje = """MEMBRESÍA BETGENIUX
 
-⭐ ACCESO VIP 7 DÍAS ⭐
+⭐️ ACCESO VIP 7 DÍAS ⭐️
 
 • Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
@@ -346,7 +346,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔐 MÉTODOS DE PAGO DISPONIBLES:
 
 • USDT (TRC20)
-• Litecoin (LTC)
+• PAYPAL (USD)
 • NEQUI (Colombia)
 
 🚀 ¡Selecciona tu método de pago preferido!"""
