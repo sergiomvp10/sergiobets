@@ -649,7 +649,15 @@ async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAUL
             try:
                 with open(nequi_file_path, 'r', encoding='utf-8') as f:
                     payments = json.load(f)
-                logger.info(f"  ✓ JSON leído: {len(payments)} pagos existentes")
+                
+                if isinstance(payments, dict):
+                    logger.warning(f"  ⚠ JSON es dict en lugar de list, convirtiendo...")
+                    payments = []
+                elif not isinstance(payments, list):
+                    logger.warning(f"  ⚠ JSON tiene tipo inesperado: {type(payments)}, recreando...")
+                    payments = []
+                else:
+                    logger.info(f"  ✓ JSON leído: {len(payments)} pagos existentes")
             except json.JSONDecodeError as e:
                 logger.warning(f"  ⚠ JSON corrupto, recreando: {e}")
                 payments = []
