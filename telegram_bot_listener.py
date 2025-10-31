@@ -444,7 +444,7 @@ def iniciar_bot_listener():
         logger.info(f"🔧 USDT_PAYMENTS_FILE: {USDT_PAYMENTS_FILE}")
         logger.info(f"🔧 PAYPAL_PAYMENTS_FILE: {PAYPAL_PAYMENTS_FILE}")
         
-        application.run_polling(stop_signals=None)
+        application.run_polling()
         
     except Exception as e:
         logger.error(f"Error iniciando bot listener: {e}")
