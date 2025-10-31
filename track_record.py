@@ -21,7 +21,9 @@ class TrackRecordManager:
     def __init__(self, api_key: str, base_url: str = "https://api.football-data-api.com"):
         self.api_key = api_key
         self.base_url = base_url
-        self.historial_file = "historial_predicciones.json"
+        from pathlib import Path
+        self.historial_file = str(Path(__file__).resolve().parent / "historial_predicciones.json")
+        print(f"📁 Track Record usando archivo: {self.historial_file}")
     
     def _normalize_team_name(self, name: str) -> str:
         """
@@ -66,6 +68,90 @@ class TrackRecordManager:
         
         similarity = intersection / union
         return similarity >= threshold
+    
+    def _try_flexible_team_matching(self, equipo_local: str, equipo_visitante: str, fecha: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
+        """
+        Intenta encontrar un partido donde al menos uno de los equipos coincida.
+        Útil cuando el oponente cambió pero necesitamos el resultado del equipo principal.
+        """
+        try:
+            endpoint = f"{self.base_url}/todays-matches"
+            
+            dates_to_try = [fecha]
+            try:
+                fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
+                for days_offset in [-1, 1, -2, 2, -3, 3]:
+                    dates_to_try.append((fecha_obj + timedelta(days=days_offset)).strftime('%Y-%m-%d'))
+            except:
+                pass
+            
+            for date_to_try in dates_to_try:
+                params = {
+                    "key": self.api_key,
+                    "date": date_to_try,
+                    "timezone": "America/Bogota"
+                }
+                
+                try:
+                    response = requests.get(endpoint, params=params, timeout=timeout)
+                    if response.status_code != 200:
+                        continue
+                    
+                    data = response.json()
+                    partidos = data.get("data", [])
+                    
+                    for partido in partidos:
+                        home_name = partido.get("home_name", "")
+                        away_name = partido.get("away_name", "")
+                        
+                        local_match_home = self._teams_match(equipo_local, home_name)
+                        local_match_away = self._teams_match(equipo_local, away_name)
+                        visitante_match_home = self._teams_match(equipo_visitante, home_name)
+                        visitante_match_away = self._teams_match(equipo_visitante, away_name)
+                        
+                        if local_match_home or local_match_away or visitante_match_home or visitante_match_away:
+                            status = partido.get("status", "").lower().strip()
+                            
+                            if status in VALID_MATCH_STATUSES:
+                                home_goals = partido.get("homeGoalCount") or partido.get("home_goals", 0)
+                                away_goals = partido.get("awayGoalCount") or partido.get("away_goals", 0)
+                                
+                                team_a_corners = partido.get("team_a_corners", -1)
+                                team_b_corners = partido.get("team_b_corners", -1)
+                                total_corner_count = partido.get("totalCornerCount", -1)
+                                
+                                if total_corner_count == -1 and team_a_corners != -1 and team_b_corners != -1:
+                                    total_corner_count = team_a_corners + team_b_corners
+                                
+                                print(f"  ✅ Flexible match found: predicted {equipo_local} vs {equipo_visitante}, found {home_name} vs {away_name} on {date_to_try}")
+                                
+                                return {
+                                    "match_id": partido.get("id"),
+                                    "status": status,
+                                    "home_score": home_goals,
+                                    "away_score": away_goals,
+                                    "total_goals": home_goals + away_goals,
+                                    "corners_home": team_a_corners if team_a_corners != -1 else 0,
+                                    "corners_away": team_b_corners if team_b_corners != -1 else 0,
+                                    "total_corners": total_corner_count if total_corner_count != -1 else 0,
+                                    "cards_home": partido.get("home_cards", 0),
+                                    "cards_away": partido.get("away_cards", 0),
+                                    "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
+                                    "corner_data_available": total_corner_count != -1,
+                                    "resultado_1x2": self._determinar_resultado_1x2(home_goals, away_goals),
+                                    "flexible_match": True,
+                                    "actual_home": home_name,
+                                    "actual_away": away_name
+                                }
+                except:
+                    continue
+            
+            print(f"  ❌ No flexible match found for {equipo_local} or {equipo_visitante}")
+            return None
+            
+        except Exception as e:
+            print(f"Error in flexible matching: {e}")
+            return None
 
     def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
         """
@@ -80,7 +166,9 @@ class TrackRecordManager:
                 fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
                 dates_to_try.extend([
                     (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d'),
-                    (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+                    (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d'),
+                    (fecha_obj - timedelta(days=2)).strftime('%Y-%m-%d'),
+                    (fecha_obj + timedelta(days=2)).strftime('%Y-%m-%d')
                 ])
             except:
                 pass
@@ -150,8 +238,8 @@ class TrackRecordManager:
                             print(f"Unknown match status: {status} for {partido.get('home_name')} vs {partido.get('away_name')}")
                             return None
             
-            print(f"No match found for {equipo_local} vs {equipo_visitante} on any date")
-            return None
+            print(f"No exact match found for {equipo_local} vs {equipo_visitante}, trying flexible matching...")
+            return self._try_flexible_team_matching(equipo_local, equipo_visitante, fecha, timeout)
             
         except requests.exceptions.Timeout:
             print(f"Timeout obteniendo resultado del partido {equipo_local} vs {equipo_visitante}")
@@ -183,6 +271,12 @@ class TrackRecordManager:
             if "más de" in tipo_prediccion and "goles" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" goles")[0])
                 acierto = resultado["total_goals"] > umbral
+                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold (over) = {'WIN' if acierto else 'LOSS'}")
+                
+            elif "menos de" in tipo_prediccion and "goles" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" goles")[0])
+                acierto = resultado["total_goals"] < umbral
+                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold (under) = {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
@@ -203,6 +297,10 @@ class TrackRecordManager:
             elif "más de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" tarjetas")[0])
                 acierto = resultado["total_cards"] > umbral
+                
+            elif "menos de" in tipo_prediccion and "tarjetas" in tipo_prediccion:
+                umbral = float(tipo_prediccion.split("menos de ")[1].split(" tarjetas")[0])
+                acierto = resultado["total_cards"] < umbral
                 
             elif "btts" in tipo_prediccion or "ambos equipos marcan" in tipo_prediccion:
                 acierto = resultado["home_score"] > 0 and resultado["away_score"] > 0
@@ -231,12 +329,12 @@ class TrackRecordManager:
                     else:
                         acierto = False
                         
-            elif any(x in tipo_prediccion for x in ["1", "x", "2", "local", "empate", "visitante"]):
-                if "local" in tipo_prediccion or "1" in tipo_prediccion:
+            elif any(x in tipo_prediccion for x in ["local", "empate", "visitante"]):
+                if "local" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "1"
-                elif "empate" in tipo_prediccion or "x" in tipo_prediccion:
+                elif "empate" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "X"
-                elif "visitante" in tipo_prediccion or "2" in tipo_prediccion:
+                elif "visitante" in tipo_prediccion:
                     acierto = resultado["resultado_1x2"] == "2"
             
             if acierto:
@@ -300,7 +398,7 @@ class TrackRecordManager:
             return {"error": str(e)}
 
     @safe_file_operation(default_return={"actualizados": 0, "errores": 0})
-    def actualizar_historial_con_resultados(self, max_matches=50, timeout_per_match=8) -> Dict[str, Any]:
+    def actualizar_historial_con_resultados(self, max_matches=50, timeout_per_match=8, from_date=None, to_date=None) -> Dict[str, Any]:
         """
         Actualiza el historial de predicciones con los resultados reales
         Optimizado para evitar colgados con límites y timeouts
@@ -318,6 +416,24 @@ class TrackRecordManager:
             
             predicciones_pendientes = [p for p in historial if p.get("resultado_real") is None]
             
+            if from_date or to_date:
+                original_count = len(predicciones_pendientes)
+                if from_date and to_date:
+                    predicciones_pendientes = [p for p in predicciones_pendientes 
+                                              if from_date <= p.get("fecha", "") <= to_date]
+                    print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
+                    print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
+                elif from_date:
+                    predicciones_pendientes = [p for p in predicciones_pendientes 
+                                              if p.get("fecha", "") >= from_date]
+                    print(f"🔍 Filtrando desde: {from_date}")
+                    print(f"   Predicciones filtradas: {len(predicciones_pendientes)} de {original_count}")
+                elif to_date:
+                    predicciones_pendientes = [p for p in predicciones_pendientes 
+                                              if p.get("fecha", "") <= to_date]
+                    print(f"🔍 Filtrando hasta: {to_date}")
+                    print(f"   Predicciones filtradas: {len(predicciones_pendientes)} de {original_count}")
+            
             if not predicciones_pendientes:
                 print("✅ No hay predicciones pendientes para actualizar")
                 return {
@@ -330,7 +446,10 @@ class TrackRecordManager:
                     "matches_restantes": 0
                 }
             
-            print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes (todas, no solo las enviadas a Telegram)")
+            if from_date or to_date:
+                print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes en el rango de fechas seleccionado")
+            else:
+                print(f"🎯 Actualizando {len(predicciones_pendientes)} predicciones pendientes (todas las fechas)")
             
             matches_unicos = {}
             for prediccion in predicciones_pendientes:
@@ -358,40 +477,18 @@ class TrackRecordManager:
             
             def prioridad_match(item):
                 key, match_data = item
-                partido = match_data["partido"].lower()
                 fecha = match_data["fecha"]
                 
-                if " vs " in partido:
-                    teams = partido.split(" vs ")
-                    equipo_local = teams[0].strip() if len(teams) > 0 else ""
-                    equipo_visitante = teams[1].strip() if len(teams) > 1 else ""
-                else:
-                    equipo_local = ""
-                    equipo_visitante = ""
-                
-                has_confirmed_api_data = (
-                    (("athletic" in equipo_local and "club" in equipo_local) and 
-                     ("atlético" in equipo_visitante and "go" in equipo_visitante)) or
-                    ("cuiabá" in equipo_local and ("volta" in equipo_visitante or "redonda" in equipo_visitante)) or
-                    (("universidad" in equipo_local and "chile" in equipo_local) and "cobresal" in equipo_visitante) or
-                    ("athletic club" in partido and "atlético go" in partido) or
-                    ("cuiabá" in partido and "volta redonda" in partido) or
-                    ("universidad chile" in partido and "cobresal" in partido) or
-                    ("deportivo cali" in partido and "llaneros" in partido)
-                )
-                
-                if has_confirmed_api_data:
-                    return 0
-                
-                if fecha in ["2025-08-04", "2025-08-05", "2025-08-06"]:
-                    return 1
-                
-                if fecha in ["2025-08-03", "2025-08-02"]:
-                    return 2
-                    
-                return 3
+                try:
+                    from datetime import datetime
+                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
+                    today = datetime.now()
+                    days_diff = abs((today - fecha_obj).days)
+                    return days_diff
+                except:
+                    return 999
             
-            print(f"🔄 Aplicando priorización universal con detección inteligente de datos API...")
+            print(f"🔄 Priorizando partidos por proximidad a hoy (más recientes primero)...")
             
             priority_matches = []
             other_matches = []
@@ -522,11 +619,6 @@ class TrackRecordManager:
                             timeout=timeout_per_match
                         )
                         
-                        if not resultado:
-                            resultado = self._try_flexible_team_matching(
-                                equipo_local, equipo_visitante, match_data["fecha"], timeout_per_match
-                            )
-                        
                         if resultado:
                             print(f"  ✅ Resultado encontrado: {resultado['home_score']}-{resultado['away_score']} (Status: {resultado['status']})")
                             for prediccion in match_data["predicciones"]:
@@ -572,6 +664,7 @@ class TrackRecordManager:
                     continue
             
             guardar_json(self.historial_file, historial)
+            print(f"✅ Guardado en: {self.historial_file}")
             
             remaining_matches = len(matches_unicos) - len(matches_to_process)
             print(f"Proceso completado: {actualizaciones} predicciones actualizadas, {partidos_incompletos} matches incompletos, {timeouts} timeouts")

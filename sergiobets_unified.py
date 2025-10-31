@@ -21,12 +21,226 @@ from tkinter.scrolledtext import ScrolledText
 from tkcalendar import DateEntry
 import pygame
 from datetime import date, timedelta, datetime
+from dotenv import load_dotenv, find_dotenv
+
+env_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(find_dotenv(filename=".env", usecwd=True), override=True)
+
 from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
 from league_utils import detectar_liga_por_imagen
 from track_record import TrackRecordManager
+
+class ScrollableFrame(ttk.Frame):
+    """Frame con scroll vertical para listas dinámicas"""
+    def __init__(self, parent, style='TFrame', padding=0, bg='#F3F4F6', *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0, bg=bg)
+        self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.canvas.yview, style='Slim.Vertical.TScrollbar')
+        self.inner = ttk.Frame(self.canvas, style=style, padding=padding)
+        
+        self.inner_id = self.canvas.create_window((0, 0), window=self.inner, anchor='nw')
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+        
+        self.canvas.grid(row=0, column=0, sticky='nsew')
+        self.vsb.grid(row=0, column=1, sticky='ns')
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+        self.inner.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
+        self.canvas.bind('<Configure>', lambda e: self.canvas.itemconfigure(self.inner_id, width=self.canvas.winfo_width()))
+        
+        self.canvas.bind_all('<MouseWheel>', self._on_mousewheel)
+        self.canvas.bind_all('<Button-4>', self._on_mousewheel_linux)
+        self.canvas.bind_all('<Button-5>', self._on_mousewheel_linux)
+    
+    def _on_mousewheel(self, event):
+        delta = int(-1*(event.delta/120)) if event.delta else 0
+        self.canvas.yview_scroll(delta, 'units')
+    
+    def _on_mousewheel_linux(self, event):
+        self.canvas.yview_scroll(-1 if event.num == 4 else 1, 'units')
+    
+    def update_theme(self, bg_color):
+        """Actualiza el color de fondo del canvas"""
+        self.canvas.config(bg=bg_color)
+
+class ThemeManager:
+    """Gestiona temas claro y oscuro para la aplicación"""
+    def __init__(self, root):
+        from tkinter import font as tkfont
+        self.root = root
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        
+        self.base_font = tkfont.nametofont('TkDefaultFont')
+        self.base_font.configure(family='Segoe UI', size=10)
+        self.heading_font = tkfont.Font(family='Segoe UI', size=11, weight='bold')
+        self.title_font = tkfont.Font(family='Segoe UI', size=14, weight='bold')
+        
+        self.light = dict(
+            bg="#F3F4F6",
+            surface="#FFFFFF",
+            fg="#111827",
+            muted="#6B7280",
+            primary="#2563EB",
+            primary_hover="#1D4ED8",
+            accent="#10B981",
+            border="#E5E7EB",
+            button_bg="#2563EB",
+            button_fg="#FFFFFF",
+            entry_bg="#FFFFFF",
+            entry_fg="#111827",
+            output_bg="#F0F9FF",
+            secondary_bg="#F9FAFB",
+            sb_trough="#E5E7EB",
+            sb_thumb="#9CA3AF"
+        )
+        
+        self.dark = dict(
+            bg="#0B1220",
+            surface="#111827",
+            fg="#E5E7EB",
+            muted="#9CA3AF",
+            primary="#3B82F6",
+            primary_hover="#1D4ED8",
+            accent="#22C55E",
+            border="#374151",
+            button_bg="#3B82F6",
+            button_fg="#FFFFFF",
+            entry_bg="#1F2937",
+            entry_fg="#E5E7EB",
+            output_bg="#1F2937",
+            secondary_bg="#0F172A",
+            sb_trough="#1F2937",
+            sb_thumb="#4B5563"
+        )
+        
+        self.current_mode = 'light'
+    
+    def apply(self, mode='light'):
+        """Aplica el tema especificado"""
+        self.current_mode = mode
+        p = self.light if mode == 'light' else self.dark
+        
+        self.root.configure(bg=p['bg'])
+        
+        self.style.configure('TFrame', background=p['bg'])
+        self.style.configure('Surface.TFrame', background=p['surface'], relief='flat')
+        self.style.configure('Toolbar.TFrame', background=p['surface'], relief='flat')
+        self.style.configure('Card.TFrame', background=p['surface'], relief='solid', borderwidth=1)
+        self.style.configure('Header.TFrame', background=p['primary'], relief='flat')
+        
+        self.style.configure('TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 10))
+        self.style.configure('Muted.TLabel', background=p['surface'], foreground=p['muted'])
+        self.style.configure('Title.TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 14, 'bold'))
+        self.style.configure('ItemTitle.TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 11, 'bold'))
+        self.style.configure('ItemSub.TLabel', background=p['surface'], foreground=p['muted'], font=('Segoe UI', 10))
+        self.style.configure('Header.TLabel', background=p['primary'], foreground=p['button_fg'], font=('Segoe UI', 12, 'bold'))
+        
+        self.style.configure('TButton',
+                           background=p['button_bg'],
+                           foreground=p['button_fg'],
+                           borderwidth=0,
+                           padding=(12, 8),
+                           font=('Segoe UI', 10, 'bold'))
+        self.style.map('TButton',
+                      background=[('active', p['primary_hover']), ('pressed', p['primary_hover'])],
+                      foreground=[('disabled', p['muted'])])
+        
+        self.style.configure('Secondary.TButton',
+                           background=p['secondary_bg'],
+                           foreground=p['fg'],
+                           borderwidth=1,
+                           padding=(10, 6),
+                           font=('Segoe UI', 10))
+        self.style.map('Secondary.TButton',
+                      background=[('active', p['surface']), ('pressed', p['surface'])])
+        
+        self.style.configure('TEntry',
+                           fieldbackground=p['entry_bg'],
+                           foreground=p['entry_fg'],
+                           borderwidth=1,
+                           relief='solid')
+        self.style.configure('TCombobox',
+                           fieldbackground=p['entry_bg'],
+                           foreground=p['entry_fg'],
+                           background=p['surface'],
+                           borderwidth=1,
+                           arrowcolor=p['fg'])
+        self.style.map('TCombobox',
+                      fieldbackground=[('readonly', p['entry_bg'])],
+                      selectbackground=[('readonly', p['primary'])],
+                      selectforeground=[('readonly', p['button_fg'])])
+        
+        self.style.configure('TNotebook',
+                           background=p['bg'],
+                           borderwidth=0,
+                           tabmargins=(6, 6, 6, 0))
+        self.style.configure('TNotebook.Tab',
+                           padding=(16, 10),
+                           background=p['secondary_bg'],
+                           foreground=p['fg'],
+                           borderwidth=0,
+                           font=('Segoe UI', 10, 'bold'))
+        self.style.map('TNotebook.Tab',
+                      background=[('selected', p['primary'])],
+                      foreground=[('selected', p['button_fg'])],
+                      expand=[('selected', (1, 1, 1, 0))])
+        
+        self.style.configure('Toggle.TCheckbutton',
+                           background=p['surface'],
+                           foreground=p['fg'],
+                           font=('Segoe UI', 10))
+        self.style.map('Toggle.TCheckbutton',
+                      background=[('active', p['surface'])])
+        
+        self.style.configure('TSeparator', background=p['border'])
+        
+        self.style.layout('Slim.Vertical.TScrollbar',
+            [('Vertical.Scrollbar.trough', {
+                'children': [('Vertical.Scrollbar.thumb', {'expand': 1, 'sticky': 'nswe'})],
+                'sticky': 'ns'
+            })])
+        
+        self.style.layout('Slim.Horizontal.TScrollbar',
+            [('Horizontal.Scrollbar.trough', {
+                'children': [('Horizontal.Scrollbar.thumb', {'expand': 1, 'sticky': 'nswe'})],
+                'sticky': 'we'
+            })])
+        
+        self.style.configure('Slim.Vertical.TScrollbar',
+            width=10,
+            relief='flat',
+            background=p['sb_thumb'],
+            darkcolor=p['sb_thumb'],
+            lightcolor=p['sb_thumb'],
+            troughcolor=p['sb_trough'],
+            bordercolor=p['sb_trough'],
+            arrowcolor=p['sb_thumb'],
+            gripcount=0)
+        
+        self.style.configure('Slim.Horizontal.TScrollbar',
+            width=10,
+            relief='flat',
+            background=p['sb_thumb'],
+            darkcolor=p['sb_thumb'],
+            lightcolor=p['sb_thumb'],
+            troughcolor=p['sb_trough'],
+            bordercolor=p['sb_trough'],
+            arrowcolor=p['sb_thumb'],
+            gripcount=0)
+        
+        self.style.map('Slim.Vertical.TScrollbar',
+            background=[('active', p['sb_thumb']), ('pressed', p['sb_thumb'])])
+        
+        self.style.map('Slim.Horizontal.TScrollbar',
+            background=[('active', p['sb_thumb']), ('pressed', p['sb_thumb'])])
+        
+        return p
 
 def setup_logging():
     """Setup comprehensive logging for debugging"""
@@ -338,32 +552,31 @@ class SergioBetsUnified:
                         f.write(current_url)
     
     def setup_gui(self):
-        """Setup the Tkinter GUI interface"""
+        """Setup the Tkinter GUI interface with modern theme and responsive layout"""
         import tkinter as tk
         from tkinter import ttk, messagebox
-        from tkinter.scrolledtext import ScrolledText
         from tkcalendar import DateEntry
         
         self.root = tk.Tk()
         self.root.title("🧐 SergioBets v.2 – Sistema Completo con Pagos")
-        self.root.geometry("800x600")
-        self.root.minsize(800, 600)
+        self.root.geometry("1200x700")
+        self.root.minsize(1000, 600)
         try:
             self.root.state('zoomed')
         except:
             pass
-        self.root.configure(bg="#f1f3f4")
         
-        style = ttk.Style()
-        style.configure('TLabel', font=('Segoe UI', 10))
-        style.configure('TButton', font=('Segoe UI', 10, 'bold'))
-        style.configure('TCombobox', font=('Segoe UI', 10))
+        self.theme = ThemeManager(self.root)
+        self.dark_mode_var = tk.BooleanVar(value=False)
+        palette = self.theme.apply('light')
+        
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
         
         self.entry_fecha = None
         self.combo_ligas = None
         self.frame_predicciones = None
         self.frame_partidos = None
-        self.output = None
         self.ligas_disponibles = set()
         self.checkboxes_predicciones = []
         self.checkboxes_partidos = []
@@ -373,47 +586,106 @@ class SergioBetsUnified:
         self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        self.notebook.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
         
-        self.tab_principal = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.tab_principal = ttk.Frame(self.notebook, style='TFrame')
         self.notebook.add(self.tab_principal, text="🏠 Principal")
         
-        self.tab_ajustes = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.tab_ajustes = ttk.Frame(self.notebook, style='TFrame')
         self.notebook.add(self.tab_ajustes, text="⚙️ Ajustes")
         
-        frame_top = tk.Frame(self.tab_principal, bg="#f1f3f4")
-        frame_top.pack(pady=15)
+        self.tab_principal.grid_rowconfigure(0, weight=0)  # Toolbar
+        self.tab_principal.grid_rowconfigure(1, weight=0)  # Separator
+        self.tab_principal.grid_rowconfigure(2, weight=1)  # Predicciones (scrollable)
+        self.tab_principal.grid_rowconfigure(3, weight=1)  # Partidos (scrollable)
+        self.tab_principal.grid_columnconfigure(0, weight=1)
         
-        ttk.Label(frame_top, text="📅 Fecha:").pack(side=tk.LEFT)
-        self.entry_fecha = DateEntry(frame_top, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-MM-dd', showothermonthdays=False, showweeknumbers=False)
-        self.entry_fecha.pack(side=tk.LEFT, padx=5)
+        toolbar = ttk.Frame(self.tab_principal, style='Toolbar.TFrame', padding=10)
+        toolbar.grid(row=0, column=0, sticky='ew', padx=5, pady=5)
         
-        ttk.Label(frame_top, text="🏆 Liga:").pack(side=tk.LEFT, padx=10)
-        self.combo_ligas = ttk.Combobox(frame_top, state='readonly', width=30)
-        self.combo_ligas.pack(side=tk.LEFT)
+        toolbar.grid_columnconfigure(0, weight=0)  # Filtros
+        toolbar.grid_columnconfigure(1, weight=1)  # Acciones
+        toolbar.grid_columnconfigure(2, weight=0)  # Dark mode toggle
+        
+        filters_frame = ttk.Frame(toolbar, style='Toolbar.TFrame')
+        filters_frame.grid(row=0, column=0, sticky='w', padx=(0, 10))
+        
+        ttk.Label(filters_frame, text="📅 Fecha:").grid(row=0, column=0, padx=(0, 5))
+        self.entry_fecha = DateEntry(filters_frame, width=12, background="darkblue", 
+                                     foreground="white", borderwidth=2, 
+                                     date_pattern='yyyy-MM-dd', showothermonthdays=False, 
+                                     showweeknumbers=False)
+        self.entry_fecha.grid(row=0, column=1, padx=(0, 15))
+        
+        ttk.Label(filters_frame, text="🏆 Liga:").grid(row=0, column=2, padx=(0, 5))
+        self.combo_ligas = ttk.Combobox(filters_frame, state='readonly', width=25)
+        self.combo_ligas.grid(row=0, column=3)
         self.combo_ligas.set('Todas')
         self.combo_ligas.bind('<<ComboboxSelected>>', self.on_liga_changed)
         
-        ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📢 Enviar Alerta", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="🧹 Limpiar Cache", command=self.limpiar_cache_api).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
+        actions_frame = ttk.Frame(toolbar, style='Toolbar.TFrame')
+        actions_frame.grid(row=0, column=1, sticky='ew', padx=10)
         
-        self.frame_predicciones = tk.Frame(self.tab_principal, bg="#f1f3f4")
-        self.frame_predicciones.pack(pady=5, padx=10, fill='x')
+        for i in range(8):
+            actions_frame.grid_columnconfigure(i, weight=1, uniform='actions')
         
-        self.frame_partidos = tk.Frame(self.tab_principal, bg="#f1f3f4")
-        self.frame_partidos.pack(pady=5, padx=10, fill='x')
+        ttk.Button(actions_frame, text="🔍 Buscar", command=self.buscar_en_hilo).grid(
+            row=0, column=0, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="♻️ Regenerar", style='Secondary.TButton', 
+                  command=self.regenerar_en_hilo).grid(row=0, column=1, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="📢 Alerta", style='Secondary.TButton', 
+                  command=self.enviar_alerta).grid(row=0, column=2, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="🎁 Promo", style='Secondary.TButton', 
+                  command=self.enviar_promocion).grid(row=0, column=3, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="🧹 Cache", style='Secondary.TButton', 
+                  command=self.limpiar_cache_api).grid(row=0, column=4, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="📌 Enviar", command=self.enviar_predicciones_seleccionadas).grid(
+            row=0, column=5, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="📊 Track", command=self.abrir_track_record).grid(
+            row=0, column=6, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="👥 Users", command=self.abrir_usuarios).grid(
+            row=0, column=7, sticky='ew', padx=2)
         
-        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
-        self.output.pack(pady=10, padx=10, expand=True, fill='both')
+        def toggle_theme():
+            mode = 'dark' if self.dark_mode_var.get() else 'light'
+            palette = self.theme.apply(mode)
+            self.update_custom_widgets_theme(palette)
+            toggle_btn.config(text="☀️ Modo claro" if mode == 'dark' else "🌙 Modo oscuro")
+        
+        toggle_btn = ttk.Checkbutton(toolbar, text="🌙 Modo oscuro", 
+                                     variable=self.dark_mode_var,
+                                     command=toggle_theme,
+                                     style='Toggle.TCheckbutton')
+        toggle_btn.grid(row=0, column=2, sticky='e', padx=(10, 0))
+        
+        ttk.Separator(self.tab_principal, orient='horizontal').grid(
+            row=1, column=0, sticky='ew', pady=(5, 10))
+        
+        # ScrollableFrame para predicciones
+        self.sf_predicciones = ScrollableFrame(self.tab_principal, style='TFrame')
+        self.sf_predicciones.grid(row=2, column=0, sticky='nsew', padx=10, pady=5)
+        self.sf_predicciones.inner.grid_columnconfigure(0, weight=1)
+        
+        self.sf_partidos = ScrollableFrame(self.tab_principal, style='TFrame')
+        self.sf_partidos.grid(row=3, column=0, sticky='nsew', padx=10, pady=5)
+        self.sf_partidos.inner.grid_columnconfigure(0, weight=1)
+        
+        self.frame_predicciones = self.sf_predicciones.inner
+        self.frame_partidos = self.sf_partidos.inner
         
         self.setup_settings_tab()
         
-        print("✅ GUI setup completed")
+        print("✅ GUI setup completed with modern theme")
+    
+    def update_custom_widgets_theme(self, palette):
+        """Actualiza widgets personalizados que no usan ttk"""
+        try:
+            if hasattr(self, 'sf_predicciones') and self.sf_predicciones:
+                self.sf_predicciones.update_theme(palette['bg'])
+            if hasattr(self, 'sf_partidos') and self.sf_partidos:
+                self.sf_partidos.update_theme(palette['bg'])
+        except Exception as e:
+            logger.warning(f"Error updating custom widgets theme: {e}")
     
     def cargar_configuracion(self):
         """Carga la configuración desde config_app.json"""
@@ -646,8 +918,6 @@ class SergioBetsUnified:
         """Buscar partidos y predicciones"""
         try:
             fecha = self.entry_fecha.get()
-            self.output.delete('1.0', tk.END)
-
             self.ligas_disponibles.clear()
             
             if opcion_numero == 1:
@@ -659,10 +929,9 @@ class SergioBetsUnified:
             self.limpiar_frame_partidos()
 
             if not partidos or len(partidos) == 0:
-                self.output.insert(tk.END, f"ℹ️ No hay partidos disponibles para {fecha}\n")
-                self.output.insert(tk.END, f"📅 Intenta con otra fecha que tenga partidos programados\n")
                 self.actualizar_ligas()  # Actualizar con lista vacía
                 self.mensaje_telegram = f"No hay partidos disponibles para {fecha}"
+                messagebox.showinfo("Sin partidos", f"ℹ️ No hay partidos disponibles para {fecha}\n📅 Intenta con otra fecha que tenga partidos programados")
                 return
 
             for partido in partidos:
@@ -686,7 +955,6 @@ class SergioBetsUnified:
             config = self.cargar_configuracion()
             odds_min = config.get("odds_min", 1.30)
             odds_max = config.get("odds_max", 1.60)
-            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n\n")
             
             titulo_extra = ""
             if opcion_numero == 2:
@@ -712,15 +980,11 @@ class SergioBetsUnified:
                     self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                     self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
 
-            self.output.insert(tk.END, f"✅ Búsqueda completada para {fecha}\n")
-            self.output.insert(tk.END, f"📊 {len(partidos_filtrados)} partidos encontrados\n")
-            self.output.insert(tk.END, f"🎯 {len(predicciones_ia)} predicciones generadas\n")
 
             self.guardar_datos_json(fecha)
             
         except Exception as e:
             error_msg = f"❌ Error al buscar partidos: {e}"
-            self.output.insert(tk.END, error_msg)
             print(error_msg)
             messagebox.showerror("Error", f"Error al cargar partidos: {e}")
 
@@ -756,94 +1020,87 @@ class SergioBetsUnified:
         self.partidos_actuales.clear()
 
     def mostrar_predicciones_con_checkboxes(self, predicciones, liga_filtrada, titulo_extra=""):
-        """Mostrar predicciones con checkboxes para selección"""
+        """Mostrar predicciones con checkboxes para selección usando grid y estilos modernos"""
         self.limpiar_frame_predicciones()
         
         if not predicciones:
             return
-        
-        titulo_frame = tk.Frame(self.frame_predicciones, bg="#34495e")
-        titulo_frame.pack(fill='x', pady=2)
         
         titulo_text = "🎯 BETGENIUX® - SELECCIONA PRONÓSTICOS PARA ENVIAR"
         if liga_filtrada != 'Todas':
             titulo_text += f" - {liga_filtrada}"
         titulo_text += titulo_extra
         
-        titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
-                               font=('Segoe UI', 10, 'bold'), pady=5)
-        titulo_label.pack()
+        header = ttk.Frame(self.frame_predicciones, style='Header.TFrame', padding=(10, 8))
+        header.grid(row=0, column=0, sticky='ew', pady=(0, 8))
+        header.grid_columnconfigure(0, weight=1)
+        ttk.Label(header, text=titulo_text, style='Header.TLabel').grid(row=0, column=0, sticky='w')
         
-        for i, pred in enumerate(predicciones):
+        for i, pred in enumerate(predicciones, 1):
             self.predicciones_actuales.append(pred)
             
-            pred_frame = tk.Frame(self.frame_predicciones, bg="#ecf0f1", relief='ridge', bd=1)
-            pred_frame.pack(fill='x', pady=2, padx=5)
+            rowf = ttk.Frame(self.frame_predicciones, style='Card.TFrame', padding=(10, 8))
+            rowf.grid(row=i, column=0, sticky='ew', pady=4)
+            rowf.grid_columnconfigure(1, weight=1)
             
             var_checkbox = tk.BooleanVar()
             self.checkboxes_predicciones.append(var_checkbox)
             
-            checkbox_frame = tk.Frame(pred_frame, bg="#ecf0f1")
-            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            chk = ttk.Checkbutton(rowf, variable=var_checkbox)
+            chk.grid(row=0, column=0, padx=(0, 10), sticky='nw')
             
-            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
-            checkbox.pack(side=tk.LEFT)
+            pred_text = f"🎯 PRONÓSTICO #{i}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+            title = ttk.Label(rowf, text=pred_text, style='ItemTitle.TLabel', anchor='w', justify='left')
+            title.grid(row=0, column=1, sticky='ew')
+            title.bind('<Configure>', lambda e, lbl=title: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
             
-            pred_text = f"🎯 PRONOSTICO #{i+1}: {pred['prediccion']} | ⚽️ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
-            pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
-                                 font=('Segoe UI', 9), anchor='w')
-            pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-            
-            justif_label = tk.Label(pred_frame, text=f"📝 {pred['razon']}", bg="#ecf0f1", 
-                                   font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
-            justif_label.pack(fill='x', padx=25, pady=(0,3))
+            sub_text = f"📝 {pred['razon']}"
+            sub = ttk.Label(rowf, text=sub_text, style='ItemSub.TLabel', anchor='w', justify='left')
+            sub.grid(row=1, column=1, sticky='ew', pady=(4, 0))
+            sub.bind('<Configure>', lambda e, lbl=sub: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
 
     def mostrar_partidos_con_checkboxes(self, partidos_filtrados, liga_filtrada, fecha):
-        """Mostrar partidos con checkboxes para selección"""
+        """Mostrar partidos con checkboxes para selección usando grid y estilos modernos"""
         self.limpiar_frame_partidos()
         
         if not partidos_filtrados:
             return
         
-        titulo_frame = tk.Frame(self.frame_partidos, bg="#34495e")
-        titulo_frame.pack(fill='x', pady=2)
-        
         titulo_text = f"🗓️ PARTIDOS PROGRAMADOS PARA LA JORNADA DEL: {fecha}"
         if liga_filtrada != 'Todas':
             titulo_text += f" - {liga_filtrada}"
         
-        titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
-                               font=('Segoe UI', 10, 'bold'), pady=5)
-        titulo_label.pack()
+        header = ttk.Frame(self.frame_partidos, style='Header.TFrame', padding=(10, 8))
+        header.grid(row=0, column=0, sticky='ew', pady=(0, 8))
+        header.grid_columnconfigure(0, weight=1)
+        ttk.Label(header, text=titulo_text, style='Header.TLabel').grid(row=0, column=0, sticky='w')
         
-        for i, partido in enumerate(partidos_filtrados):
+        for i, partido in enumerate(partidos_filtrados, 1):
             self.partidos_actuales.append(partido)
             
-            partido_frame = tk.Frame(self.frame_partidos, bg="#B2F0E8", relief='ridge', bd=1)
-            partido_frame.pack(fill='x', pady=2, padx=5)
+            rowf = ttk.Frame(self.frame_partidos, style='Card.TFrame', padding=(10, 8))
+            rowf.grid(row=i, column=0, sticky='ew', pady=4)
+            rowf.grid_columnconfigure(1, weight=1)
             
             var_checkbox = tk.BooleanVar()
             self.checkboxes_partidos.append(var_checkbox)
             
-            checkbox_frame = tk.Frame(partido_frame, bg="#B2F0E8")
-            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            chk = ttk.Checkbutton(rowf, variable=var_checkbox)
+            chk.grid(row=0, column=0, padx=(0, 10), sticky='nw')
             
-            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
-            checkbox.pack(side=tk.LEFT)
+            partido_text = f"⚽ PARTIDO #{i}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
+            main = ttk.Label(rowf, text=partido_text, style='ItemTitle.TLabel', anchor='w', justify='left')
+            main.grid(row=0, column=1, sticky='ew', padx=(0, 10))
+            main.bind('<Configure>', lambda e, lbl=main: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
             
-            analyze_btn = tk.Button(checkbox_frame, text="🔍 Analizar", bg="#3498db", fg="white",
-                                  font=('Segoe UI', 8), relief='flat', cursor='hand2',
-                                  command=lambda p=partido: self.analizar_partido_individual(p))
-            analyze_btn.pack(side=tk.LEFT, padx=5)
+            sub_text = f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}"
+            sub = ttk.Label(rowf, text=sub_text, style='ItemSub.TLabel', anchor='w', justify='left')
+            sub.grid(row=1, column=1, sticky='ew', pady=(4, 0))
+            sub.bind('<Configure>', lambda e, lbl=sub: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
             
-            partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
-            partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
-                                   font=('Segoe UI', 9), anchor='w')
-            partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-            
-            casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}", bg="#B2F0E8", 
-                                 font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
-            casa_label.pack(fill='x', padx=25, pady=(0,3))
+            btn = ttk.Button(rowf, text="🔎 Analizar", style='Secondary.TButton',
+                           command=lambda p=partido: self.analizar_partido_individual(p))
+            btn.grid(row=0, column=2, rowspan=2, padx=(10, 0), sticky='e')
 
     def analizar_partido_individual(self, partido):
         """Analiza un partido individual y muestra el resultado con opciones detalladas"""
@@ -1440,14 +1697,16 @@ class SergioBetsUnified:
                 with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
                     f.write(mensaje_partidos)
             
-            resultado = enviar_telegram_masivo(mensaje_completo)
+            resultado = enviar_telegram_masivo(mensaje_completo, only_premium=True)
             if resultado["exito"]:
                 self.reproducir_sonido_exito()
                 
                 total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
+                audiencia = resultado.get('audiencia', 'usuarios')
                 mensaje_resultado = f"✅ Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.\n\n"
                 mensaje_resultado += f"📊 Estadísticas de envío:\n"
-                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Audiencia: Usuarios {audiencia}\n"
+                mensaje_resultado += f"• Total usuarios {audiencia}: {resultado['total_usuarios']}\n"
                 mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
                 if resultado.get('usuarios_bloqueados', 0) > 0:
                     mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
@@ -1461,26 +1720,34 @@ class SergioBetsUnified:
                 for var_checkbox in self.checkboxes_partidos:
                     var_checkbox.set(False)
             else:
-                error_msg = "No se pudieron enviar los elementos a Telegram."
-                if resultado.get('detalles_errores'):
-                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
-                messagebox.showerror("Error", error_msg)
+                if resultado.get('total_usuarios', 0) == 0 and resultado.get('audiencia') == 'premium activos':
+                    messagebox.showinfo("Sin usuarios premium", 
+                                      "⚠️ No hay usuarios con membresía activa.\n\n"
+                                      "Los pronósticos solo se envían a usuarios premium.\n"
+                                      "Otorga acceso premium a usuarios desde el menú '👥 Users'.")
+                else:
+                    error_msg = "No se pudieron enviar los elementos a Telegram."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
 
     def enviar_alerta(self):
-        """Enviar alerta de pronóstico a Telegram"""
+        """Enviar alerta de pronóstico a usuarios premium"""
         mensaje_alerta = """📢 ¡Alerta de pronostico! 📢
 Nuestro sistema ha detectado una oportunidad con valor.  
 En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
         
         try:
-            resultado = enviar_telegram_masivo(mensaje_alerta)
+            resultado = enviar_telegram_masivo(mensaje_alerta, only_premium=True)
             if resultado["exito"]:
+                audiencia = resultado.get('audiencia', 'usuarios')
                 mensaje_resultado = f"✅ La alerta se ha enviado a Telegram correctamente.\n\n"
                 mensaje_resultado += f"📊 Estadísticas de envío:\n"
-                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Audiencia: Usuarios {audiencia}\n"
+                mensaje_resultado += f"• Total usuarios {audiencia}: {resultado['total_usuarios']}\n"
                 mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
                 if resultado.get('usuarios_bloqueados', 0) > 0:
                     mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
@@ -1488,12 +1755,61 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                     mensaje_resultado += f"• Errores: {resultado['errores']}\n"
                 messagebox.showinfo("Alerta Enviada", mensaje_resultado)
             else:
-                error_msg = "No se pudo enviar la alerta a Telegram. Revisa la conexión."
-                if resultado.get('detalles_errores'):
-                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
-                messagebox.showerror("Error", error_msg)
+                if resultado.get('total_usuarios', 0) == 0 and resultado.get('audiencia') == 'premium activos':
+                    messagebox.showinfo("Sin usuarios premium", 
+                                      "⚠️ No hay usuarios con membresía activa.\n\n"
+                                      "Las alertas solo se envían a usuarios premium.\n"
+                                      "Otorga acceso premium a usuarios desde el menú '👥 Users'.")
+                else:
+                    error_msg = "No se pudo enviar la alerta a Telegram. Revisa la conexión."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando alerta a Telegram: {e}")
+    
+    def enviar_promocion(self):
+        """Enviar promoción a usuarios sin membresía activa"""
+        mensaje_promocion = """🎁 ¡OFERTA ESPECIAL! 🎁
+
+💎 Únete a BetGeniuX Premium y accede a:
+• Pronósticos exclusivos con análisis detallado
+• Estadísticas avanzadas de partidos
+• Alertas en tiempo real
+• Soporte prioritario
+
+💰 Solo $12 USD por semana
+📈 Mejora tus resultados con nuestros expertos
+
+🔥 ¡No te pierdas las mejores oportunidades!
+Activa tu membresía ahora y empieza a ganar. ⚽💰"""
+        
+        try:
+            resultado = enviar_telegram_masivo(mensaje_promocion, only_premium=False, exclude_premium=True)
+            if resultado["exito"]:
+                audiencia = resultado.get('audiencia', 'usuarios')
+                mensaje_resultado = f"✅ La promoción se ha enviado correctamente.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                mensaje_resultado += f"• Audiencia: {audiencia}\n"
+                mensaje_resultado += f"• Total usuarios: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                messagebox.showinfo("Promoción Enviada", mensaje_resultado)
+            else:
+                if resultado.get('total_usuarios', 0) == 0:
+                    messagebox.showinfo("Sin usuarios", 
+                                      "⚠️ No hay usuarios sin membresía activa.\n\n"
+                                      "Todos los usuarios registrados ya tienen membresía premium.")
+                else:
+                    error_msg = "No se pudo enviar la promoción. Revisa la conexión."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando promoción: {e}")
 
 
     def limpiar_cache_api(self):
@@ -1525,7 +1841,20 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             
             api_key = os.getenv('FOOTYSTATS_API_KEY')
             if not api_key:
-                messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
+                cwd = os.getcwd()
+                script_dir = Path(__file__).resolve().parent
+                env_in_cwd = Path(cwd) / ".env"
+                env_in_script = script_dir / ".env"
+                
+                error_msg = f"FOOTYSTATS_API_KEY no encontrada en .env\n\n"
+                error_msg += f"Directorio actual (CWD): {cwd}\n"
+                error_msg += f"Directorio del script: {script_dir}\n"
+                error_msg += f".env en CWD existe: {env_in_cwd.exists()}\n"
+                error_msg += f".env en script existe: {env_in_script.exists()}\n\n"
+                error_msg += "Asegúrate de que el archivo .env está en la raíz del proyecto\n"
+                error_msg += "y contiene: FOOTYSTATS_API_KEY=tu_api_key"
+                
+                messagebox.showerror("Error", error_msg)
                 return
             tracker = TrackRecordManager(api_key)
             
@@ -1578,7 +1907,7 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             tree.column('resultado', width=120)
             tree.column('estado', width=100)
             
-            scrollbar = ttk.Scrollbar(frame_principal, orient='vertical', command=tree.yview)
+            scrollbar = ttk.Scrollbar(frame_principal, orient='vertical', command=tree.yview, style='Slim.Vertical.TScrollbar')
             tree.configure(yscrollcommand=scrollbar.set)
             
             tree.pack(side='left', fill='both', expand=True)
@@ -1613,7 +1942,7 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                     return
                 
                 canvas = tk.Canvas(frame_principal, bg="#2c3e50", highlightthickness=0)
-                scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
+                scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview, style='Slim.Vertical.TScrollbar')
                 scrollable_frame = tk.Frame(canvas, bg="#2c3e50")
                 
                 scrollable_frame.bind(
@@ -1878,7 +2207,14 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 
                 def update_in_thread():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=50, timeout_per_match=15)
+                        from_date = fecha_inicio.get() if fecha_inicio.get() else None
+                        to_date = fecha_fin.get() if fecha_fin.get() else None
+                        resultado = tracker.actualizar_historial_con_resultados(
+                            max_matches=50, 
+                            timeout_per_match=15,
+                            from_date=from_date,
+                            to_date=to_date
+                        )
                         
                         def update_gui():
                             try:
@@ -1926,19 +2262,34 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 thread.start()
             
             def actualizar_automatico():
-                """Actualiza resultados automáticamente al abrir track record"""
+                """Actualiza resultados automáticamente cada 4 horas"""
                 import threading
                 
                 def update_in_background():
                     try:
-                        resultado = tracker.actualizar_historial_con_resultados(max_matches=3, timeout_per_match=8)
+                        from_date = fecha_inicio.get() if fecha_inicio.get() else None
+                        to_date = fecha_fin.get() if fecha_fin.get() else None
+                        resultado = tracker.actualizar_historial_con_resultados(
+                            max_matches=50, 
+                            timeout_per_match=15,
+                            from_date=from_date,
+                            to_date=to_date
+                        )
                         if resultado.get('actualizaciones', 0) > 0:
                             ventana_track.after(0, cargar_datos_filtrados)
+                            print(f"✅ Auto-actualización: {resultado.get('actualizaciones', 0)} predicciones actualizadas")
                     except Exception as e:
-                        pass
+                        print(f"❌ Error en auto-actualización: {e}")
+                
+                def schedule_next_update():
+                    """Programa la próxima actualización en 4 horas"""
+                    thread = threading.Thread(target=update_in_background, daemon=True)
+                    thread.start()
+                    ventana_track.after(14400000, schedule_next_update)
                 
                 thread = threading.Thread(target=update_in_background, daemon=True)
                 thread.start()
+                ventana_track.after(14400000, schedule_next_update)
             
             def limpiar_historial():
                 """Limpia todo el historial"""
@@ -2017,7 +2368,7 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
         """Abrir ventana de gestión de usuarios VIP"""
         try:
             import tkinter as tk
-            from tkinter import messagebox, scrolledtext, simpledialog
+            from tkinter import messagebox, simpledialog, ttk
             
             try:
                 from access_manager import access_manager
@@ -2033,28 +2384,99 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
             
             ventana_usuarios = tk.Toplevel(self.root)
             ventana_usuarios.title("👥 Gestión de Usuarios VIP")
-            ventana_usuarios.geometry("900x700")
+            ventana_usuarios.geometry("1100x700")
             ventana_usuarios.configure(bg="#2c3e50")
             
-            frame_principal = tk.Frame(ventana_usuarios, bg="#2c3e50")
-            frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
+            ventana_usuarios.grid_rowconfigure(1, weight=1)
+            ventana_usuarios.grid_columnconfigure(0, weight=1)
             
-            tk.Label(frame_principal, text="👥 GESTIÓN DE USUARIOS VIP", 
+            frame_header = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_header.grid(row=0, column=0, sticky='ew', padx=10, pady=(10, 0))
+            
+            tk.Label(frame_header, text="👥 GESTIÓN DE USUARIOS VIP", 
                     bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold')).pack(pady=(0, 10))
             
-            frame_stats = tk.Frame(frame_principal, bg="#34495e", relief='raised', bd=2)
+            frame_stats = tk.Frame(frame_header, bg="#34495e", relief='raised', bd=2)
             frame_stats.pack(fill='x', pady=(0, 10))
             
             stats_label = tk.Label(frame_stats, text="📊 Cargando estadísticas...", 
                                   bg="#34495e", fg="white", font=('Segoe UI', 12))
             stats_label.pack(pady=10)
             
-            text_area = scrolledtext.ScrolledText(frame_principal, wrap=tk.WORD, 
-                                                 font=('Consolas', 10), bg="white", fg="black")
-            text_area.pack(fill='both', expand=True, pady=(0, 10))
+            frame_table = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_table.grid(row=1, column=0, sticky='nsew', padx=10, pady=10)
+            frame_table.grid_rowconfigure(0, weight=1)
+            frame_table.grid_columnconfigure(0, weight=1)
             
-            frame_botones = tk.Frame(frame_principal, bg="#2c3e50")
-            frame_botones.pack(fill='x')
+            style = ttk.Style()
+            style.theme_use('clam')
+            style.configure("Treeview", 
+                          background="white",
+                          foreground="black",
+                          rowheight=30,
+                          fieldbackground="white",
+                          font=('Segoe UI', 10))
+            style.configure("Treeview.Heading",
+                          background="#34495e",
+                          foreground="white",
+                          font=('Segoe UI', 11, 'bold'),
+                          relief='raised')
+            style.map('Treeview', background=[('selected', '#3498db')])
+            
+            columns = ('id', 'usuario', 'nombre', 'premium', 'expira')
+            tree = ttk.Treeview(frame_table, columns=columns, show='headings', selectmode='browse')
+            
+            tree.heading('id', text='ID', anchor='center')
+            tree.heading('usuario', text='Usuario', anchor='w')
+            tree.heading('nombre', text='Nombre', anchor='w')
+            tree.heading('premium', text='Premium', anchor='center')
+            tree.heading('expira', text='Expira', anchor='center')
+            
+            tree.column('id', width=120, minwidth=100, anchor='center')
+            tree.column('usuario', width=200, minwidth=150, anchor='w')
+            tree.column('nombre', width=200, minwidth=150, anchor='w')
+            tree.column('premium', width=100, minwidth=80, anchor='center')
+            tree.column('expira', width=180, minwidth=150, anchor='center')
+            
+            tree.tag_configure('odd', background='#f0f0f0')
+            tree.tag_configure('even', background='white')
+            
+            scrollbar_y = ttk.Scrollbar(frame_table, orient='vertical', command=tree.yview, style='Slim.Vertical.TScrollbar')
+            scrollbar_x = ttk.Scrollbar(frame_table, orient='horizontal', command=tree.xview, style='Slim.Horizontal.TScrollbar')
+            tree.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+            
+            tree.grid(row=0, column=0, sticky='nsew')
+            scrollbar_y.grid(row=0, column=1, sticky='ns')
+            scrollbar_x.grid(row=1, column=0, sticky='ew')
+            
+            sort_reverse = {}
+            
+            def sort_column(col):
+                data = [(tree.set(child, col), child) for child in tree.get_children('')]
+                
+                if col == 'expira':
+                    def sort_key(item):
+                        val = item[0]
+                        if val == 'N/A' or val == 'Error fecha':
+                            return ('9999-99-99 99:99', item[1])
+                        return (val, item[1])
+                    data.sort(key=sort_key, reverse=sort_reverse.get(col, False))
+                elif col == 'premium':
+                    data.sort(key=lambda x: (0 if '✅' in x[0] else 1, x[1]), reverse=sort_reverse.get(col, False))
+                else:
+                    data.sort(reverse=sort_reverse.get(col, False))
+                
+                for index, (val, child) in enumerate(data):
+                    tree.move(child, '', index)
+                    tree.item(child, tags=('even',) if index % 2 == 0 else ('odd',))
+                
+                sort_reverse[col] = not sort_reverse.get(col, False)
+            
+            for col in columns:
+                tree.heading(col, command=lambda c=col: sort_column(c))
+            
+            frame_botones = tk.Frame(ventana_usuarios, bg="#2c3e50")
+            frame_botones.grid(row=2, column=0, sticky='ew', padx=10, pady=(0, 10))
             
             def actualizar_estadisticas():
                 try:
@@ -2083,18 +2505,15 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                 try:
                     usuarios = access_manager.listar_usuarios()
                     
-                    text_area.config(state='normal')
-                    text_area.delete('1.0', tk.END)
+                    for item in tree.get_children():
+                        tree.delete(item)
                     
                     if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
-                        text_area.insert('1.0', f"{'ID':<12} {'Usuario':<20} {'Nombre':<20} {'Premium':<8} {'Expira':<20}\n")
-                        text_area.insert(tk.END, "="*90 + "\n")
-                        
-                        for usuario in usuarios:
+                        for index, usuario in enumerate(usuarios):
                             if usuario and isinstance(usuario, dict):
-                                user_id = usuario.get('user_id', 'N/A')
-                                username = usuario.get('username', 'N/A')[:19] if usuario.get('username') else 'N/A'
-                                first_name = usuario.get('first_name', 'N/A')[:19] if usuario.get('first_name') else 'N/A'
+                                user_id = str(usuario.get('user_id', 'N/A'))
+                                username = usuario.get('username', 'N/A') if usuario.get('username') else 'N/A'
+                                first_name = usuario.get('first_name', 'N/A') if usuario.get('first_name') else 'N/A'
                                 premium = "✅ SÍ" if usuario.get('premium', False) else "❌ NO"
                                 
                                 expira = "N/A"
@@ -2106,33 +2525,18 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                                     except:
                                         expira = "Error fecha"
                                 
-                                linea = f"{user_id:<12} {username:<20} {first_name:<20} {premium:<8} {expira:<20}\n"
-                                text_area.insert(tk.END, linea)
-                    else:
-                        text_area.insert('1.0', "No hay usuarios registrados o datos no disponibles.")
+                                tag = 'even' if index % 2 == 0 else 'odd'
+                                tree.insert('', 'end', values=(user_id, username, first_name, premium, expira), tags=(tag,))
                     
-                    text_area.config(state='disabled')
                     actualizar_estadisticas()
                 except AttributeError as e:
                     messagebox.showerror("Error", f"Error: Módulo access_manager no configurado - {e}")
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
-                    text_area.insert('1.0', f"Error: Módulo access_manager no configurado - {e}")
-                    text_area.config(state='disabled')
                     print(f"AttributeError en refrescar_usuarios: {e}")
                 except TypeError as e:
                     messagebox.showerror("Error", f"Error: Datos de usuarios inválidos - {e}")
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
-                    text_area.insert('1.0', f"Error: Datos de usuarios inválidos - {e}")
-                    text_area.config(state='disabled')
                     print(f"TypeError en refrescar_usuarios: {e}")
                 except Exception as e:
                     messagebox.showerror("Error", f"Error cargando usuarios: {e}")
-                    text_area.delete('1.0', tk.END)
-                    text_area.config(state='normal')
-                    text_area.insert('1.0', f"Error cargando usuarios: {e}")
-                    text_area.config(state='disabled')
                     print(f"Error en refrescar_usuarios: {e}")
                     import traceback
                     print(f"Traceback: {traceback.format_exc()}")

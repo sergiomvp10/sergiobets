@@ -622,5 +622,29 @@
       1.75
     ],
     "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-10-30T23:10:44.694701",
+    "action": "individual_analysis",
+    "partido": "River Plate vs Gimnasia La Plata",
+    "liga": "Liga Argentina",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Gimnasia La Plata 1H",
+      "cuota": 9.4,
+      "confianza": 35.0,
+      "valor_esperado": 2.29,
+      "edge_percentage": 229.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
   }
 ]

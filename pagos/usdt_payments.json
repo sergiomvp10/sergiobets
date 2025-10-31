@@ -1,0 +1,18 @@
+[
+  {
+    "payment_id": "USDT-6937898258-1761881024",
+    "user_id": "6937898258",
+    "username": "N/A",
+    "first_name": "Juli",
+    "file_id": "AgACAgEAAxkBAAIBFmkEIZeyAbXO1nmxmcDKGDMqUT4fAALPC2sbpvogRO15JX_QkVgIAQADAgADeQADNgQ",
+    "file_type": "photo",
+    "amount_usd": 12,
+    "wallet": "TTWWueGnAzJfCBCHrVuHVSC2rRuiuRajYc",
+    "network": "TRC20",
+    "submitted_at": "2025-10-30T20:23:44.574349",
+    "status": "confirmed",
+    "admin_msg_id": 311,
+    "confirmed_at": "2025-10-30T20:26:55.481814",
+    "dias_otorgados": 7
+  }
+]

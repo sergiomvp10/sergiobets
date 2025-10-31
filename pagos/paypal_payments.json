@@ -1,0 +1,17 @@
+[
+  {
+    "payment_id": "PAYPAL-6937898258-1761880950",
+    "user_id": "6937898258",
+    "username": "N/A",
+    "first_name": "Juli",
+    "file_id": "AgACAgEAAxkBAAIBHGkEIulZyJWoYuo1c3pH4y8o0xWaAALRC2sbpvogREUZyfr1LRLAAQADAgADeQADNgQ",
+    "file_type": "photo",
+    "amount_usd": 12,
+    "paypal_user": "@ferchomelendez",
+    "submitted_at": "2025-10-30T20:22:30.112120",
+    "status": "confirmed",
+    "admin_msg_id": 305,
+    "confirmed_at": "2025-10-30T20:26:40.188736",
+    "dias_otorgados": 7
+  }
+]
