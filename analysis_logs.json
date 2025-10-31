@@ -1,0 +1,650 @@
+[
+  {
+    "timestamp": "2025-09-04T14:50:29.707268",
+    "action": "individual_analysis",
+    "partido": "Colombia vs Bolivia",
+    "liga": "Copa Colombia",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 1.47,
+      "confianza": 67.70434004816792,
+      "valor_esperado": -0.0047462012919315955,
+      "edge_percentage": -0.5
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 2
+  },
+  {
+    "timestamp": "2025-09-04T14:51:21.567204",
+    "action": "individual_analysis",
+    "partido": "Argentina vs Venezuela",
+    "liga": "Liga Argentina",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Menos de 2.5 goles",
+      "cuota": 2.35,
+      "confianza": 44.15856957945474,
+      "valor_esperado": 0.03772638511718651,
+      "edge_percentage": 3.8
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 2
+  },
+  {
+    "timestamp": "2025-09-04T14:51:55.823047",
+    "action": "individual_analysis",
+    "partido": "Brazil vs Chile",
+    "liga": "Brasileirão",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Menos de 2.5 goles",
+      "cuota": 2.05,
+      "confianza": 80.88468305380582,
+      "valor_esperado": 0.6581360026030192,
+      "edge_percentage": 65.8
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 2
+  },
+  {
+    "timestamp": "2025-09-04T14:52:06.223433",
+    "action": "individual_analysis",
+    "partido": "Paraguay vs Ecuador",
+    "liga": "Liga Internacional",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.5,
+      "confianza": 74.5973110045662,
+      "valor_esperado": 0.8649327751141547,
+      "edge_percentage": 86.5
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 2
+  },
+  {
+    "timestamp": "2025-09-04T22:53:47.355533",
+    "action": "individual_analysis",
+    "partido": "Colombia vs Bolivia",
+    "liga": "Copa Colombia",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Bolivia 1H",
+      "cuota": 15.0,
+      "confianza": 35.0,
+      "valor_esperado": 4.25,
+      "edge_percentage": 425.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:54:23.378643",
+    "action": "individual_analysis",
+    "partido": "Paraguay vs Ecuador",
+    "liga": "Liga Internacional",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 4.5 goles",
+      "cuota": 17.0,
+      "confianza": 14.890932935747847,
+      "valor_esperado": 1.5314585990771339,
+      "edge_percentage": 153.1
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:54:47.984544",
+    "action": "individual_analysis",
+    "partido": "NoPS U20 vs Inter Turku U20",
+    "liga": "Champions League",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria NoPS U20",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:54:56.792326",
+    "action": "individual_analysis",
+    "partido": "MP U20 vs ToVe U20",
+    "liga": "Champions League",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria MP U20",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:55:00.616484",
+    "action": "individual_analysis",
+    "partido": "FAS U20 vs Luis Ángel Firpo U20",
+    "liga": "Liga Internacional",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria FAS U20",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:55:03.748519",
+    "action": "individual_analysis",
+    "partido": "JäPS U20 vs PPJ U20",
+    "liga": "Champions League",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria JäPS U20",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:57:29.110331",
+    "action": "individual_analysis",
+    "partido": "Venezuela vs Colombia",
+    "liga": "Liga Internacional",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Venezuela",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:57:37.663860",
+    "action": "individual_analysis",
+    "partido": "Chile vs Uruguay",
+    "liga": "Primera División Chile",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.35,
+      "confianza": 67.01089349756909,
+      "valor_esperado": 0.5747559971928735,
+      "edge_percentage": 57.5
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:57:40.607101",
+    "action": "individual_analysis",
+    "partido": "Peru vs Paraguay",
+    "liga": "Liga Peruana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Menos de 2.5 goles",
+      "cuota": 1.53,
+      "confianza": 67.62355609330348,
+      "valor_esperado": 0.03464040822754333,
+      "edge_percentage": 3.5
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:57:46.747237",
+    "action": "individual_analysis",
+    "partido": "Chile vs Uruguay",
+    "liga": "Primera División Chile",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.35,
+      "confianza": 67.01089349756909,
+      "valor_esperado": 0.5747559971928735,
+      "edge_percentage": 57.5
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:57:53.252620",
+    "action": "individual_analysis",
+    "partido": "Ecuador vs Argentina",
+    "liga": "Liga Ecuatoriana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Menos de 2.5 goles",
+      "cuota": 1.5,
+      "confianza": 74.64279227588658,
+      "valor_esperado": 0.11964188413829868,
+      "edge_percentage": 12.0
+    },
+    "cumple_criterios_publicacion": true,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:57:56.980524",
+    "action": "individual_analysis",
+    "partido": "Bolivia vs Brazil",
+    "liga": "Liga Boliviana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Bolivia",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-04T22:58:02.372443",
+    "action": "individual_analysis",
+    "partido": "Bolivia vs Brazil",
+    "liga": "Liga Boliviana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Bolivia",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:21.717901",
+    "action": "individual_analysis",
+    "partido": "Venezuela vs Colombia",
+    "liga": "Liga Internacional",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Venezuela",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:27.721993",
+    "action": "individual_analysis",
+    "partido": "Peru vs Paraguay",
+    "liga": "Liga Peruana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.4,
+      "confianza": 52.355506055654985,
+      "valor_esperado": 0.25653214533571966,
+      "edge_percentage": 25.7
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:31.249969",
+    "action": "individual_analysis",
+    "partido": "Chile vs Uruguay",
+    "liga": "Primera División Chile",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.35,
+      "confianza": 44.437025579459124,
+      "valor_esperado": 0.04427010111728946,
+      "edge_percentage": 4.4
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:34.698592",
+    "action": "individual_analysis",
+    "partido": "Ecuador vs Argentina",
+    "liga": "Liga Ecuatoriana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.5,
+      "confianza": 82.64219290899639,
+      "valor_esperado": 1.0660548227249098,
+      "edge_percentage": 106.6
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:37.747611",
+    "action": "individual_analysis",
+    "partido": "Bolivia vs Brazil",
+    "liga": "Liga Boliviana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Bolivia",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:47.994740",
+    "action": "individual_analysis",
+    "partido": "Bolivia vs Brazil",
+    "liga": "Liga Boliviana",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Bolivia",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:55.004883",
+    "action": "individual_analysis",
+    "partido": "Venezuela vs Colombia",
+    "liga": "Liga Internacional",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Venezuela",
+      "cuota": 3.0303030303030303,
+      "confianza": 33.0,
+      "valor_esperado": 0.0,
+      "edge_percentage": 0.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-09-09T09:38:57.980611",
+    "action": "individual_analysis",
+    "partido": "Chile vs Uruguay",
+    "liga": "Primera División Chile",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 2.5 goles",
+      "cuota": 2.35,
+      "confianza": 44.437025579459124,
+      "valor_esperado": 0.04427010111728946,
+      "edge_percentage": 4.4
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-10-30T12:40:58.407723",
+    "action": "individual_analysis",
+    "partido": "Boyacá Chicó vs América de Cali",
+    "liga": "Copa Colombia",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Más de 11.5 corners",
+      "cuota": 3.9,
+      "confianza": 69.24770192989484,
+      "valor_esperado": 1.7006603752658989,
+      "edge_percentage": 170.1
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  },
+  {
+    "timestamp": "2025-10-30T23:10:44.694701",
+    "action": "individual_analysis",
+    "partido": "River Plate vs Gimnasia La Plata",
+    "liga": "Liga Argentina",
+    "success": true,
+    "mejor_pick": {
+      "prediccion": "Victoria Gimnasia La Plata 1H",
+      "cuota": 9.4,
+      "confianza": 35.0,
+      "valor_esperado": 2.29,
+      "edge_percentage": 229.0
+    },
+    "cumple_criterios_publicacion": false,
+    "odds_range_analisis": [
+      1.25,
+      2.2
+    ],
+    "odds_range_publicacion": [
+      1.3,
+      1.75
+    ],
+    "total_mercados": 50
+  }
+]

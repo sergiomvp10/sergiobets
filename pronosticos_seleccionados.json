@@ -1,20 +1,20 @@
 {
-    "fecha": "2025-09-12",
+    "fecha": "2025-10-30",
     "predicciones": [
         {
-            "partido": "Huracán vs Vélez Sarsfield",
+            "partido": "Lanús vs Universidad Chile",
             "liga": "Liga Argentina",
             "hora": "15:00",
-            "prediccion": "Más de 1.5 goles",
-            "cuota": 1.62,
+            "prediccion": "Menos de 9.5 corners",
+            "cuota": 1.75,
             "stake_recomendado": 10,
-            "confianza": 93.9,
-            "valor_esperado": 0.521,
-            "razon": "Modelo predictivo estima 4.5 goles. Rendimiento ofensivo equipos favorece línea. VE: +52.1%",
+            "confianza": 95.7,
+            "valor_esperado": 0.675,
+            "razon": "Promedio corners equipos: 0.5x media liga. Estilo de juego favorece línea. VE: +67.5%",
             "opcion_numero": 1,
-            "total_opciones": 1,
+            "total_opciones": 2,
             "sent_to_telegram": true,
-            "fecha_envio_telegram": "2025-09-03T22:59:28.747920"
+            "fecha_envio_telegram": "2025-10-30T21:52:12.325089"
         }
     ]
 }
