@@ -400,9 +400,26 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     """Volver al menú principal"""
     query = update.callback_query
     user = query.from_user
-    first_name = user.first_name
+    user_id = user.id
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
+    access_manager.limpiar_usuarios_expirados()
+    
+    tiene_acceso = verificar_acceso(str(user_id))
+    if not tiene_acceso:
+        mensaje_acceso = "\n\n⚠️ Tu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
+    else:
+        usuario_info = access_manager.obtener_usuario(str(user_id))
+        if usuario_info and usuario_info.get('fecha_expiracion'):
+            from datetime import datetime
+            try:
+                fecha_exp = datetime.fromisoformat(usuario_info['fecha_expiracion'])
+                mensaje_acceso = f"\n\n👑 Acceso Premium Activo hasta: {fecha_exp.strftime('%Y-%m-%d %H:%M')}"
+            except:
+                mensaje_acceso = "\n\n👑 Acceso Premium Activo"
+        else:
+            mensaje_acceso = ""
+    
+    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏\n\n¡Prepárate para ganar!{mensaje_acceso}"
     
     keyboard = [
         [
