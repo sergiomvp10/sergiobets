@@ -487,7 +487,16 @@ def generar_justificacion(apuesta: Dict[str, Any], analisis: Dict[str, Any]) -> 
 def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optional[Dict[str, Any]]:
     try:
         analisis = analizar_partido_completo(partido)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=2, bypass_filters=True)
+        
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=False)
+        
+        if not mejores_apuestas:
+            mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=True)
+            
+            min_odds, max_odds = ODDS_RANGE_PUBLISH
+            mejores_apuestas = [a for a in mejores_apuestas if min_odds <= a["cuota"] <= max_odds]
+            
+            mejores_apuestas.sort(key=lambda x: x["confianza"], reverse=True)
         
         if not mejores_apuestas:
             return None
@@ -506,7 +515,7 @@ def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optio
             "liga": analisis["liga"],
             "hora": analisis["hora"],
             "prediccion": mejor_apuesta["descripcion"],
-            "cuota": mejor_apuesta["cuota"],
+            "cuota": round(mejor_apuesta["cuota"], 2),
             "stake_recomendado": mejor_apuesta["stake_recomendado"],
             "confianza": round(mejor_apuesta["confianza"], 1),
             "valor_esperado": round(mejor_apuesta["valor_esperado"], 3),
