@@ -487,7 +487,7 @@ def generar_justificacion(apuesta: Dict[str, Any], analisis: Dict[str, Any]) -> 
 def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optional[Dict[str, Any]]:
     try:
         analisis = analizar_partido_completo(partido)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=2)
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=2, bypass_filters=True)
         
         if not mejores_apuestas:
             return None
