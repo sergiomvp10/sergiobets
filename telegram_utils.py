@@ -50,7 +50,23 @@ def cargar_usuarios_premium(bot_username="BetGeniuXbot"):
         print(f"Error cargando usuarios premium del bot {bot_username}: {e}")
         return []
 
-def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot", only_premium=False):
+def cargar_usuarios_no_premium(bot_username="BetGeniuXbot"):
+    """Cargar lista de usuarios sin membresía activa para bot específico"""
+    try:
+        from access_manager import access_manager
+        todos_usuarios = access_manager.listar_usuarios_por_bot(bot_username)
+        usuarios_premium_ids = {user['user_id'] for user in access_manager.listar_usuarios_premium()}
+        
+        return [
+            {'user_id': user['user_id'], 'username': user.get('username', 'Unknown'), 'first_name': user.get('first_name', 'Usuario')}
+            for user in todos_usuarios
+            if user['user_id'] not in usuarios_premium_ids
+        ]
+    except Exception as e:
+        print(f"Error cargando usuarios no premium del bot {bot_username}: {e}")
+        return []
+
+def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot", only_premium=False, exclude_premium=False):
     """Enviar mensaje a usuarios del bot específico
     
     Args:
@@ -58,6 +74,7 @@ def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot", onl
         token: Token del bot (opcional, usa TELEGRAM_BOT_TOKEN por defecto)
         bot_username: Nombre del bot (por defecto "BetGeniuXbot")
         only_premium: Si True, solo envía a usuarios premium activos (por defecto False)
+        exclude_premium: Si True, solo envía a usuarios sin membresía activa (por defecto False)
     """
     if mensaje is None:
         return {"exito": False, "error": "Mensaje vacío"}
@@ -68,12 +85,15 @@ def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot", onl
     if only_premium:
         usuarios = cargar_usuarios_premium(bot_username)
         audiencia = "premium activos"
+    elif exclude_premium:
+        usuarios = cargar_usuarios_no_premium(bot_username)
+        audiencia = "sin membresía activa"
     else:
         usuarios = cargar_usuarios_registrados(bot_username)
         audiencia = "registrados"
     
     if not usuarios:
-        if only_premium:
+        if only_premium or exclude_premium:
             print(f"⚠️ No hay usuarios {audiencia} en el bot {bot_username}.")
             return {
                 "exito": False,

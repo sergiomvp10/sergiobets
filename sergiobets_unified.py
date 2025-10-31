@@ -585,7 +585,7 @@ class SergioBetsUnified:
         actions_frame = ttk.Frame(toolbar, style='Toolbar.TFrame')
         actions_frame.grid(row=0, column=1, sticky='ew', padx=10)
         
-        for i in range(7):
+        for i in range(8):
             actions_frame.grid_columnconfigure(i, weight=1, uniform='actions')
         
         ttk.Button(actions_frame, text="🔍 Buscar", command=self.buscar_en_hilo).grid(
@@ -594,14 +594,16 @@ class SergioBetsUnified:
                   command=self.regenerar_en_hilo).grid(row=0, column=1, sticky='ew', padx=2)
         ttk.Button(actions_frame, text="📢 Alerta", style='Secondary.TButton', 
                   command=self.enviar_alerta).grid(row=0, column=2, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="🎁 Promo", style='Secondary.TButton', 
+                  command=self.enviar_promocion).grid(row=0, column=3, sticky='ew', padx=2)
         ttk.Button(actions_frame, text="🧹 Cache", style='Secondary.TButton', 
-                  command=self.limpiar_cache_api).grid(row=0, column=3, sticky='ew', padx=2)
+                  command=self.limpiar_cache_api).grid(row=0, column=4, sticky='ew', padx=2)
         ttk.Button(actions_frame, text="📌 Enviar", command=self.enviar_predicciones_seleccionadas).grid(
-            row=0, column=4, sticky='ew', padx=2)
-        ttk.Button(actions_frame, text="📊 Track", command=self.abrir_track_record).grid(
             row=0, column=5, sticky='ew', padx=2)
-        ttk.Button(actions_frame, text="👥 Users", command=self.abrir_usuarios).grid(
+        ttk.Button(actions_frame, text="📊 Track", command=self.abrir_track_record).grid(
             row=0, column=6, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="👥 Users", command=self.abrir_usuarios).grid(
+            row=0, column=7, sticky='ew', padx=2)
         
         def toggle_theme():
             mode = 'dark' if self.dark_mode_var.get() else 'light'
@@ -1692,17 +1694,19 @@ class SergioBetsUnified:
             messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")
 
     def enviar_alerta(self):
-        """Enviar alerta de pronóstico a Telegram"""
+        """Enviar alerta de pronóstico a usuarios premium"""
         mensaje_alerta = """📢 ¡Alerta de pronostico! 📢
 Nuestro sistema ha detectado una oportunidad con valor.  
 En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
         
         try:
-            resultado = enviar_telegram_masivo(mensaje_alerta)
+            resultado = enviar_telegram_masivo(mensaje_alerta, only_premium=True)
             if resultado["exito"]:
+                audiencia = resultado.get('audiencia', 'usuarios')
                 mensaje_resultado = f"✅ La alerta se ha enviado a Telegram correctamente.\n\n"
                 mensaje_resultado += f"📊 Estadísticas de envío:\n"
-                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Audiencia: Usuarios {audiencia}\n"
+                mensaje_resultado += f"• Total usuarios {audiencia}: {resultado['total_usuarios']}\n"
                 mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
                 if resultado.get('usuarios_bloqueados', 0) > 0:
                     mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
@@ -1710,12 +1714,61 @@ En unos momentos compartiremos nuestra apuesta recomendada. ⚽💰"""
                     mensaje_resultado += f"• Errores: {resultado['errores']}\n"
                 messagebox.showinfo("Alerta Enviada", mensaje_resultado)
             else:
-                error_msg = "No se pudo enviar la alerta a Telegram. Revisa la conexión."
-                if resultado.get('detalles_errores'):
-                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
-                messagebox.showerror("Error", error_msg)
+                if resultado.get('total_usuarios', 0) == 0 and resultado.get('audiencia') == 'premium activos':
+                    messagebox.showinfo("Sin usuarios premium", 
+                                      "⚠️ No hay usuarios con membresía activa.\n\n"
+                                      "Las alertas solo se envían a usuarios premium.\n"
+                                      "Otorga acceso premium a usuarios desde el menú '👥 Users'.")
+                else:
+                    error_msg = "No se pudo enviar la alerta a Telegram. Revisa la conexión."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando alerta a Telegram: {e}")
+    
+    def enviar_promocion(self):
+        """Enviar promoción a usuarios sin membresía activa"""
+        mensaje_promocion = """🎁 ¡OFERTA ESPECIAL! 🎁
+
+💎 Únete a BetGeniuX Premium y accede a:
+• Pronósticos exclusivos con análisis detallado
+• Estadísticas avanzadas de partidos
+• Alertas en tiempo real
+• Soporte prioritario
+
+💰 Solo $12 USD por semana
+📈 Mejora tus resultados con nuestros expertos
+
+🔥 ¡No te pierdas las mejores oportunidades!
+Activa tu membresía ahora y empieza a ganar. ⚽💰"""
+        
+        try:
+            resultado = enviar_telegram_masivo(mensaje_promocion, only_premium=False, exclude_premium=True)
+            if resultado["exito"]:
+                audiencia = resultado.get('audiencia', 'usuarios')
+                mensaje_resultado = f"✅ La promoción se ha enviado correctamente.\n\n"
+                mensaje_resultado += f"📊 Estadísticas de envío:\n"
+                mensaje_resultado += f"• Audiencia: {audiencia}\n"
+                mensaje_resultado += f"• Total usuarios: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
+                if resultado.get('usuarios_bloqueados', 0) > 0:
+                    mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
+                if resultado.get('errores', 0) > 0:
+                    mensaje_resultado += f"• Errores: {resultado['errores']}\n"
+                messagebox.showinfo("Promoción Enviada", mensaje_resultado)
+            else:
+                if resultado.get('total_usuarios', 0) == 0:
+                    messagebox.showinfo("Sin usuarios", 
+                                      "⚠️ No hay usuarios sin membresía activa.\n\n"
+                                      "Todos los usuarios registrados ya tienen membresía premium.")
+                else:
+                    error_msg = "No se pudo enviar la promoción. Revisa la conexión."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando promoción: {e}")
 
 
     def limpiar_cache_api(self):
