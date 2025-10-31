@@ -70,6 +70,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(mensaje, reply_markup=reply_markup)
 
+async def get_chat_id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /get_chat_id - Obtener ID del chat actual"""
+    chat = update.effective_chat
+    user = update.effective_user
+    
+    mensaje = f"""🔍 *Información del Chat*
+
+📱 *Tipo:* {chat.type}
+🆔 *Chat ID:* `{chat.id}`
+👤 *Tu User ID:* `{user.id}`
+"""
+    
+    if chat.type in ['group', 'supergroup']:
+        mensaje += f"\n📝 *Nombre del grupo:* {chat.title}"
+        mensaje += f"\n\n💡 *Para usar este grupo como destino de notificaciones:*"
+        mensaje += f"\n1. Copia el Chat ID: `{chat.id}`"
+        mensaje += f"\n2. Actualiza tu .env: `ADMIN_TELEGRAM_ID={chat.id}`"
+        mensaje += f"\n3. Reinicia el bot"
+    
+    await update.message.reply_text(mensaje, parse_mode='Markdown')
+
 async def mensaje_general(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar cualquier mensaje para registrar usuario automáticamente"""
     user = update.effective_user
