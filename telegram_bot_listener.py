@@ -358,29 +358,23 @@ async def mostrar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     mensaje = """❓ AYUDA - BETGENIUX
 
-🤖 COMANDOS DISPONIBLES:
-• /start - Mostrar menú principal
-• Cualquier mensaje - Registro automático
-
 📊 FUNCIONES:
 • Estadísticas: Ver rendimiento del sistema
 • Novedades: Últimas actualizaciones
 • Membresía: Información de planes premium
 • Ayuda: Esta información
 
-🎯 CÓMO FUNCIONA:
-1. Regístrate enviando cualquier mensaje
-2. Recibirás pronósticos automáticamente
-3. Revisa estadísticas para ver rendimiento
-4. Considera membresía premium para más beneficios
+🎯 CÓMO FUNCIONA ?
+1. Regístrate utilizando el comando /start
+2. Adquiere tu membresia o ingresa tu codigo promocional
+3. Recibe diariamente apuestas y copialas en tu casa de apuestas favorita
+4. Controla tu bank y crea tu estrategia
 
 📞 SOPORTE:
-• Telegram: @sergiomvp10
-• Problemas técnicos: Reportar en el chat
+• Obten soporte prioritario aqui @Sie7e0
 
 🚀 TIPS:
 • Mantén notificaciones activas
-• Revisa estadísticas regularmente
 • Sigue las recomendaciones de stake
 • Apuesta con responsabilidad
 
