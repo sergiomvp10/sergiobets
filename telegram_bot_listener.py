@@ -60,7 +60,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             mensaje_acceso = ""
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
+    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏\n\n¡Prepárate para ganar!{mensaje_acceso}"
     
     keyboard = [
         [
