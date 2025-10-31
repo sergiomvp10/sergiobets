@@ -34,6 +34,40 @@ from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_d
 from league_utils import detectar_liga_por_imagen
 from track_record import TrackRecordManager
 
+class ScrollableFrame(ttk.Frame):
+    """Frame con scroll vertical para listas dinámicas"""
+    def __init__(self, parent, style='TFrame', padding=0, bg='#F3F4F6', *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0, bg=bg)
+        self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.canvas.yview)
+        self.inner = ttk.Frame(self.canvas, style=style, padding=padding)
+        
+        self.inner_id = self.canvas.create_window((0, 0), window=self.inner, anchor='nw')
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+        
+        self.canvas.grid(row=0, column=0, sticky='nsew')
+        self.vsb.grid(row=0, column=1, sticky='ns')
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+        self.inner.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
+        self.canvas.bind('<Configure>', lambda e: self.canvas.itemconfigure(self.inner_id, width=self.canvas.winfo_width()))
+        
+        self.canvas.bind_all('<MouseWheel>', self._on_mousewheel)
+        self.canvas.bind_all('<Button-4>', self._on_mousewheel_linux)
+        self.canvas.bind_all('<Button-5>', self._on_mousewheel_linux)
+    
+    def _on_mousewheel(self, event):
+        delta = int(-1*(event.delta/120)) if event.delta else 0
+        self.canvas.yview_scroll(delta, 'units')
+    
+    def _on_mousewheel_linux(self, event):
+        self.canvas.yview_scroll(-1 if event.num == 4 else 1, 'units')
+    
+    def update_theme(self, bg_color):
+        """Actualiza el color de fondo del canvas"""
+        self.canvas.config(bg=bg_color)
+
 class ThemeManager:
     """Gestiona temas claro y oscuro para la aplicación"""
     def __init__(self, root):
@@ -93,10 +127,15 @@ class ThemeManager:
         self.style.configure('TFrame', background=p['bg'])
         self.style.configure('Surface.TFrame', background=p['surface'], relief='flat')
         self.style.configure('Toolbar.TFrame', background=p['surface'], relief='flat')
+        self.style.configure('Card.TFrame', background=p['surface'], relief='solid', borderwidth=1)
+        self.style.configure('Header.TFrame', background=p['primary'], relief='flat')
         
         self.style.configure('TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 10))
         self.style.configure('Muted.TLabel', background=p['surface'], foreground=p['muted'])
         self.style.configure('Title.TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 14, 'bold'))
+        self.style.configure('ItemTitle.TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 11, 'bold'))
+        self.style.configure('ItemSub.TLabel', background=p['surface'], foreground=p['muted'], font=('Segoe UI', 10))
+        self.style.configure('Header.TLabel', background=p['primary'], foreground=p['button_fg'], font=('Segoe UI', 12, 'bold'))
         
         self.style.configure('TButton',
                            background=p['button_bg'],
@@ -518,8 +557,8 @@ class SergioBetsUnified:
         
         self.tab_principal.grid_rowconfigure(0, weight=0)  # Toolbar
         self.tab_principal.grid_rowconfigure(1, weight=0)  # Separator
-        self.tab_principal.grid_rowconfigure(2, weight=0)  # Predicciones
-        self.tab_principal.grid_rowconfigure(3, weight=0)  # Partidos
+        self.tab_principal.grid_rowconfigure(2, weight=1)  # Predicciones (scrollable)
+        self.tab_principal.grid_rowconfigure(3, weight=1)  # Partidos (scrollable)
         self.tab_principal.grid_rowconfigure(4, weight=1)  # Output
         self.tab_principal.grid_columnconfigure(0, weight=1)
         
@@ -582,12 +621,17 @@ class SergioBetsUnified:
         ttk.Separator(self.tab_principal, orient='horizontal').grid(
             row=1, column=0, sticky='ew', pady=(5, 10))
         
-        # Frame de predicciones
-        self.frame_predicciones = ttk.Frame(self.tab_principal, style='TFrame')
-        self.frame_predicciones.grid(row=2, column=0, sticky='ew', padx=10, pady=5)
+        # ScrollableFrame para predicciones
+        self.sf_predicciones = ScrollableFrame(self.tab_principal, style='TFrame')
+        self.sf_predicciones.grid(row=2, column=0, sticky='nsew', padx=10, pady=5)
+        self.sf_predicciones.inner.grid_columnconfigure(0, weight=1)
         
-        self.frame_partidos = ttk.Frame(self.tab_principal, style='TFrame')
-        self.frame_partidos.grid(row=3, column=0, sticky='ew', padx=10, pady=5)
+        self.sf_partidos = ScrollableFrame(self.tab_principal, style='TFrame')
+        self.sf_partidos.grid(row=3, column=0, sticky='nsew', padx=10, pady=5)
+        self.sf_partidos.inner.grid_columnconfigure(0, weight=1)
+        
+        self.frame_predicciones = self.sf_predicciones.inner
+        self.frame_partidos = self.sf_partidos.inner
         
         # Output con ScrolledText
         self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, 
@@ -604,14 +648,10 @@ class SergioBetsUnified:
         try:
             if hasattr(self, 'output') and self.output:
                 self.output.config(bg=palette['output_bg'], fg=palette['fg'])
-            if hasattr(self, 'frame_predicciones') and self.frame_predicciones:
-                for widget in self.frame_predicciones.winfo_children():
-                    if isinstance(widget, tk.Frame):
-                        widget.config(bg=palette['surface'])
-            if hasattr(self, 'frame_partidos') and self.frame_partidos:
-                for widget in self.frame_partidos.winfo_children():
-                    if isinstance(widget, tk.Frame):
-                        widget.config(bg=palette['surface'])
+            if hasattr(self, 'sf_predicciones') and self.sf_predicciones:
+                self.sf_predicciones.update_theme(palette['bg'])
+            if hasattr(self, 'sf_partidos') and self.sf_partidos:
+                self.sf_partidos.update_theme(palette['bg'])
         except Exception as e:
             logger.warning(f"Error updating custom widgets theme: {e}")
     
@@ -956,94 +996,87 @@ class SergioBetsUnified:
         self.partidos_actuales.clear()
 
     def mostrar_predicciones_con_checkboxes(self, predicciones, liga_filtrada, titulo_extra=""):
-        """Mostrar predicciones con checkboxes para selección"""
+        """Mostrar predicciones con checkboxes para selección usando grid y estilos modernos"""
         self.limpiar_frame_predicciones()
         
         if not predicciones:
             return
-        
-        titulo_frame = tk.Frame(self.frame_predicciones, bg="#34495e")
-        titulo_frame.pack(fill='x', pady=2)
         
         titulo_text = "🎯 BETGENIUX® - SELECCIONA PRONÓSTICOS PARA ENVIAR"
         if liga_filtrada != 'Todas':
             titulo_text += f" - {liga_filtrada}"
         titulo_text += titulo_extra
         
-        titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
-                               font=('Segoe UI', 10, 'bold'), pady=5)
-        titulo_label.pack()
+        header = ttk.Frame(self.frame_predicciones, style='Header.TFrame', padding=(10, 8))
+        header.grid(row=0, column=0, sticky='ew', pady=(0, 8))
+        header.grid_columnconfigure(0, weight=1)
+        ttk.Label(header, text=titulo_text, style='Header.TLabel').grid(row=0, column=0, sticky='w')
         
-        for i, pred in enumerate(predicciones):
+        for i, pred in enumerate(predicciones, 1):
             self.predicciones_actuales.append(pred)
             
-            pred_frame = tk.Frame(self.frame_predicciones, bg="#ecf0f1", relief='ridge', bd=1)
-            pred_frame.pack(fill='x', pady=2, padx=5)
+            rowf = ttk.Frame(self.frame_predicciones, style='Card.TFrame', padding=(10, 8))
+            rowf.grid(row=i, column=0, sticky='ew', pady=4)
+            rowf.grid_columnconfigure(1, weight=1)
             
             var_checkbox = tk.BooleanVar()
             self.checkboxes_predicciones.append(var_checkbox)
             
-            checkbox_frame = tk.Frame(pred_frame, bg="#ecf0f1")
-            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            chk = ttk.Checkbutton(rowf, variable=var_checkbox)
+            chk.grid(row=0, column=0, padx=(0, 10), sticky='nw')
             
-            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#ecf0f1")
-            checkbox.pack(side=tk.LEFT)
+            pred_text = f"🎯 PRONÓSTICO #{i}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
+            title = ttk.Label(rowf, text=pred_text, style='ItemTitle.TLabel', anchor='w', justify='left')
+            title.grid(row=0, column=1, sticky='ew')
+            title.bind('<Configure>', lambda e, lbl=title: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
             
-            pred_text = f"🎯 PRONOSTICO #{i+1}: {pred['prediccion']} | ⚽️ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
-            pred_label = tk.Label(checkbox_frame, text=pred_text, bg="#ecf0f1", 
-                                 font=('Segoe UI', 9), anchor='w')
-            pred_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-            
-            justif_label = tk.Label(pred_frame, text=f"📝 {pred['razon']}", bg="#ecf0f1", 
-                                   font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
-            justif_label.pack(fill='x', padx=25, pady=(0,3))
+            sub_text = f"📝 {pred['razon']}"
+            sub = ttk.Label(rowf, text=sub_text, style='ItemSub.TLabel', anchor='w', justify='left')
+            sub.grid(row=1, column=1, sticky='ew', pady=(4, 0))
+            sub.bind('<Configure>', lambda e, lbl=sub: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
 
     def mostrar_partidos_con_checkboxes(self, partidos_filtrados, liga_filtrada, fecha):
-        """Mostrar partidos con checkboxes para selección"""
+        """Mostrar partidos con checkboxes para selección usando grid y estilos modernos"""
         self.limpiar_frame_partidos()
         
         if not partidos_filtrados:
             return
         
-        titulo_frame = tk.Frame(self.frame_partidos, bg="#34495e")
-        titulo_frame.pack(fill='x', pady=2)
-        
         titulo_text = f"🗓️ PARTIDOS PROGRAMADOS PARA LA JORNADA DEL: {fecha}"
         if liga_filtrada != 'Todas':
             titulo_text += f" - {liga_filtrada}"
         
-        titulo_label = tk.Label(titulo_frame, text=titulo_text, bg="#34495e", fg="white", 
-                               font=('Segoe UI', 10, 'bold'), pady=5)
-        titulo_label.pack()
+        header = ttk.Frame(self.frame_partidos, style='Header.TFrame', padding=(10, 8))
+        header.grid(row=0, column=0, sticky='ew', pady=(0, 8))
+        header.grid_columnconfigure(0, weight=1)
+        ttk.Label(header, text=titulo_text, style='Header.TLabel').grid(row=0, column=0, sticky='w')
         
-        for i, partido in enumerate(partidos_filtrados):
+        for i, partido in enumerate(partidos_filtrados, 1):
             self.partidos_actuales.append(partido)
             
-            partido_frame = tk.Frame(self.frame_partidos, bg="#B2F0E8", relief='ridge', bd=1)
-            partido_frame.pack(fill='x', pady=2, padx=5)
+            rowf = ttk.Frame(self.frame_partidos, style='Card.TFrame', padding=(10, 8))
+            rowf.grid(row=i, column=0, sticky='ew', pady=4)
+            rowf.grid_columnconfigure(2, weight=1)
             
             var_checkbox = tk.BooleanVar()
             self.checkboxes_partidos.append(var_checkbox)
             
-            checkbox_frame = tk.Frame(partido_frame, bg="#B2F0E8")
-            checkbox_frame.pack(fill='x', padx=5, pady=3)
+            chk = ttk.Checkbutton(rowf, variable=var_checkbox)
+            chk.grid(row=0, column=0, padx=(0, 10), sticky='nw')
             
-            checkbox = tk.Checkbutton(checkbox_frame, variable=var_checkbox, bg="#B2F0E8")
-            checkbox.pack(side=tk.LEFT)
+            btn = ttk.Button(rowf, text="🔎 Analizar", style='Secondary.TButton',
+                           command=lambda p=partido: self.analizar_partido_individual(p))
+            btn.grid(row=0, column=1, padx=(0, 10), sticky='nw')
             
-            analyze_btn = tk.Button(checkbox_frame, text="🔍 Analizar", bg="#3498db", fg="white",
-                                  font=('Segoe UI', 8), relief='flat', cursor='hand2',
-                                  command=lambda p=partido: self.analizar_partido_individual(p))
-            analyze_btn.pack(side=tk.LEFT, padx=5)
+            partido_text = f"⚽ PARTIDO #{i}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
+            main = ttk.Label(rowf, text=partido_text, style='ItemTitle.TLabel', anchor='w', justify='left')
+            main.grid(row=0, column=2, sticky='ew')
+            main.bind('<Configure>', lambda e, lbl=main: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
             
-            partido_text = f"⚽ PARTIDO #{i+1}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
-            partido_label = tk.Label(checkbox_frame, text=partido_text, bg="#B2F0E8", 
-                                   font=('Segoe UI', 9), anchor='w')
-            partido_label.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-            
-            casa_label = tk.Label(partido_frame, text=f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}", bg="#B2F0E8", 
-                                 font=('Segoe UI', 8), fg="#7f8c8d", anchor='w')
-            casa_label.pack(fill='x', padx=25, pady=(0,3))
+            sub_text = f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}"
+            sub = ttk.Label(rowf, text=sub_text, style='ItemSub.TLabel', anchor='w', justify='left')
+            sub.grid(row=1, column=2, sticky='ew', pady=(4, 0))
+            sub.bind('<Configure>', lambda e, lbl=sub: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
 
     def analizar_partido_individual(self, partido):
         """Analiza un partido individual y muestra el resultado con opciones detalladas"""
