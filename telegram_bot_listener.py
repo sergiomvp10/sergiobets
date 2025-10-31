@@ -590,6 +590,230 @@ _Verificaremos y activaremos tu acceso manualmente._
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
+async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Manejar comprobante de pago NEQUI (foto o documento)"""
+    if not context.user_data.get('awaiting_nequi_proof'):
+        return
+    
+    import json
+    from datetime import datetime
+    import time
+    
+    user = update.effective_user
+    user_id = str(user.id)
+    username = user.username or "N/A"
+    first_name = user.first_name or "N/A"
+    
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        file_type = "photo"
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        file_type = "document"
+    else:
+        return
+    
+    payment_info = context.user_data['awaiting_nequi_proof']
+    payment_id = f"NEQ-{user_id}-{int(time.time())}"
+    
+    payment_record = {
+        "payment_id": payment_id,
+        "user_id": user_id,
+        "username": username,
+        "first_name": first_name,
+        "file_id": file_id,
+        "file_type": file_type,
+        "amount_cop": payment_info['amount'],
+        "phone": payment_info['phone'],
+        "submitted_at": datetime.now().isoformat(),
+        "status": "pending"
+    }
+    
+    try:
+        os.makedirs('pagos', exist_ok=True)
+        
+        if os.path.exists(NEQUI_PAYMENTS_FILE):
+            with open(NEQUI_PAYMENTS_FILE, 'r', encoding='utf-8') as f:
+                payments = json.load(f)
+        else:
+            payments = []
+        
+        payments.append(payment_record)
+        
+        with open(NEQUI_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(payments, f, indent=2, ensure_ascii=False)
+        
+        caption = f"""🔔 NUEVO COMPROBANTE NEQUI
+
+👤 Usuario: {first_name} (@{username})
+🆔 ID: {user_id}
+💰 Monto: {payment_info['amount']:,} COP
+📱 Teléfono: {payment_info['phone']}
+🔖 Ref: {payment_id}
+⏰ Enviado: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+¿Confirmar pago?"""
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"nequi_confirm:{payment_id}:7"),
+                InlineKeyboardButton("✅ Confirmar 14 días", callback_data=f"nequi_confirm:{payment_id}:14")
+            ],
+            [InlineKeyboardButton("❌ Rechazar", callback_data=f"nequi_reject:{payment_id}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        if file_type == "photo":
+            admin_msg = await context.bot.send_photo(
+                chat_id=ADMIN_TELEGRAM_ID,
+                photo=file_id,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+        else:
+            admin_msg = await context.bot.send_document(
+                chat_id=ADMIN_TELEGRAM_ID,
+                document=file_id,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+        
+        payment_record['admin_msg_id'] = admin_msg.message_id
+        
+        with open(NEQUI_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(payments, f, indent=2, ensure_ascii=False)
+        
+        await update.message.reply_text(
+            f"✅ Comprobante recibido correctamente!\n\n"
+            f"📋 Referencia: `{payment_id}`\n"
+            f"⏰ Verificaremos tu pago y activaremos tu acceso VIP en máximo 24 horas.\n\n"
+            f"Gracias por tu paciencia! 🙏",
+            parse_mode='Markdown'
+        )
+        
+        del context.user_data['awaiting_nequi_proof']
+        
+    except Exception as e:
+        logger.error(f"Error procesando comprobante NEQUI: {e}")
+        await update.message.reply_text(
+            "❌ Error procesando tu comprobante. Por favor, intenta de nuevo o contacta soporte."
+        )
+
+async def confirmar_pago_nequi_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Manejar confirmación o rechazo de pago NEQUI por admin"""
+    query = update.callback_query
+    
+    if update.effective_user.id != ADMIN_TELEGRAM_ID:
+        await query.answer("⛔ Solo el administrador puede realizar esta acción.", show_alert=True)
+        return
+    
+    import json
+    from datetime import datetime
+    
+    try:
+        data_parts = query.data.split(':')
+        action = data_parts[0]
+        payment_id = data_parts[1]
+        
+        with open(NEQUI_PAYMENTS_FILE, 'r', encoding='utf-8') as f:
+            payments = json.load(f)
+        
+        payment = None
+        payment_index = None
+        for i, p in enumerate(payments):
+            if p['payment_id'] == payment_id:
+                payment = p
+                payment_index = i
+                break
+        
+        if not payment:
+            await query.answer("❌ Pago no encontrado.", show_alert=True)
+            return
+        
+        if payment['status'] != 'pending':
+            await query.answer(f"⚠️ Este pago ya fue {payment['status']}.", show_alert=True)
+            return
+        
+        if action == 'nequi_confirm':
+            dias = int(data_parts[2])
+            
+            if access_manager.otorgar_acceso(payment['user_id'], dias):
+                payment['status'] = 'confirmed'
+                payment['confirmed_at'] = datetime.now().isoformat()
+                payment['dias_otorgados'] = dias
+                
+                payments[payment_index] = payment
+                with open(NEQUI_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(payments, f, indent=2, ensure_ascii=False)
+                
+                mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(payment['user_id'])
+                
+                try:
+                    from telegram_utils import enviar_telegram
+                    chat_id = int(payment['user_id'])
+                    enviar_telegram(chat_id=chat_id, mensaje=mensaje_confirmacion)
+                except Exception as e:
+                    logger.error(f"Error enviando confirmación al usuario: {e}")
+                
+                await query.edit_message_caption(
+                    caption=f"{query.message.caption}\n\n✅ CONFIRMADO - {dias} días otorgados\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                )
+                await query.answer(f"✅ Pago confirmado! {dias} días de acceso VIP otorgados.", show_alert=True)
+            else:
+                await query.answer("❌ Error otorgando acceso. Verifica el sistema.", show_alert=True)
+        
+        elif action == 'nequi_reject':
+            payment['status'] = 'rejected'
+            payment['rejected_at'] = datetime.now().isoformat()
+            
+            payments[payment_index] = payment
+            with open(NEQUI_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(payments, f, indent=2, ensure_ascii=False)
+            
+            try:
+                await context.bot.send_message(
+                    chat_id=int(payment['user_id']),
+                    text=f"❌ Tu pago NEQUI (Ref: {payment_id}) no pudo ser verificado.\n\n"
+                         f"Por favor, contacta soporte para más información."
+                )
+            except Exception as e:
+                logger.error(f"Error notificando rechazo al usuario: {e}")
+            
+            await query.edit_message_caption(
+                caption=f"{query.message.caption}\n\n❌ RECHAZADO\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            )
+            await query.answer("❌ Pago rechazado. Usuario notificado.", show_alert=True)
+    
+    except Exception as e:
+        logger.error(f"Error en confirmar_pago_nequi_admin: {e}")
+        await query.answer("❌ Error procesando la acción.", show_alert=True)
+
+def send_nequi_admin_notification(user_info: dict, payment_info: dict):
+    """Enviar notificación de pago NEQUI al admin (función auxiliar para tests)"""
+    import requests
+    
+    try:
+        caption = f"""🔔 NUEVO COMPROBANTE NEQUI
+
+👤 Usuario: {user_info.get('first_name', 'N/A')} (@{user_info.get('username', 'N/A')})
+🆔 ID: {user_info.get('user_id', 'N/A')}
+💰 Monto: {payment_info.get('amount_cop', 0):,} COP
+📱 Teléfono: {payment_info.get('phone', 'N/A')}
+🔖 Ref: {payment_info.get('payment_id', 'N/A')}
+
+Comprobante enviado al administrador."""
+        
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        data = {
+            "chat_id": ADMIN_TELEGRAM_ID,
+            "text": caption
+        }
+        response = requests.post(url, json=data, timeout=10)
+        return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Error en send_nequi_admin_notification: {e}")
+        return False
+
 def iniciar_bot_en_hilo():
     """Iniciar el bot listener en un hilo separado para integración con la app principal"""
     import threading
