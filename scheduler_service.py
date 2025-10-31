@@ -323,8 +323,12 @@ class PredictionScheduler:
             self.schedule_prematch_predictions()
             logger.info("✅ Scheduler started!")
             logger.info("📋 Scheduled jobs:")
-            for job in self.scheduler.get_jobs():
-                logger.info(f"  - {job.id}: {job.next_run_time}")
+            try:
+                for job in self.scheduler.get_jobs():
+                    next_run = getattr(job, 'next_run_time', 'N/A')
+                    logger.info(f"  - {job.id}: {next_run}")
+            except Exception as e:
+                logger.warning(f"Could not list job details: {e}")
             self.scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             logger.info("👋 Scheduler stopped")
