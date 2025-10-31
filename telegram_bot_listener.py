@@ -776,10 +776,7 @@ async def _procesar_comprobante_nequi(update: Update, context: ContextTypes.DEFA
 ¿Confirmar pago?"""
         
         keyboard = [
-            [
-                InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"nequi_confirm:{payment_id}:7"),
-                InlineKeyboardButton("✅ Confirmar 14 días", callback_data=f"nequi_confirm:{payment_id}:14")
-            ],
+            [InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"nequi_confirm:{payment_id}:7")],
             [InlineKeyboardButton("❌ Rechazar", callback_data=f"nequi_reject:{payment_id}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -937,10 +934,7 @@ async def _procesar_comprobante_usdt(update: Update, context: ContextTypes.DEFAU
 ¿Confirmar pago?"""
         
         keyboard = [
-            [
-                InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"usdt_confirm:{payment_id}:7"),
-                InlineKeyboardButton("✅ Confirmar 14 días", callback_data=f"usdt_confirm:{payment_id}:14")
-            ],
+            [InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"usdt_confirm:{payment_id}:7")],
             [InlineKeyboardButton("❌ Rechazar", callback_data=f"usdt_reject:{payment_id}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1096,10 +1090,7 @@ async def _procesar_comprobante_paypal(update: Update, context: ContextTypes.DEF
 ¿Confirmar pago?"""
         
         keyboard = [
-            [
-                InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"paypal_confirm:{payment_id}:7"),
-                InlineKeyboardButton("✅ Confirmar 14 días", callback_data=f"paypal_confirm:{payment_id}:14")
-            ],
+            [InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"paypal_confirm:{payment_id}:7")],
             [InlineKeyboardButton("❌ Rechazar", callback_data=f"paypal_reject:{payment_id}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
