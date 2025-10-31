@@ -566,60 +566,27 @@ _Verificaremos y activaremos tu acceso manualmente._
     await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, currency: str):
-    """Procesar solicitud de pago (legacy - redirige a USDT manual)"""
-    await procesar_pago_usdt(update, context)
+    """Procesar solicitud de pago (legacy - disabled, redirects to manual payments)"""
+    query = update.callback_query
+    await query.answer()
     
-    try:
-        from pagos.payments import PaymentManager
-        payment_manager = PaymentManager()
-        
-        result = payment_manager.create_membership_payment(
-            user_id=user_id,
-            username=username,
-            currency=currency,
-            membership_type="weekly"
-        )
-        
-        if result.get("success"):
-            currency_name = "USDT" if currency.startswith("usdt") else "Litecoin"
-            if currency.lower() in ["usdt", "usdttrc20"]:
-                instruction_text = "1. Envía exactamente 12 USDT en la red TRC20"
-            else:
-                instruction_text = f"1. Envía exactamente {result['pay_amount']} {result['pay_currency'].upper()}"
-            
-            mensaje = f"""💳 PAGO GENERADO - {currency_name}
+    mensaje = """⚠️ Los pagos automáticos han sido deshabilitados.
 
-🔐 Detalles del pago:
-• Monto: {result['pay_amount']} {result['pay_currency']}
-• Dirección: `{result['pay_address']}`
-• ID de pago: {result['payment_id']}
+Por favor, usa uno de estos métodos de pago manual:
 
-📋 INSTRUCCIONES:
-{instruction_text}
-2. A la dirección mostrada arriba
-3. El pago se confirmará automáticamente
-4. Recibirás tu acceso VIP inmediatamente
+💰 USDT (TRC20) - $12 USD
+💳 PayPal - $12 USD  
+📲 NEQUI - 50,000 COP
 
-⏰ Este pago expira en 30 minutos.
-🔄 Puedes verificar el estado con el botón de abajo"""
-            
-            keyboard = [
-                [InlineKeyboardButton("🔍 Verificar Pago", callback_data=f"verify_{result['payment_id']}")],
-                [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
-        else:
-            await query.edit_message_text(
-                f"❌ Error creando el pago: {result.get('error')}\n\n🔙 Intenta nuevamente.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="membresia")]])
-            )
-    except Exception as e:
-        await query.edit_message_text(
-            f"❌ Error del sistema: {str(e)}\n\n🔙 Intenta más tarde.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Volver", callback_data="membresia")]])
-        )
+Vuelve al menú de Membresía para seleccionar tu método de pago."""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def verificar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Verificar estado de un pago"""
