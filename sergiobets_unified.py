@@ -1654,14 +1654,16 @@ class SergioBetsUnified:
                 with open('partidos_seleccionados.txt', 'w', encoding='utf-8') as f:
                     f.write(mensaje_partidos)
             
-            resultado = enviar_telegram_masivo(mensaje_completo)
+            resultado = enviar_telegram_masivo(mensaje_completo, only_premium=True)
             if resultado["exito"]:
                 self.reproducir_sonido_exito()
                 
                 total_items = len(predicciones_seleccionadas) + len(partidos_seleccionados)
+                audiencia = resultado.get('audiencia', 'usuarios')
                 mensaje_resultado = f"✅ Se han enviado {total_items} elemento(s) seleccionado(s) a Telegram.\n\n"
                 mensaje_resultado += f"📊 Estadísticas de envío:\n"
-                mensaje_resultado += f"• Usuarios registrados: {resultado['total_usuarios']}\n"
+                mensaje_resultado += f"• Audiencia: Usuarios {audiencia}\n"
+                mensaje_resultado += f"• Total usuarios {audiencia}: {resultado['total_usuarios']}\n"
                 mensaje_resultado += f"• Enviados exitosos: {resultado['enviados_exitosos']}\n"
                 if resultado.get('usuarios_bloqueados', 0) > 0:
                     mensaje_resultado += f"• Usuarios que bloquearon el bot: {resultado['usuarios_bloqueados']}\n"
@@ -1675,10 +1677,16 @@ class SergioBetsUnified:
                 for var_checkbox in self.checkboxes_partidos:
                     var_checkbox.set(False)
             else:
-                error_msg = "No se pudieron enviar los elementos a Telegram."
-                if resultado.get('detalles_errores'):
-                    error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
-                messagebox.showerror("Error", error_msg)
+                if resultado.get('total_usuarios', 0) == 0 and resultado.get('audiencia') == 'premium activos':
+                    messagebox.showinfo("Sin usuarios premium", 
+                                      "⚠️ No hay usuarios con membresía activa.\n\n"
+                                      "Los pronósticos solo se envían a usuarios premium.\n"
+                                      "Otorga acceso premium a usuarios desde el menú '👥 Users'.")
+                else:
+                    error_msg = "No se pudieron enviar los elementos a Telegram."
+                    if resultado.get('detalles_errores'):
+                        error_msg += f"\n\nErrores:\n" + "\n".join(resultado['detalles_errores'][:3])
+                    messagebox.showerror("Error", error_msg)
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error enviando elementos seleccionados: {e}")

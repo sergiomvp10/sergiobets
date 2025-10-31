@@ -36,37 +36,77 @@ def cargar_usuarios_registrados(bot_username="BetGeniuXbot"):
             print(f"Error cargando usuarios desde archivo: {e2}")
         return usuarios
 
-def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot"):
-    """Enviar mensaje a todos los usuarios del bot específico"""
+def cargar_usuarios_premium(bot_username="BetGeniuXbot"):
+    """Cargar lista de usuarios premium activos para bot específico"""
+    try:
+        from access_manager import access_manager
+        usuarios_premium = access_manager.listar_usuarios_premium()
+        return [
+            {'user_id': user['user_id'], 'username': user.get('username', 'Unknown'), 'first_name': user.get('first_name', 'Usuario')}
+            for user in usuarios_premium
+            if user.get('bot_username') == bot_username
+        ]
+    except Exception as e:
+        print(f"Error cargando usuarios premium del bot {bot_username}: {e}")
+        return []
+
+def enviar_telegram_masivo(mensaje, token=None, bot_username="BetGeniuXbot", only_premium=False):
+    """Enviar mensaje a usuarios del bot específico
+    
+    Args:
+        mensaje: Mensaje a enviar
+        token: Token del bot (opcional, usa TELEGRAM_BOT_TOKEN por defecto)
+        bot_username: Nombre del bot (por defecto "BetGeniuXbot")
+        only_premium: Si True, solo envía a usuarios premium activos (por defecto False)
+    """
     if mensaje is None:
         return {"exito": False, "error": "Mensaje vacío"}
     
     if token is None:
         token = TELEGRAM_TOKEN
     
-    usuarios = cargar_usuarios_registrados(bot_username)
+    if only_premium:
+        usuarios = cargar_usuarios_premium(bot_username)
+        audiencia = "premium activos"
+    else:
+        usuarios = cargar_usuarios_registrados(bot_username)
+        audiencia = "registrados"
     
     if not usuarios:
-        print("⚠️ No hay usuarios registrados. Enviando a chat_id por defecto.")
-        exito = enviar_telegram(token, TELEGRAM_CHAT_ID, mensaje)
-        return {
-            "exito": exito,
-            "total_usuarios": 0,
-            "enviados_exitosos": 1 if exito else 0,
-            "errores": 0 if exito else 1,
-            "usuarios_bloqueados": 0,
-            "detalles_errores": [] if exito else ["Error enviando a chat_id por defecto"]
-        }
+        if only_premium:
+            print(f"⚠️ No hay usuarios {audiencia} en el bot {bot_username}.")
+            return {
+                "exito": False,
+                "total_usuarios": 0,
+                "enviados_exitosos": 0,
+                "errores": 0,
+                "usuarios_bloqueados": 0,
+                "detalles_errores": [f"No hay usuarios {audiencia}"],
+                "audiencia": audiencia
+            }
+        else:
+            print("⚠️ No hay usuarios registrados. Enviando a chat_id por defecto.")
+            exito = enviar_telegram(token, TELEGRAM_CHAT_ID, mensaje)
+            return {
+                "exito": exito,
+                "total_usuarios": 0,
+                "enviados_exitosos": 1 if exito else 0,
+                "errores": 0 if exito else 1,
+                "usuarios_bloqueados": 0,
+                "detalles_errores": [] if exito else ["Error enviando a chat_id por defecto"],
+                "audiencia": audiencia
+            }
     
     resultados = {
         "total_usuarios": len(usuarios),
         "enviados_exitosos": 0,
         "errores": 0,
         "usuarios_bloqueados": 0,
-        "detalles_errores": []
+        "detalles_errores": [],
+        "audiencia": audiencia
     }
     
-    print(f"📤 Enviando mensaje a {len(usuarios)} usuarios registrados...")
+    print(f"📤 Enviando mensaje a {len(usuarios)} usuarios {audiencia}...")
     
     for usuario in usuarios:
         try:
