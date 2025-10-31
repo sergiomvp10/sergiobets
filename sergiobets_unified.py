@@ -34,6 +34,134 @@ from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_d
 from league_utils import detectar_liga_por_imagen
 from track_record import TrackRecordManager
 
+class ThemeManager:
+    """Gestiona temas claro y oscuro para la aplicación"""
+    def __init__(self, root):
+        from tkinter import font as tkfont
+        self.root = root
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        
+        self.base_font = tkfont.nametofont('TkDefaultFont')
+        self.base_font.configure(family='Segoe UI', size=10)
+        self.heading_font = tkfont.Font(family='Segoe UI', size=11, weight='bold')
+        self.title_font = tkfont.Font(family='Segoe UI', size=14, weight='bold')
+        
+        self.light = dict(
+            bg="#F3F4F6",
+            surface="#FFFFFF",
+            fg="#111827",
+            muted="#6B7280",
+            primary="#2563EB",
+            primary_hover="#1D4ED8",
+            accent="#10B981",
+            border="#E5E7EB",
+            button_bg="#2563EB",
+            button_fg="#FFFFFF",
+            entry_bg="#FFFFFF",
+            entry_fg="#111827",
+            output_bg="#F0F9FF",
+            secondary_bg="#F9FAFB"
+        )
+        
+        self.dark = dict(
+            bg="#0B1220",
+            surface="#111827",
+            fg="#E5E7EB",
+            muted="#9CA3AF",
+            primary="#3B82F6",
+            primary_hover="#1D4ED8",
+            accent="#22C55E",
+            border="#374151",
+            button_bg="#3B82F6",
+            button_fg="#FFFFFF",
+            entry_bg="#1F2937",
+            entry_fg="#E5E7EB",
+            output_bg="#1F2937",
+            secondary_bg="#0F172A"
+        )
+        
+        self.current_mode = 'light'
+    
+    def apply(self, mode='light'):
+        """Aplica el tema especificado"""
+        self.current_mode = mode
+        p = self.light if mode == 'light' else self.dark
+        
+        self.root.configure(bg=p['bg'])
+        
+        self.style.configure('TFrame', background=p['bg'])
+        self.style.configure('Surface.TFrame', background=p['surface'], relief='flat')
+        self.style.configure('Toolbar.TFrame', background=p['surface'], relief='flat')
+        
+        self.style.configure('TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 10))
+        self.style.configure('Muted.TLabel', background=p['surface'], foreground=p['muted'])
+        self.style.configure('Title.TLabel', background=p['surface'], foreground=p['fg'], font=('Segoe UI', 14, 'bold'))
+        
+        self.style.configure('TButton',
+                           background=p['button_bg'],
+                           foreground=p['button_fg'],
+                           borderwidth=0,
+                           padding=(12, 8),
+                           font=('Segoe UI', 10, 'bold'))
+        self.style.map('TButton',
+                      background=[('active', p['primary_hover']), ('pressed', p['primary_hover'])],
+                      foreground=[('disabled', p['muted'])])
+        
+        self.style.configure('Secondary.TButton',
+                           background=p['secondary_bg'],
+                           foreground=p['fg'],
+                           borderwidth=1,
+                           padding=(10, 6),
+                           font=('Segoe UI', 10))
+        self.style.map('Secondary.TButton',
+                      background=[('active', p['surface']), ('pressed', p['surface'])])
+        
+        self.style.configure('TEntry',
+                           fieldbackground=p['entry_bg'],
+                           foreground=p['entry_fg'],
+                           borderwidth=1,
+                           relief='solid')
+        self.style.configure('TCombobox',
+                           fieldbackground=p['entry_bg'],
+                           foreground=p['entry_fg'],
+                           background=p['surface'],
+                           borderwidth=1,
+                           arrowcolor=p['fg'])
+        self.style.map('TCombobox',
+                      fieldbackground=[('readonly', p['entry_bg'])],
+                      selectbackground=[('readonly', p['primary'])],
+                      selectforeground=[('readonly', p['button_fg'])])
+        
+        self.style.configure('TNotebook',
+                           background=p['bg'],
+                           borderwidth=0,
+                           tabmargins=(6, 6, 6, 0))
+        self.style.configure('TNotebook.Tab',
+                           padding=(16, 10),
+                           background=p['secondary_bg'],
+                           foreground=p['fg'],
+                           borderwidth=0,
+                           font=('Segoe UI', 10, 'bold'))
+        self.style.map('TNotebook.Tab',
+                      background=[('selected', p['primary'])],
+                      foreground=[('selected', p['button_fg'])],
+                      expand=[('selected', (1, 1, 1, 0))])
+        
+        self.style.configure('Toggle.TCheckbutton',
+                           background=p['surface'],
+                           foreground=p['fg'],
+                           font=('Segoe UI', 10))
+        self.style.map('Toggle.TCheckbutton',
+                      background=[('active', p['surface'])])
+        
+        self.style.configure('TSeparator', background=p['border'])
+        
+        self.style.configure('Vertical.TScrollbar', background=p['surface'], troughcolor=p['bg'])
+        self.style.configure('Horizontal.TScrollbar', background=p['surface'], troughcolor=p['bg'])
+        
+        return p
+
 def setup_logging():
     """Setup comprehensive logging for debugging"""
     log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sergiobets_debug.log')
@@ -344,7 +472,7 @@ class SergioBetsUnified:
                         f.write(current_url)
     
     def setup_gui(self):
-        """Setup the Tkinter GUI interface"""
+        """Setup the Tkinter GUI interface with modern theme and responsive layout"""
         import tkinter as tk
         from tkinter import ttk, messagebox
         from tkinter.scrolledtext import ScrolledText
@@ -352,18 +480,19 @@ class SergioBetsUnified:
         
         self.root = tk.Tk()
         self.root.title("🧐 SergioBets v.2 – Sistema Completo con Pagos")
-        self.root.geometry("800x600")
-        self.root.minsize(800, 600)
+        self.root.geometry("1200x700")
+        self.root.minsize(1000, 600)
         try:
             self.root.state('zoomed')
         except:
             pass
-        self.root.configure(bg="#f1f3f4")
         
-        style = ttk.Style()
-        style.configure('TLabel', font=('Segoe UI', 10))
-        style.configure('TButton', font=('Segoe UI', 10, 'bold'))
-        style.configure('TCombobox', font=('Segoe UI', 10))
+        self.theme = ThemeManager(self.root)
+        self.dark_mode_var = tk.BooleanVar(value=False)
+        palette = self.theme.apply('light')
+        
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
         
         self.entry_fecha = None
         self.combo_ligas = None
@@ -379,47 +508,112 @@ class SergioBetsUnified:
         self.progreso_data = {"deposito": 100.0, "meta": 300.0, "saldo_actual": 100.0}
         
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        self.notebook.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
         
-        self.tab_principal = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.tab_principal = ttk.Frame(self.notebook, style='TFrame')
         self.notebook.add(self.tab_principal, text="🏠 Principal")
         
-        self.tab_ajustes = tk.Frame(self.notebook, bg="#f1f3f4")
+        self.tab_ajustes = ttk.Frame(self.notebook, style='TFrame')
         self.notebook.add(self.tab_ajustes, text="⚙️ Ajustes")
         
-        frame_top = tk.Frame(self.tab_principal, bg="#f1f3f4")
-        frame_top.pack(pady=15)
+        self.tab_principal.grid_rowconfigure(0, weight=0)  # Toolbar
+        self.tab_principal.grid_rowconfigure(1, weight=0)  # Separator
+        self.tab_principal.grid_rowconfigure(2, weight=0)  # Predicciones
+        self.tab_principal.grid_rowconfigure(3, weight=0)  # Partidos
+        self.tab_principal.grid_rowconfigure(4, weight=1)  # Output
+        self.tab_principal.grid_columnconfigure(0, weight=1)
         
-        ttk.Label(frame_top, text="📅 Fecha:").pack(side=tk.LEFT)
-        self.entry_fecha = DateEntry(frame_top, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-MM-dd', showothermonthdays=False, showweeknumbers=False)
-        self.entry_fecha.pack(side=tk.LEFT, padx=5)
+        toolbar = ttk.Frame(self.tab_principal, style='Toolbar.TFrame', padding=10)
+        toolbar.grid(row=0, column=0, sticky='ew', padx=5, pady=5)
         
-        ttk.Label(frame_top, text="🏆 Liga:").pack(side=tk.LEFT, padx=10)
-        self.combo_ligas = ttk.Combobox(frame_top, state='readonly', width=30)
-        self.combo_ligas.pack(side=tk.LEFT)
+        toolbar.grid_columnconfigure(0, weight=0)  # Filtros
+        toolbar.grid_columnconfigure(1, weight=1)  # Acciones
+        toolbar.grid_columnconfigure(2, weight=0)  # Dark mode toggle
+        
+        filters_frame = ttk.Frame(toolbar, style='Toolbar.TFrame')
+        filters_frame.grid(row=0, column=0, sticky='w', padx=(0, 10))
+        
+        ttk.Label(filters_frame, text="📅 Fecha:").grid(row=0, column=0, padx=(0, 5))
+        self.entry_fecha = DateEntry(filters_frame, width=12, background="darkblue", 
+                                     foreground="white", borderwidth=2, 
+                                     date_pattern='yyyy-MM-dd', showothermonthdays=False, 
+                                     showweeknumbers=False)
+        self.entry_fecha.grid(row=0, column=1, padx=(0, 15))
+        
+        ttk.Label(filters_frame, text="🏆 Liga:").grid(row=0, column=2, padx=(0, 5))
+        self.combo_ligas = ttk.Combobox(filters_frame, state='readonly', width=25)
+        self.combo_ligas.grid(row=0, column=3)
         self.combo_ligas.set('Todas')
         self.combo_ligas.bind('<<ComboboxSelected>>', self.on_liga_changed)
         
-        ttk.Button(frame_top, text="🔍 Buscar", command=self.buscar_en_hilo).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="🔄 Regenerar", command=self.regenerar_en_hilo).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📢 Enviar Alerta", command=self.enviar_alerta).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="🧹 Limpiar Cache", command=self.limpiar_cache_api).pack(side=tk.LEFT, padx=2)
-        ttk.Button(frame_top, text="📌 Enviar Pronóstico Seleccionado", command=self.enviar_predicciones_seleccionadas).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="📊 Track Record", command=self.abrir_track_record).pack(side=tk.LEFT, padx=5)
-        ttk.Button(frame_top, text="👥 Users", command=self.abrir_usuarios).pack(side=tk.LEFT, padx=5)
+        actions_frame = ttk.Frame(toolbar, style='Toolbar.TFrame')
+        actions_frame.grid(row=0, column=1, sticky='ew', padx=10)
         
-        self.frame_predicciones = tk.Frame(self.tab_principal, bg="#f1f3f4")
-        self.frame_predicciones.pack(pady=5, padx=10, fill='x')
+        for i in range(7):
+            actions_frame.grid_columnconfigure(i, weight=1, uniform='actions')
         
-        self.frame_partidos = tk.Frame(self.tab_principal, bg="#f1f3f4")
-        self.frame_partidos.pack(pady=5, padx=10, fill='x')
+        ttk.Button(actions_frame, text="🔍 Buscar", command=self.buscar_en_hilo).grid(
+            row=0, column=0, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="♻️ Regenerar", style='Secondary.TButton', 
+                  command=self.regenerar_en_hilo).grid(row=0, column=1, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="📢 Alerta", style='Secondary.TButton', 
+                  command=self.enviar_alerta).grid(row=0, column=2, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="🧹 Cache", style='Secondary.TButton', 
+                  command=self.limpiar_cache_api).grid(row=0, column=3, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="📌 Enviar", command=self.enviar_predicciones_seleccionadas).grid(
+            row=0, column=4, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="📊 Track", command=self.abrir_track_record).grid(
+            row=0, column=5, sticky='ew', padx=2)
+        ttk.Button(actions_frame, text="👥 Users", command=self.abrir_usuarios).grid(
+            row=0, column=6, sticky='ew', padx=2)
         
-        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, font=('Arial', 9), bg='#B2F0E8')
-        self.output.pack(pady=10, padx=10, expand=True, fill='both')
+        def toggle_theme():
+            mode = 'dark' if self.dark_mode_var.get() else 'light'
+            palette = self.theme.apply(mode)
+            self.update_custom_widgets_theme(palette)
+            toggle_btn.config(text="☀️ Modo claro" if mode == 'dark' else "🌙 Modo oscuro")
+        
+        toggle_btn = ttk.Checkbutton(toolbar, text="🌙 Modo oscuro", 
+                                     variable=self.dark_mode_var,
+                                     command=toggle_theme,
+                                     style='Toggle.TCheckbutton')
+        toggle_btn.grid(row=0, column=2, sticky='e', padx=(10, 0))
+        
+        ttk.Separator(self.tab_principal, orient='horizontal').grid(
+            row=1, column=0, sticky='ew', pady=(5, 10))
+        
+        # Frame de predicciones
+        self.frame_predicciones = ttk.Frame(self.tab_principal, style='TFrame')
+        self.frame_predicciones.grid(row=2, column=0, sticky='ew', padx=10, pady=5)
+        
+        self.frame_partidos = ttk.Frame(self.tab_principal, style='TFrame')
+        self.frame_partidos.grid(row=3, column=0, sticky='ew', padx=10, pady=5)
+        
+        # Output con ScrolledText
+        self.output = ScrolledText(self.tab_principal, wrap=tk.WORD, width=95, height=25, 
+                                   font=('Segoe UI', 9), bg=palette['output_bg'], 
+                                   fg=palette['fg'], relief='flat', borderwidth=0)
+        self.output.grid(row=4, column=0, sticky='nsew', padx=10, pady=10)
         
         self.setup_settings_tab()
         
-        print("✅ GUI setup completed")
+        print("✅ GUI setup completed with modern theme")
+    
+    def update_custom_widgets_theme(self, palette):
+        """Actualiza widgets personalizados que no usan ttk"""
+        try:
+            if hasattr(self, 'output') and self.output:
+                self.output.config(bg=palette['output_bg'], fg=palette['fg'])
+            if hasattr(self, 'frame_predicciones') and self.frame_predicciones:
+                for widget in self.frame_predicciones.winfo_children():
+                    if isinstance(widget, tk.Frame):
+                        widget.config(bg=palette['surface'])
+            if hasattr(self, 'frame_partidos') and self.frame_partidos:
+                for widget in self.frame_partidos.winfo_children():
+                    if isinstance(widget, tk.Frame):
+                        widget.config(bg=palette['surface'])
+        except Exception as e:
+            logger.warning(f"Error updating custom widgets theme: {e}")
     
     def cargar_configuracion(self):
         """Carga la configuración desde config_app.json"""
