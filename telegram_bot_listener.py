@@ -16,8 +16,14 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
 ADMIN_TELEGRAM_ID = int(os.getenv('ADMIN_TELEGRAM_ID', '7659029315'))
+PAYMENTS_GROUP_ID = int(os.getenv('PAYMENTS_GROUP_ID', os.getenv('ADMIN_TELEGRAM_ID', '7659029315')))
 USUARIOS_FILE = 'usuarios.txt'
 NEQUI_PAYMENTS_FILE = 'pagos/nequi_payments.json'
+USDT_PAYMENTS_FILE = 'pagos/usdt_payments.json'
+USDT_WALLET_ADDRESS = 'TTWWueGnAzJfCBCHrVuHVSC2rRuiuRajYc'
+USDT_NETWORK = 'TRC20'
+PAYPAL_PAYMENTS_FILE = 'pagos/paypal_payments.json'
+PAYPAL_USERNAME = '@ferchomelendez'
 
 def cargar_usuarios_registrados():
     """Cargar usuarios ya registrados desde el archivo"""
@@ -116,9 +122,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "ayuda":
         await mostrar_ayuda(update, context)
     elif query.data == "pay_usdt":
-        await procesar_pago(update, context, "usdttrc20")
-    elif query.data == "pay_ltc":
-        await procesar_pago(update, context, "ltc")
+        await procesar_pago_usdt(update, context)
+    elif query.data == "pay_paypal":
+        await procesar_pago_paypal(update, context)
     elif query.data == "pago_nequi":
         await procesar_pago_nequi(update, context)
     elif query.data == "menu_principal":
@@ -338,7 +344,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton("💰 Pagar con USDT (TRC20)", callback_data="pay_usdt"),
-            InlineKeyboardButton("🪙 Pagar con Litecoin", callback_data="pay_ltc")
+            InlineKeyboardButton("💳 Pagar con PayPal", callback_data="pay_paypal")
         ],
         [InlineKeyboardButton("📲 Pagar con NEQUI", callback_data="pago_nequi")],
         [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
@@ -419,17 +425,20 @@ def iniciar_bot_listener():
         
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CommandHandler("get_chat_id", get_chat_id_command))
-        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(pronosticos|estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
+        application.add_handler(CallbackQueryHandler(button_callback, pattern="^(pronosticos|estadisticas|novedades|membresia|ayuda|pay_usdt|pay_paypal|pago_nequi)$"))
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
-        application.add_handler(CallbackQueryHandler(confirmar_pago_nequi_admin, pattern="^(nequi_confirm|nequi_reject):"))
+        application.add_handler(CallbackQueryHandler(confirmar_pago_admin, pattern="^(nequi_confirm|nequi_reject|usdt_confirm|usdt_reject|paypal_confirm|paypal_reject):"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
-        application.add_handler(MessageHandler((filters.PHOTO | filters.Document.IMAGE) & filters.ChatType.PRIVATE, manejar_comprobante_nequi))
+        application.add_handler(MessageHandler((filters.PHOTO | filters.Document.IMAGE) & filters.ChatType.PRIVATE, manejar_comprobante_pago))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
         
         logger.info("BetGeniuXBot listener iniciado - Registrando usuarios automáticamente")
         logger.info(f"🔧 ADMIN_TELEGRAM_ID configurado: {ADMIN_TELEGRAM_ID}")
+        logger.info(f"🔧 PAYMENTS_GROUP_ID configurado: {PAYMENTS_GROUP_ID}")
         logger.info(f"🔧 NEQUI_PAYMENTS_FILE: {NEQUI_PAYMENTS_FILE}")
+        logger.info(f"🔧 USDT_PAYMENTS_FILE: {USDT_PAYMENTS_FILE}")
+        logger.info(f"🔧 PAYPAL_PAYMENTS_FILE: {PAYPAL_PAYMENTS_FILE}")
         
         application.run_polling(stop_signals=None)
         
@@ -486,11 +495,79 @@ def check_and_restart_ngrok():
         print(f"⚠️ Error verificando ngrok: {e}")
         return None
 
-async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, currency: str):
-    """Procesar solicitud de pago"""
+async def procesar_pago_usdt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar solicitud de pago USDT manual"""
     query = update.callback_query
-    user_id = str(query.from_user.id)
-    username = query.from_user.username or "sin_username"
+    
+    from datetime import datetime
+    context.user_data['awaiting_usdt_proof'] = {
+        "created_at": datetime.now().isoformat(),
+        "amount_usd": 12,
+        "wallet": USDT_WALLET_ADDRESS,
+        "network": USDT_NETWORK
+    }
+    
+    mensaje = f"""💵 PAGO CON USDT (TRC20)
+
+Para completar tu pago por USDT:
+
+💰 Valor: *$12 USD*
+🏦 Red: *{USDT_NETWORK}*
+📱 Wallet: `{USDT_WALLET_ADDRESS}`
+
+📸 Envíanos el comprobante de pago por este chat.
+
+_Verificaremos y activaremos tu acceso manualmente._
+
+⏰ Una vez realices el pago, envía una captura del comprobante y te activaremos el acceso VIP en máximo 24 horas.
+
+💡 *Importante:* Asegúrate de enviar exactamente $12 USD en la red TRC20."""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
+
+async def procesar_pago_paypal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar solicitud de pago PayPal manual"""
+    query = update.callback_query
+    
+    from datetime import datetime
+    context.user_data['awaiting_paypal_proof'] = {
+        "created_at": datetime.now().isoformat(),
+        "amount_usd": 12,
+        "paypal_user": PAYPAL_USERNAME
+    }
+    
+    mensaje = f"""💳 PAGO CON PAYPAL
+
+Para completar tu pago por PayPal:
+
+💰 Valor: *$12 USD*
+👤 Usuario PayPal: *{PAYPAL_USERNAME}*
+
+📸 Envíanos el comprobante de pago por este chat.
+
+_Verificaremos y activaremos tu acceso manualmente._
+
+⏰ Una vez realices el pago, envía una captura del comprobante y te activaremos el acceso VIP en máximo 24 horas.
+
+💡 *Importante:* Asegúrate de enviar exactamente $12 USD."""
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Volver a Membresía", callback_data="membresia")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="menu_principal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
+
+async def procesar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE, currency: str):
+    """Procesar solicitud de pago (legacy - redirige a USDT manual)"""
+    await procesar_pago_usdt(update, context)
     
     try:
         from pagos.payments import PaymentManager
@@ -614,10 +691,29 @@ _Verificaremos y activaremos tu acceso manualmente._
     
     await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode='Markdown')
 
-async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Manejar comprobante de pago NEQUI (foto o documento)"""
+async def manejar_comprobante_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Manejar comprobante de pago (NEQUI, USDT o PayPal)"""
+    is_nequi = context.user_data.get('awaiting_nequi_proof')
+    is_usdt = context.user_data.get('awaiting_usdt_proof')
+    is_paypal = context.user_data.get('awaiting_paypal_proof')
+    
+    if not is_nequi and not is_usdt and not is_paypal:
+        logger.info("Foto/documento recibido pero usuario no está esperando comprobante")
+        return
+    
+    payment_type = "NEQUI" if is_nequi else ("USDT" if is_usdt else "PayPal")
+    logger.info(f"📸 Procesando comprobante {payment_type}")
+    
+    if is_nequi:
+        await _procesar_comprobante_nequi(update, context)
+    elif is_usdt:
+        await _procesar_comprobante_usdt(update, context)
+    else:
+        await _procesar_comprobante_paypal(update, context)
+
+async def _procesar_comprobante_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar comprobante NEQUI"""
     if not context.user_data.get('awaiting_nequi_proof'):
-        logger.info("Foto/documento recibido pero usuario no está esperando comprobante NEQUI")
         return
     
     import json
@@ -721,18 +817,18 @@ async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAUL
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        logger.info(f"  → Enviando comprobante al admin (ID: {ADMIN_TELEGRAM_ID})...")
+        logger.info(f"  → Enviando comprobante al grupo de pagos (ID: {PAYMENTS_GROUP_ID})...")
         
         if file_type == "photo":
             admin_msg = await context.bot.send_photo(
-                chat_id=ADMIN_TELEGRAM_ID,
+                chat_id=PAYMENTS_GROUP_ID,
                 photo=file_id,
                 caption=caption,
                 reply_markup=reply_markup
             )
         else:
             admin_msg = await context.bot.send_document(
-                chat_id=ADMIN_TELEGRAM_ID,
+                chat_id=PAYMENTS_GROUP_ID,
                 document=file_id,
                 caption=caption,
                 reply_markup=reply_markup
@@ -774,13 +870,344 @@ async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAUL
     del context.user_data['awaiting_nequi_proof']
     logger.info(f"✅ Comprobante NEQUI procesado exitosamente: {payment_id}")
 
-async def confirmar_pago_nequi_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Manejar confirmación o rechazo de pago NEQUI por admin"""
+async def _procesar_comprobante_usdt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar comprobante USDT"""
+    if not context.user_data.get('awaiting_usdt_proof'):
+        return
+    
+    import json
+    from datetime import datetime
+    import time
+    from pathlib import Path
+    
+    user = update.effective_user
+    user_id = str(user.id)
+    username = user.username or "N/A"
+    first_name = user.first_name or "N/A"
+    
+    logger.info(f"📸 Procesando comprobante USDT de usuario {user_id} ({first_name})")
+    
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        file_type = "photo"
+        logger.info(f"  ✓ Detectado como foto: {file_id}")
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        file_type = "document"
+        logger.info(f"  ✓ Detectado como documento: {file_id}")
+    else:
+        logger.warning("  ✗ No es foto ni documento")
+        return
+    
+    payment_info = context.user_data['awaiting_usdt_proof']
+    payment_id = f"USDT-{user_id}-{int(time.time())}"
+    
+    payment_record = {
+        "payment_id": payment_id,
+        "user_id": user_id,
+        "username": username,
+        "first_name": first_name,
+        "file_id": file_id,
+        "file_type": file_type,
+        "amount_usd": payment_info['amount_usd'],
+        "wallet": payment_info['wallet'],
+        "network": payment_info['network'],
+        "submitted_at": datetime.now().isoformat(),
+        "status": "pending"
+    }
+    
+    logger.info(f"  ✓ Payment record creado: {payment_id}")
+    
+    try:
+        usdt_file_path = Path(__file__).parent / 'pagos' / 'usdt_payments.json'
+        usdt_file_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"  ✓ Directorio pagos verificado: {usdt_file_path.parent}")
+        
+        if usdt_file_path.exists():
+            try:
+                with open(usdt_file_path, 'r', encoding='utf-8') as f:
+                    payments = json.load(f)
+                
+                if isinstance(payments, dict):
+                    logger.warning(f"  ⚠ JSON es dict en lugar de list, convirtiendo...")
+                    payments = []
+                elif not isinstance(payments, list):
+                    logger.warning(f"  ⚠ JSON tiene tipo inesperado: {type(payments)}, recreando...")
+                    payments = []
+                else:
+                    logger.info(f"  ✓ JSON leído: {len(payments)} pagos existentes")
+            except json.JSONDecodeError as e:
+                logger.warning(f"  ⚠ JSON corrupto, recreando: {e}")
+                payments = []
+        else:
+            logger.info("  ✓ Archivo JSON no existe, creando nuevo")
+            payments = []
+        
+        payments.append(payment_record)
+        
+        with open(usdt_file_path, 'w', encoding='utf-8') as f:
+            json.dump(payments, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ JSON guardado exitosamente con {len(payments)} pagos")
+        
+    except Exception as e:
+        logger.exception(f"  ✗ Error guardando JSON: {e}")
+        await update.message.reply_text(
+            "❌ Error guardando tu comprobante. Por favor, contacta soporte."
+        )
+        return
+    
+    try:
+        caption = f"""🔔 NUEVO COMPROBANTE USDT
+
+👤 Usuario: {first_name} (@{username})
+🆔 ID: {user_id}
+💰 Monto: ${payment_info['amount_usd']} USD
+🏦 Red: {payment_info['network']}
+📱 Wallet: {payment_info['wallet'][:10]}...{payment_info['wallet'][-10:]}
+🔖 Ref: {payment_id}
+⏰ Enviado: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+¿Confirmar pago?"""
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"usdt_confirm:{payment_id}:7"),
+                InlineKeyboardButton("✅ Confirmar 14 días", callback_data=f"usdt_confirm:{payment_id}:14")
+            ],
+            [InlineKeyboardButton("❌ Rechazar", callback_data=f"usdt_reject:{payment_id}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        logger.info(f"  → Enviando comprobante al grupo de pagos (ID: {PAYMENTS_GROUP_ID})...")
+        
+        if file_type == "photo":
+            admin_msg = await context.bot.send_photo(
+                chat_id=PAYMENTS_GROUP_ID,
+                photo=file_id,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+        else:
+            admin_msg = await context.bot.send_document(
+                chat_id=PAYMENTS_GROUP_ID,
+                document=file_id,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+        
+        logger.info(f"  ✓ Comprobante enviado al grupo exitosamente (msg_id: {admin_msg.message_id})")
+        
+        payment_record['admin_msg_id'] = admin_msg.message_id
+        payments[-1] = payment_record
+        
+        with open(usdt_file_path, 'w', encoding='utf-8') as f:
+            json.dump(payments, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ admin_msg_id guardado en JSON")
+        
+    except Exception as e:
+        logger.exception(f"  ✗ Error enviando al grupo: {e}")
+        logger.error(f"  ℹ PAYMENTS_GROUP_ID configurado: {PAYMENTS_GROUP_ID}")
+        logger.error(f"  ℹ Tipo de error: {type(e).__name__}")
+        
+        await update.message.reply_text(
+            f"✅ Comprobante recibido y guardado!\n\n"
+            f"📋 Referencia: `{payment_id}`\n"
+            f"⚠️ No pudimos notificar al administrador automáticamente.\n"
+            f"📞 Por favor, contacta soporte con tu referencia para activación manual.\n\n"
+            f"Gracias por tu paciencia! 🙏",
+            parse_mode='Markdown'
+        )
+        del context.user_data['awaiting_usdt_proof']
+        return
+    
+    await update.message.reply_text(
+        f"✅ Comprobante recibido correctamente!\n\n"
+        f"📋 Referencia: `{payment_id}`\n"
+        f"⏰ Verificaremos tu pago y activaremos tu acceso VIP en máximo 24 horas.\n\n"
+        f"Gracias por tu paciencia! 🙏",
+        parse_mode='Markdown'
+    )
+    
+    del context.user_data['awaiting_usdt_proof']
+    logger.info(f"✅ Comprobante USDT procesado exitosamente: {payment_id}")
+
+async def _procesar_comprobante_paypal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesar comprobante PayPal"""
+    if not context.user_data.get('awaiting_paypal_proof'):
+        return
+    
+    import json
+    from datetime import datetime
+    import time
+    from pathlib import Path
+    
+    user = update.effective_user
+    user_id = str(user.id)
+    username = user.username or "N/A"
+    first_name = user.first_name or "N/A"
+    
+    logger.info(f"📸 Procesando comprobante PayPal de usuario {user_id} ({first_name})")
+    
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        file_type = "photo"
+        logger.info(f"  ✓ Detectado como foto: {file_id}")
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        file_type = "document"
+        logger.info(f"  ✓ Detectado como documento: {file_id}")
+    else:
+        logger.warning("  ✗ No es foto ni documento")
+        return
+    
+    payment_info = context.user_data['awaiting_paypal_proof']
+    payment_id = f"PAYPAL-{user_id}-{int(time.time())}"
+    
+    payment_record = {
+        "payment_id": payment_id,
+        "user_id": user_id,
+        "username": username,
+        "first_name": first_name,
+        "file_id": file_id,
+        "file_type": file_type,
+        "amount_usd": payment_info['amount_usd'],
+        "paypal_user": payment_info['paypal_user'],
+        "submitted_at": datetime.now().isoformat(),
+        "status": "pending"
+    }
+    
+    logger.info(f"  ✓ Payment record creado: {payment_id}")
+    
+    try:
+        paypal_file_path = Path(__file__).parent / 'pagos' / 'paypal_payments.json'
+        paypal_file_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"  ✓ Directorio pagos verificado: {paypal_file_path.parent}")
+        
+        if paypal_file_path.exists():
+            try:
+                with open(paypal_file_path, 'r', encoding='utf-8') as f:
+                    payments = json.load(f)
+                
+                if isinstance(payments, dict):
+                    logger.warning(f"  ⚠ JSON es dict en lugar de list, convirtiendo...")
+                    payments = []
+                elif not isinstance(payments, list):
+                    logger.warning(f"  ⚠ JSON tiene tipo inesperado: {type(payments)}, recreando...")
+                    payments = []
+                else:
+                    logger.info(f"  ✓ JSON leído: {len(payments)} pagos existentes")
+            except json.JSONDecodeError as e:
+                logger.warning(f"  ⚠ JSON corrupto, recreando: {e}")
+                payments = []
+        else:
+            logger.info("  ✓ Archivo JSON no existe, creando nuevo")
+            payments = []
+        
+        payments.append(payment_record)
+        
+        with open(paypal_file_path, 'w', encoding='utf-8') as f:
+            json.dump(payments, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ JSON guardado exitosamente con {len(payments)} pagos")
+        
+    except Exception as e:
+        logger.exception(f"  ✗ Error guardando JSON: {e}")
+        await update.message.reply_text(
+            "❌ Error guardando tu comprobante. Por favor, contacta soporte."
+        )
+        return
+    
+    try:
+        caption = f"""🔔 NUEVO COMPROBANTE PAYPAL
+
+👤 Usuario: {first_name} (@{username})
+🆔 ID: {user_id}
+💰 Monto: ${payment_info['amount_usd']} USD
+👤 PayPal: {payment_info['paypal_user']}
+🔖 Ref: {payment_id}
+⏰ Enviado: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+¿Confirmar pago?"""
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Confirmar 7 días", callback_data=f"paypal_confirm:{payment_id}:7"),
+                InlineKeyboardButton("✅ Confirmar 14 días", callback_data=f"paypal_confirm:{payment_id}:14")
+            ],
+            [InlineKeyboardButton("❌ Rechazar", callback_data=f"paypal_reject:{payment_id}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        logger.info(f"  → Enviando comprobante al grupo de pagos (ID: {PAYMENTS_GROUP_ID})...")
+        
+        if file_type == "photo":
+            admin_msg = await context.bot.send_photo(
+                chat_id=PAYMENTS_GROUP_ID,
+                photo=file_id,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+        else:
+            admin_msg = await context.bot.send_document(
+                chat_id=PAYMENTS_GROUP_ID,
+                document=file_id,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+        
+        logger.info(f"  ✓ Comprobante enviado al grupo exitosamente (msg_id: {admin_msg.message_id})")
+        
+        payment_record['admin_msg_id'] = admin_msg.message_id
+        payments[-1] = payment_record
+        
+        with open(paypal_file_path, 'w', encoding='utf-8') as f:
+            json.dump(payments, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ admin_msg_id guardado en JSON")
+        
+    except Exception as e:
+        logger.exception(f"  ✗ Error enviando al grupo: {e}")
+        logger.error(f"  ℹ PAYMENTS_GROUP_ID configurado: {PAYMENTS_GROUP_ID}")
+        logger.error(f"  ℹ Tipo de error: {type(e).__name__}")
+        
+        await update.message.reply_text(
+            f"✅ Comprobante recibido y guardado!\n\n"
+            f"📋 Referencia: `{payment_id}`\n"
+            f"⚠️ No pudimos notificar al administrador automáticamente.\n"
+            f"📞 Por favor, contacta soporte con tu referencia para activación manual.\n\n"
+            f"Gracias por tu paciencia! 🙏",
+            parse_mode='Markdown'
+        )
+        del context.user_data['awaiting_paypal_proof']
+        return
+    
+    await update.message.reply_text(
+        f"✅ Comprobante recibido correctamente!\n\n"
+        f"📋 Referencia: `{payment_id}`\n"
+        f"⏰ Verificaremos tu pago y activaremos tu acceso VIP en máximo 24 horas.\n\n"
+        f"Gracias por tu paciencia! 🙏",
+        parse_mode='Markdown'
+    )
+    
+    del context.user_data['awaiting_paypal_proof']
+    logger.info(f"✅ Comprobante PayPal procesado exitosamente: {payment_id}")
+
+async def confirmar_pago_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Manejar confirmación o rechazo de pagos (NEQUI o USDT) por admin"""
     query = update.callback_query
     
-    if update.effective_user.id != ADMIN_TELEGRAM_ID:
-        await query.answer("⛔ Solo el administrador puede realizar esta acción.", show_alert=True)
+    if query.message.chat.id != PAYMENTS_GROUP_ID:
+        await query.answer("⛔ Esta acción solo puede realizarse en el grupo de pagos.", show_alert=True)
         return
+    
+    if query.data.startswith('nequi_'):
+        await _confirmar_pago_nequi(update, context)
+    elif query.data.startswith('usdt_'):
+        await _confirmar_pago_usdt(update, context)
+    elif query.data.startswith('paypal_'):
+        await _confirmar_pago_paypal(update, context)
+
+async def _confirmar_pago_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirmar o rechazar pago NEQUI"""
+    query = update.callback_query
     
     import json
     from datetime import datetime
@@ -860,7 +1287,177 @@ async def confirmar_pago_nequi_admin(update: Update, context: ContextTypes.DEFAU
             await query.answer("❌ Pago rechazado. Usuario notificado.", show_alert=True)
     
     except Exception as e:
-        logger.error(f"Error en confirmar_pago_nequi_admin: {e}")
+        logger.error(f"Error en _confirmar_pago_nequi: {e}")
+        await query.answer("❌ Error procesando la acción.", show_alert=True)
+
+async def _confirmar_pago_usdt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirmar o rechazar pago USDT"""
+    query = update.callback_query
+    
+    import json
+    from datetime import datetime
+    
+    try:
+        data_parts = query.data.split(':')
+        action = data_parts[0]
+        payment_id = data_parts[1]
+        
+        with open(USDT_PAYMENTS_FILE, 'r', encoding='utf-8') as f:
+            payments = json.load(f)
+        
+        payment = None
+        payment_index = None
+        for i, p in enumerate(payments):
+            if p['payment_id'] == payment_id:
+                payment = p
+                payment_index = i
+                break
+        
+        if not payment:
+            await query.answer("❌ Pago no encontrado.", show_alert=True)
+            return
+        
+        if payment['status'] != 'pending':
+            await query.answer(f"⚠️ Este pago ya fue {payment['status']}.", show_alert=True)
+            return
+        
+        if action == 'usdt_confirm':
+            dias = int(data_parts[2])
+            
+            if access_manager.otorgar_acceso(payment['user_id'], dias):
+                payment['status'] = 'confirmed'
+                payment['confirmed_at'] = datetime.now().isoformat()
+                payment['dias_otorgados'] = dias
+                
+                payments[payment_index] = payment
+                with open(USDT_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(payments, f, indent=2, ensure_ascii=False)
+                
+                mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(payment['user_id'])
+                
+                try:
+                    from telegram_utils import enviar_telegram
+                    chat_id = int(payment['user_id'])
+                    enviar_telegram(chat_id=chat_id, mensaje=mensaje_confirmacion)
+                except Exception as e:
+                    logger.error(f"Error enviando confirmación al usuario: {e}")
+                
+                await query.edit_message_caption(
+                    caption=f"{query.message.caption}\n\n✅ CONFIRMADO - {dias} días otorgados\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                )
+                await query.answer(f"✅ Pago confirmado! {dias} días de acceso VIP otorgados.", show_alert=True)
+            else:
+                await query.answer("❌ Error otorgando acceso. Verifica el sistema.", show_alert=True)
+        
+        elif action == 'usdt_reject':
+            payment['status'] = 'rejected'
+            payment['rejected_at'] = datetime.now().isoformat()
+            
+            payments[payment_index] = payment
+            with open(USDT_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(payments, f, indent=2, ensure_ascii=False)
+            
+            try:
+                await context.bot.send_message(
+                    chat_id=int(payment['user_id']),
+                    text=f"❌ Tu pago USDT (Ref: {payment_id}) no pudo ser verificado.\n\n"
+                         f"Por favor, contacta soporte para más información."
+                )
+            except Exception as e:
+                logger.error(f"Error notificando rechazo al usuario: {e}")
+            
+            await query.edit_message_caption(
+                caption=f"{query.message.caption}\n\n❌ RECHAZADO\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            )
+            await query.answer("❌ Pago rechazado. Usuario notificado.", show_alert=True)
+    
+    except Exception as e:
+        logger.error(f"Error en _confirmar_pago_usdt: {e}")
+        await query.answer("❌ Error procesando la acción.", show_alert=True)
+
+async def _confirmar_pago_paypal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirmar o rechazar pago PayPal"""
+    query = update.callback_query
+    
+    import json
+    from datetime import datetime
+    
+    try:
+        data_parts = query.data.split(':')
+        action = data_parts[0]
+        payment_id = data_parts[1]
+        
+        with open(PAYPAL_PAYMENTS_FILE, 'r', encoding='utf-8') as f:
+            payments = json.load(f)
+        
+        payment = None
+        payment_index = None
+        for i, p in enumerate(payments):
+            if p['payment_id'] == payment_id:
+                payment = p
+                payment_index = i
+                break
+        
+        if not payment:
+            await query.answer("❌ Pago no encontrado.", show_alert=True)
+            return
+        
+        if payment['status'] != 'pending':
+            await query.answer(f"⚠️ Este pago ya fue {payment['status']}.", show_alert=True)
+            return
+        
+        if action == 'paypal_confirm':
+            dias = int(data_parts[2])
+            
+            if access_manager.otorgar_acceso(payment['user_id'], dias):
+                payment['status'] = 'confirmed'
+                payment['confirmed_at'] = datetime.now().isoformat()
+                payment['dias_otorgados'] = dias
+                
+                payments[payment_index] = payment
+                with open(PAYPAL_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(payments, f, indent=2, ensure_ascii=False)
+                
+                mensaje_confirmacion = access_manager.generar_mensaje_confirmacion_premium(payment['user_id'])
+                
+                try:
+                    from telegram_utils import enviar_telegram
+                    chat_id = int(payment['user_id'])
+                    enviar_telegram(chat_id=chat_id, mensaje=mensaje_confirmacion)
+                except Exception as e:
+                    logger.error(f"Error enviando confirmación al usuario: {e}")
+                
+                await query.edit_message_caption(
+                    caption=f"{query.message.caption}\n\n✅ CONFIRMADO - {dias} días otorgados\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                )
+                await query.answer(f"✅ Pago confirmado! {dias} días de acceso VIP otorgados.", show_alert=True)
+            else:
+                await query.answer("❌ Error otorgando acceso. Verifica el sistema.", show_alert=True)
+        
+        elif action == 'paypal_reject':
+            payment['status'] = 'rejected'
+            payment['rejected_at'] = datetime.now().isoformat()
+            
+            payments[payment_index] = payment
+            with open(PAYPAL_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(payments, f, indent=2, ensure_ascii=False)
+            
+            try:
+                await context.bot.send_message(
+                    chat_id=int(payment['user_id']),
+                    text=f"❌ Tu pago PayPal (Ref: {payment_id}) no pudo ser verificado.\n\n"
+                         f"Por favor, contacta soporte para más información."
+                )
+            except Exception as e:
+                logger.error(f"Error notificando rechazo al usuario: {e}")
+            
+            await query.edit_message_caption(
+                caption=f"{query.message.caption}\n\n❌ RECHAZADO\n⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            )
+            await query.answer("❌ Pago rechazado. Usuario notificado.", show_alert=True)
+    
+    except Exception as e:
+        logger.error(f"Error en _confirmar_pago_paypal: {e}")
         await query.answer("❌ Error procesando la acción.", show_alert=True)
 
 def send_nequi_admin_notification(user_info: dict, payment_info: dict):
