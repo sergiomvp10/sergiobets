@@ -270,14 +270,23 @@ PRONOSTICOS:
         await query.edit_message_text("❌ Error cargando estadísticas. Intenta de nuevo.")
 
 async def mostrar_novedades(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar novedades desde archivo"""
+    """Mostrar novedades desde archivo con mes actual dinámico"""
     query = update.callback_query
     try:
+        meses_espanol = {
+            1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL",
+            5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO",
+            9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"
+        }
+        
+        mes_actual = meses_espanol[datetime.now().month]
+        
         if os.path.exists('novedades.txt'):
             with open('novedades.txt', 'r', encoding='utf-8') as f:
                 contenido = f.read()
+            contenido = contenido.replace('{MES_ACTUAL}', mes_actual)
         else:
-            contenido = """📢 NOVEDADES BETGENIUX
+            contenido = f"""📢 NOVEDADES BETGENIUX - {mes_actual} 2025
 
 🎯 Sistema activo y funcionando
 📊 Estadísticas disponibles en tiempo real
