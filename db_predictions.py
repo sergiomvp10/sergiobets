@@ -163,21 +163,31 @@ def get_pending_predictions(limit: int = 100) -> List[Dict[str, Any]]:
         print(f"Error getting pending predictions: {e}")
         return []
 
-def get_statistics(days: int = 30) -> Dict[str, Any]:
-    """Get prediction statistics"""
+def get_statistics(days: int = None) -> Dict[str, Any]:
+    """Get prediction statistics (all-time if days=None)"""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Get counts
-                cur.execute("""
-                    SELECT
-                        COUNT(*) FILTER (WHERE status = 'pendiente') as pendientes,
-                        COUNT(*) FILTER (WHERE status = 'acierto') as aciertos,
-                        COUNT(*) FILTER (WHERE status = 'fallo') as fallos,
-                        COUNT(*) as total
-                    FROM predicciones_historicas
-                    WHERE event_date >= CURRENT_DATE - INTERVAL '%s days'
-                """, (days,))
+                if days is None:
+                    cur.execute("""
+                        SELECT
+                            COUNT(*) FILTER (WHERE status = 'pendiente') as pendientes,
+                            COUNT(*) FILTER (WHERE status = 'acierto') as aciertos,
+                            COUNT(*) FILTER (WHERE status = 'fallo') as fallos,
+                            COUNT(*) as total
+                        FROM predicciones_historicas
+                    """)
+                else:
+                    cur.execute("""
+                        SELECT
+                            COUNT(*) FILTER (WHERE status = 'pendiente') as pendientes,
+                            COUNT(*) FILTER (WHERE status = 'acierto') as aciertos,
+                            COUNT(*) FILTER (WHERE status = 'fallo') as fallos,
+                            COUNT(*) as total
+                        FROM predicciones_historicas
+                        WHERE event_date >= CURRENT_DATE - INTERVAL '%s days'
+                    """, (days,))
                 stats = dict(cur.fetchone())
                 
                 # Calculate win rate

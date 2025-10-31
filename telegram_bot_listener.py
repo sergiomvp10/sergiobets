@@ -229,7 +229,7 @@ async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         try:
             from db_predictions import get_statistics
-            stats = get_statistics(days=30)
+            stats = get_statistics(days=None)
             
             if stats['total'] > 0:
                 fallos = stats['fallos']
