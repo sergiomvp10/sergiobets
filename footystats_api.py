@@ -14,6 +14,33 @@ BASE_URL = "https://api.football-data-api.com"
 
 api_cache = APICache(cache_duration_minutes=30)
 
+COMPETITION_ID_TO_NAME = {
+    14968: "Bundesliga",
+    14956: "La Liga",
+    15746: "Primera División Argentina",
+    14957: "Premier League",
+    14958: "Serie A",
+    14959: "Ligue 1",
+    14960: "Eredivisie",
+    14961: "Primeira Liga",
+    14962: "Süper Lig",
+    14963: "Russian Premier League",
+    14964: "Belgian First Division A",
+    14965: "Austrian Bundesliga",
+    14966: "Swiss Super League",
+    14967: "Scottish Premiership",
+    14969: "2. Bundesliga",
+    14970: "Championship",
+    14971: "Serie B",
+    14972: "La Liga 2",
+    15747: "Primera B Nacional",
+    15748: "Copa de la Liga Profesional",
+}
+
+def get_league_name(competition_id: int, fallback: str = "Liga desconocida") -> str:
+    """Obtiene el nombre de la liga desde el competition_id"""
+    return COMPETITION_ID_TO_NAME.get(competition_id, fallback)
+
 @safe_api_call
 def obtener_partidos_del_dia(fecha=None, use_cache=True):
     if fecha is None:
@@ -40,6 +67,11 @@ def obtener_partidos_del_dia(fecha=None, use_cache=True):
         if response.status_code == 200:
             data = response.json()
             partidos = data.get("data", [])
+            
+            for partido in partidos:
+                comp_id = partido.get('competition_id')
+                if comp_id and 'competition_name' not in partido:
+                    partido['competition_name'] = get_league_name(comp_id)
             
             if use_cache:
                 api_cache.set(cache_key, partidos)

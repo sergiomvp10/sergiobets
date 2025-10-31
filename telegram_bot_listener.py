@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 ADMIN_TELEGRAM_ID = int(os.getenv('ADMIN_TELEGRAM_ID', '7659029315'))
 PAYMENTS_GROUP_ID = int(os.getenv('PAYMENTS_GROUP_ID', os.getenv('ADMIN_TELEGRAM_ID', '7659029315')))
 USUARIOS_FILE = 'usuarios.txt'
@@ -224,17 +224,41 @@ async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar estadísticas del sistema"""
+    """Mostrar estadísticas del sistema (PostgreSQL + JSON fallback)"""
     query = update.callback_query
     try:
-        from track_record import TrackRecordManager
+        try:
+            from db_predictions import get_statistics
+            stats = get_statistics(days=30)
+            
+            if stats['total'] > 0:
+                fallos = stats['fallos']
+                mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
+
+PRONOSTICOS:
+
+• Total: {stats['total']}
+• Resueltos: {stats['aciertos'] + stats['fallos']}
+• Pendientes: {stats['pendientes']}
+• Aciertos: {stats['aciertos']}
+• Fallos: {fallos}
+• Tasa de éxito: {stats['win_rate']:.1f}%
+
+📅 Actualizado: {datetime.now().strftime('%Y-%m-%d')}"""
+            else:
+                raise Exception("No data in PostgreSQL, falling back to JSON")
         
-        api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
-        tracker = TrackRecordManager(api_key)
-        metricas = tracker.calcular_metricas_rendimiento()
-        
-        if "error" in metricas:
-            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
+        except Exception as db_error:
+            # Fallback to JSON + TrackRecordManager
+            logger.warning(f"PostgreSQL stats failed, using JSON fallback: {db_error}")
+            from track_record import TrackRecordManager
+            
+            api_key = os.getenv('FOOTYSTATS_API_KEY')
+            tracker = TrackRecordManager(api_key)
+            metricas = tracker.calcular_metricas_rendimiento()
+            
+            if "error" in metricas:
+                mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 PRONOSTICOS:
 
@@ -246,9 +270,9 @@ PRONOSTICOS:
 • Tasa de éxito: 68.2%
 
 📅 Actualizado: 2025-08-25"""
-        else:
-            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
-            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
+            else:
+                fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
+                mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 PRONOSTICOS:
 

@@ -581,8 +581,14 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
     return mensaje
 
 def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None:
-    """Guarda predicción en el historial para seguimiento futuro"""
+    """Guarda predicción en el historial (PostgreSQL + JSON backup)"""
     try:
+        try:
+            from db_predictions import save_prediction
+            save_prediction(prediccion, fecha)
+        except Exception as db_error:
+            print(f"Warning: Could not save to PostgreSQL: {db_error}")
+        
         from json_storage import guardar_json, cargar_json
         
         historial = cargar_json("historial_predicciones.json") or []
