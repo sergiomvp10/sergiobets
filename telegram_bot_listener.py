@@ -15,7 +15,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
+ADMIN_TELEGRAM_ID = int(os.getenv('ADMIN_TELEGRAM_ID', '7659029315'))
 USUARIOS_FILE = 'usuarios.txt'
+NEQUI_PAYMENTS_FILE = 'pagos/nequi_payments.json'
 
 def cargar_usuarios_registrados():
     """Cargar usuarios ya registrados desde el archivo"""
@@ -397,7 +399,9 @@ def iniciar_bot_listener():
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CallbackQueryHandler(button_callback, pattern="^(pronosticos|estadisticas|novedades|membresia|ayuda|pay_usdt|pay_ltc|pago_nequi)$"))
         application.add_handler(CallbackQueryHandler(verificar_pago, pattern="^verify_"))
+        application.add_handler(CallbackQueryHandler(confirmar_pago_nequi_admin, pattern="^(nequi_confirm|nequi_reject):"))
         application.add_handler(CallbackQueryHandler(volver_menu_principal, pattern="^menu_principal$"))
+        application.add_handler(MessageHandler((filters.PHOTO | filters.Document.IMAGE) & filters.ChatType.PRIVATE, manejar_comprobante_nequi))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_general))
         application.add_error_handler(error_handler)
         
@@ -558,6 +562,13 @@ async def verificar_pago(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def procesar_pago_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Procesar solicitud de pago NEQUI"""
     query = update.callback_query
+    
+    from datetime import datetime
+    context.user_data['awaiting_nequi_proof'] = {
+        "created_at": datetime.now().isoformat(),
+        "amount": 50000,
+        "phone": "3137526084"
+    }
     
     mensaje = """📲 PAGO CON NEQUI
 
