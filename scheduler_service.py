@@ -18,8 +18,9 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from dotenv import load_dotenv
 
 from footystats_api import obtener_partidos_del_dia
-from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia
+from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, guardar_prediccion_historica
 from telegram_utils import enviar_telegram_masivo
+from track_record import TrackRecordManager
 
 load_dotenv()
 
@@ -30,6 +31,7 @@ MORNING_SPACING_SECONDS = int(os.getenv('MORNING_SPACING_SECONDS', '120'))
 PREMATCH_HOURS_BEFORE = int(os.getenv('PREMATCH_HOURS_BEFORE', '2'))
 DATABASE_URL = os.getenv('DATABASE_URL')
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+FOOTYSTATS_API_KEY = os.getenv('FOOTYSTATS_API_KEY')
 
 logging.basicConfig(
     level=logging.INFO,
@@ -130,6 +132,13 @@ def send_single_prediction_job(prediction_dict: Dict[str, Any], match_id: str, n
     try:
         logger.info(f"📤 Sending {notify_type} prediction for match {match_id}...")
         fecha = datetime.now(TZ).strftime('%Y-%m-%d')
+        
+        try:
+            guardar_prediccion_historica(prediction_dict, fecha)
+            logger.info(f"💾 Saved prediction to track record")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to save prediction to track record: {e}")
+        
         mensaje = generar_mensaje_ia([prediction_dict], fecha)
         result = enviar_telegram_masivo(mensaje=mensaje, token=TELEGRAM_BOT_TOKEN, bot_username="BetGeniuXbot", only_premium=True)
         if result.get('exito'):
@@ -222,6 +231,14 @@ def send_prematch_prediction_job(match_dict: Dict[str, Any], match_id: str):
             logger.warning(f"⚠️ No prediction for {match_id}")
             return
         fecha = datetime.now(TZ).strftime('%Y-%m-%d')
+        
+        try:
+            for prediction in predictions:
+                guardar_prediccion_historica(prediction, fecha)
+            logger.info(f"💾 Saved {len(predictions)} prediction(s) to track record")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to save predictions to track record: {e}")
+        
         mensaje = generar_mensaje_ia(predictions, fecha)
         result = enviar_telegram_masivo(mensaje=mensaje, token=TELEGRAM_BOT_TOKEN, bot_username="BetGeniuXbot", only_premium=True)
         if result.get('exito'):
@@ -231,6 +248,23 @@ def send_prematch_prediction_job(match_dict: Dict[str, Any], match_id: str):
             logger.error(f"❌ Failed to send: {result.get('error')}")
     except Exception as e:
         logger.error(f"❌ Error sending prematch: {e}", exc_info=True)
+
+def update_prediction_results_job():
+    """Periodic job: Check and update prediction results"""
+    logger.info("🔄 Updating prediction results...")
+    try:
+        if not FOOTYSTATS_API_KEY:
+            logger.warning("⚠️ FOOTYSTATS_API_KEY not set, skipping result updates")
+            return
+        
+        tracker = TrackRecordManager(api_key=FOOTYSTATS_API_KEY)
+        result = tracker.actualizar_historial_con_resultados(max_matches=50, timeout_per_match=8)
+        
+        actualizaciones = result.get('actualizaciones', 0)
+        errores = result.get('errores', 0)
+        logger.info(f"✅ Result update completed: {actualizaciones} updated, {errores} errors")
+    except Exception as e:
+        logger.error(f"❌ Error updating results: {e}", exc_info=True)
 
 def schedule_prematch_predictions_job():
     """Daily job: Schedule all prematch predictions for today"""
@@ -330,8 +364,19 @@ def start_scheduler():
             timezone=TZ, id='prematch_scheduling', replace_existing=True)
         logger.info(f"✅ Scheduled prematch job at 00:05 {TIMEZONE}")
         
+        SCHEDULER.add_job(func=update_prediction_results_job, trigger='cron', minute='*/30',
+            timezone=TZ, id='update_results', replace_existing=True)
+        logger.info(f"✅ Scheduled result updates every 30 minutes")
+        
+        SCHEDULER.add_job(func=update_prediction_results_job, trigger='cron', hour=23, minute=59,
+            timezone=TZ, id='daily_final_results', replace_existing=True)
+        logger.info(f"✅ Scheduled daily final result check at 23:59 {TIMEZONE}")
+        
         logger.info("🔄 Running initial prematch scheduling...")
         schedule_prematch_predictions_job()
+        
+        logger.info("🔄 Running initial result update...")
+        update_prediction_results_job()
         
         logger.info("✅ Scheduler started!")
         logger.info("📋 Scheduled jobs:")
