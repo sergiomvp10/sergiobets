@@ -1037,7 +1037,7 @@ class SergioBetsUnified:
             
             rowf = ttk.Frame(self.frame_partidos, style='Card.TFrame', padding=(10, 8))
             rowf.grid(row=i, column=0, sticky='ew', pady=4)
-            rowf.grid_columnconfigure(2, weight=1)
+            rowf.grid_columnconfigure(1, weight=1)
             
             var_checkbox = tk.BooleanVar()
             self.checkboxes_partidos.append(var_checkbox)
@@ -1045,19 +1045,19 @@ class SergioBetsUnified:
             chk = ttk.Checkbutton(rowf, variable=var_checkbox)
             chk.grid(row=0, column=0, padx=(0, 10), sticky='nw')
             
-            btn = ttk.Button(rowf, text="🔎 Analizar", style='Secondary.TButton',
-                           command=lambda p=partido: self.analizar_partido_individual(p))
-            btn.grid(row=0, column=1, padx=(0, 10), sticky='nw')
-            
             partido_text = f"⚽ PARTIDO #{i}: {partido['local']} vs {partido['visitante']} | ⏰ {partido['hora']} | 💰 {partido['cuotas']['local']}-{partido['cuotas']['empate']}-{partido['cuotas']['visitante']}"
             main = ttk.Label(rowf, text=partido_text, style='ItemTitle.TLabel', anchor='w', justify='left')
-            main.grid(row=0, column=2, sticky='ew')
+            main.grid(row=0, column=1, sticky='ew', padx=(0, 10))
             main.bind('<Configure>', lambda e, lbl=main: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
             
             sub_text = f"🏠 Casa: {partido['cuotas']['casa']} | 🏆 Liga: {partido['liga']}"
             sub = ttk.Label(rowf, text=sub_text, style='ItemSub.TLabel', anchor='w', justify='left')
-            sub.grid(row=1, column=2, sticky='ew', pady=(4, 0))
+            sub.grid(row=1, column=1, sticky='ew', pady=(4, 0))
             sub.bind('<Configure>', lambda e, lbl=sub: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
+            
+            btn = ttk.Button(rowf, text="🔎 Analizar", style='Secondary.TButton',
+                           command=lambda p=partido: self.analizar_partido_individual(p))
+            btn.grid(row=0, column=2, rowspan=2, padx=(10, 0), sticky='e')
 
     def analizar_partido_individual(self, partido):
         """Analiza un partido individual y muestra el resultado con opciones detalladas"""
