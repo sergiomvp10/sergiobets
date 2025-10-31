@@ -406,6 +406,8 @@ def iniciar_bot_listener():
         application.add_error_handler(error_handler)
         
         logger.info("BetGeniuXBot listener iniciado - Registrando usuarios automáticamente")
+        logger.info(f"🔧 ADMIN_TELEGRAM_ID configurado: {ADMIN_TELEGRAM_ID}")
+        logger.info(f"🔧 NEQUI_PAYMENTS_FILE: {NEQUI_PAYMENTS_FILE}")
         
         application.run_polling(stop_signals=None)
         
@@ -593,24 +595,31 @@ _Verificaremos y activaremos tu acceso manualmente._
 async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar comprobante de pago NEQUI (foto o documento)"""
     if not context.user_data.get('awaiting_nequi_proof'):
+        logger.info("Foto/documento recibido pero usuario no está esperando comprobante NEQUI")
         return
     
     import json
     from datetime import datetime
     import time
+    from pathlib import Path
     
     user = update.effective_user
     user_id = str(user.id)
     username = user.username or "N/A"
     first_name = user.first_name or "N/A"
     
+    logger.info(f"📸 Procesando comprobante NEQUI de usuario {user_id} ({first_name})")
+    
     if update.message.photo:
         file_id = update.message.photo[-1].file_id
         file_type = "photo"
+        logger.info(f"  ✓ Detectado como foto: {file_id}")
     elif update.message.document:
         file_id = update.message.document.file_id
         file_type = "document"
+        logger.info(f"  ✓ Detectado como documento: {file_id}")
     else:
+        logger.warning("  ✗ No es foto ni documento")
         return
     
     payment_info = context.user_data['awaiting_nequi_proof']
@@ -629,20 +638,39 @@ async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAUL
         "status": "pending"
     }
     
+    logger.info(f"  ✓ Payment record creado: {payment_id}")
+    
     try:
-        os.makedirs('pagos', exist_ok=True)
+        nequi_file_path = Path(__file__).parent / 'pagos' / 'nequi_payments.json'
+        nequi_file_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"  ✓ Directorio pagos verificado: {nequi_file_path.parent}")
         
-        if os.path.exists(NEQUI_PAYMENTS_FILE):
-            with open(NEQUI_PAYMENTS_FILE, 'r', encoding='utf-8') as f:
-                payments = json.load(f)
+        if nequi_file_path.exists():
+            try:
+                with open(nequi_file_path, 'r', encoding='utf-8') as f:
+                    payments = json.load(f)
+                logger.info(f"  ✓ JSON leído: {len(payments)} pagos existentes")
+            except json.JSONDecodeError as e:
+                logger.warning(f"  ⚠ JSON corrupto, recreando: {e}")
+                payments = []
         else:
+            logger.info("  ✓ Archivo JSON no existe, creando nuevo")
             payments = []
         
         payments.append(payment_record)
         
-        with open(NEQUI_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+        with open(nequi_file_path, 'w', encoding='utf-8') as f:
             json.dump(payments, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ JSON guardado exitosamente con {len(payments)} pagos")
         
+    except Exception as e:
+        logger.exception(f"  ✗ Error guardando JSON: {e}")
+        await update.message.reply_text(
+            "❌ Error guardando tu comprobante. Por favor, contacta soporte."
+        )
+        return
+    
+    try:
         caption = f"""🔔 NUEVO COMPROBANTE NEQUI
 
 👤 Usuario: {first_name} (@{username})
@@ -663,6 +691,8 @@ async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAUL
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
+        logger.info(f"  → Enviando comprobante al admin (ID: {ADMIN_TELEGRAM_ID})...")
+        
         if file_type == "photo":
             admin_msg = await context.bot.send_photo(
                 chat_id=ADMIN_TELEGRAM_ID,
@@ -678,26 +708,41 @@ async def manejar_comprobante_nequi(update: Update, context: ContextTypes.DEFAUL
                 reply_markup=reply_markup
             )
         
-        payment_record['admin_msg_id'] = admin_msg.message_id
+        logger.info(f"  ✓ Comprobante enviado al admin exitosamente (msg_id: {admin_msg.message_id})")
         
-        with open(NEQUI_PAYMENTS_FILE, 'w', encoding='utf-8') as f:
+        payment_record['admin_msg_id'] = admin_msg.message_id
+        payments[-1] = payment_record
+        
+        with open(nequi_file_path, 'w', encoding='utf-8') as f:
             json.dump(payments, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ admin_msg_id guardado en JSON")
+        
+    except Exception as e:
+        logger.exception(f"  ✗ Error enviando al admin: {e}")
+        logger.error(f"  ℹ ADMIN_TELEGRAM_ID configurado: {ADMIN_TELEGRAM_ID}")
+        logger.error(f"  ℹ Tipo de error: {type(e).__name__}")
         
         await update.message.reply_text(
-            f"✅ Comprobante recibido correctamente!\n\n"
+            f"✅ Comprobante recibido y guardado!\n\n"
             f"📋 Referencia: `{payment_id}`\n"
-            f"⏰ Verificaremos tu pago y activaremos tu acceso VIP en máximo 24 horas.\n\n"
+            f"⚠️ No pudimos notificar al administrador automáticamente.\n"
+            f"📞 Por favor, contacta soporte con tu referencia para activación manual.\n\n"
             f"Gracias por tu paciencia! 🙏",
             parse_mode='Markdown'
         )
-        
         del context.user_data['awaiting_nequi_proof']
-        
-    except Exception as e:
-        logger.error(f"Error procesando comprobante NEQUI: {e}")
-        await update.message.reply_text(
-            "❌ Error procesando tu comprobante. Por favor, intenta de nuevo o contacta soporte."
-        )
+        return
+    
+    await update.message.reply_text(
+        f"✅ Comprobante recibido correctamente!\n\n"
+        f"📋 Referencia: `{payment_id}`\n"
+        f"⏰ Verificaremos tu pago y activaremos tu acceso VIP en máximo 24 horas.\n\n"
+        f"Gracias por tu paciencia! 🙏",
+        parse_mode='Markdown'
+    )
+    
+    del context.user_data['awaiting_nequi_proof']
+    logger.info(f"✅ Comprobante NEQUI procesado exitosamente: {payment_id}")
 
 async def confirmar_pago_nequi_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manejar confirmación o rechazo de pago NEQUI por admin"""
