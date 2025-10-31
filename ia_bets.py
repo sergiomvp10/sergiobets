@@ -18,7 +18,7 @@ LIGAS_CONOCIDAS = {
 }
 
 ODDS_RANGE_ANALYZE = (1.25, 2.20)
-ODDS_RANGE_PUBLISH = (1.30, 1.75)
+ODDS_RANGE_PUBLISH = (1.42, 1.87)
 
 def cargar_configuracion_cuotas():
     """Carga la configuración de cuotas desde config_app.json"""
