@@ -425,6 +425,11 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def iniciar_bot_listener():
     """Iniciar el bot listener para registrar usuarios"""
     try:
+        import sys
+        import telegram as telegram_module
+        logger.info(f"🐍 Python runtime: {sys.version}")
+        logger.info(f"📦 python-telegram-bot version: {telegram_module.__version__}")
+        
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
@@ -444,7 +449,7 @@ def iniciar_bot_listener():
         logger.info(f"🔧 USDT_PAYMENTS_FILE: {USDT_PAYMENTS_FILE}")
         logger.info(f"🔧 PAYPAL_PAYMENTS_FILE: {PAYPAL_PAYMENTS_FILE}")
         
-        application.run_polling()
+        application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
         logger.error(f"Error iniciando bot listener: {e}")
