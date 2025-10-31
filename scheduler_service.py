@@ -175,6 +175,8 @@ def send_morning_predictions_job():
                     'liga': match.get('competition_name', 'Unknown'),
                     'local': match.get('home_name', 'Home'),
                     'visitante': match.get('away_name', 'Away'),
+                    'home_id': match.get('home_id'),
+                    'away_id': match.get('away_id'),
                     'cuotas': {
                         'local': str(match.get('odds_ft_1', '2.0')),
                         'empate': str(match.get('odds_ft_x', '3.0')),
@@ -308,6 +310,7 @@ def schedule_prematch_predictions_job():
                     'id': match_id, 'hora': kickoff_local.strftime('%H:%M'),
                     'liga': match.get('competition_name', 'Unknown'),
                     'local': match.get('home_name', 'Home'), 'visitante': match.get('away_name', 'Away'),
+                    'home_id': match.get('home_id'), 'away_id': match.get('away_id'),
                     'cuotas': {'local': str(match.get('odds_ft_1', '2.0')), 'empate': str(match.get('odds_ft_x', '3.0')), 'visitante': str(match.get('odds_ft_2', '3.0'))}
                 }
                 

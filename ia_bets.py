@@ -217,8 +217,51 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
             "handicap_visitante_10": 0.6
         }
 
-def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
-    """Simula análisis de rendimiento reciente y enfrentamientos directos"""
+def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int, home_id: int = None, away_id: int = None) -> Dict[str, Any]:
+    """Analiza rendimiento de equipos usando datos reales de FootyStats API"""
+    
+    if home_id and away_id:
+        try:
+            from footystats_api import obtener_estadisticas_equipo
+            
+            home_stats = obtener_estadisticas_equipo(home_id, use_cache=True)
+            away_stats = obtener_estadisticas_equipo(away_id, use_cache=True)
+            
+            if home_stats and away_stats and len(home_stats) > 0 and len(away_stats) > 0:
+                home_data = home_stats[0] if isinstance(home_stats, list) else home_stats
+                away_data = away_stats[0] if isinstance(away_stats, list) else away_stats
+                
+                home_st = home_data.get('stats', {})
+                away_st = away_data.get('stats', {})
+                
+                home_matches = max(1, home_st.get('seasonMatchesPlayed_overall', 1))
+                away_matches = max(1, away_st.get('seasonMatchesPlayed_overall', 1))
+                
+                goles_local = home_st.get('seasonGoals_overall', 0) / home_matches
+                goles_contra_local = home_st.get('seasonConceded_overall', 0) / home_matches
+                goles_visitante = away_st.get('seasonGoals_overall', 0) / away_matches
+                goles_contra_visitante = away_st.get('seasonConceded_overall', 0) / away_matches
+                
+                home_wins = home_st.get('seasonWinsNum_overall', 0)
+                away_wins = away_st.get('seasonWinsNum_overall', 0)
+                forma_local = home_wins / home_matches if home_matches > 0 else 0.5
+                forma_visitante = away_wins / away_matches if away_matches > 0 else 0.5
+                
+                return {
+                    "goles_promedio_local": max(0.5, min(3.0, goles_local)),
+                    "goles_promedio_visitante": max(0.5, min(3.0, goles_visitante)),
+                    "tarjetas_promedio": 1.0,  # Default, can be enhanced later
+                    "corners_promedio": 1.0,  # Default, can be enhanced later
+                    "forma_local": max(0.1, min(0.9, forma_local)),
+                    "forma_visitante": max(0.1, min(0.9, forma_visitante)),
+                    "h2h_goles_total": (goles_local + goles_visitante) / 2,
+                    "ventaja_local": forma_local - forma_visitante,
+                    "goles_contra_local": goles_contra_local,
+                    "goles_contra_visitante": goles_contra_visitante
+                }
+        except Exception as e:
+            print(f"Error obteniendo datos reales de equipos: {e}")
+    
     np.random.seed(semilla + 6)
     
     rendimiento_local = {
@@ -259,10 +302,12 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     local = partido.get('local', 'Local')
     visitante = partido.get('visitante', 'Visitante')
     fecha = partido.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+    home_id = partido.get('home_id')
+    away_id = partido.get('away_id')
     
     semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
     
-    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla)
+    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla, home_id, away_id)
     
     prob_1x2 = calcular_probabilidades_1x2(cuotas)
     prob_btts = calcular_probabilidades_btts(semilla)

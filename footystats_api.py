@@ -92,3 +92,39 @@ def clear_api_cache():
     cleared = api_cache.clear_expired()
     print(f"🧹 Cleared {cleared} expired cache entries")
     return cleared
+
+@safe_api_call
+def obtener_estadisticas_equipo(team_id: int, use_cache=True):
+    """Obtiene estadísticas de un equipo específico"""
+    if not team_id:
+        return None
+    
+    cache_key = f"team_{team_id}"
+    
+    if use_cache:
+        cached_data = api_cache.get(cache_key)
+        if cached_data is not None:
+            return cached_data
+    
+    endpoint = f"{BASE_URL}/team"
+    params = {
+        "key": API_KEY,
+        "team_id": team_id
+    }
+    
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            team_data = data.get("data", [])
+            
+            if use_cache and team_data:
+                api_cache.set(cache_key, team_data)
+            
+            return team_data
+        else:
+            print(f"Error al obtener estadísticas del equipo {team_id}: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Excepción al obtener estadísticas del equipo {team_id}: {e}")
+        return None
