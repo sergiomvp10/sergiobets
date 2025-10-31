@@ -39,7 +39,7 @@ class ScrollableFrame(ttk.Frame):
     def __init__(self, parent, style='TFrame', padding=0, bg='#F3F4F6', *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0, bg=bg)
-        self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.canvas.yview)
+        self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.canvas.yview, style='Slim.Vertical.TScrollbar')
         self.inner = ttk.Frame(self.canvas, style=style, padding=padding)
         
         self.inner_id = self.canvas.create_window((0, 0), window=self.inner, anchor='nw')
@@ -95,7 +95,9 @@ class ThemeManager:
             entry_bg="#FFFFFF",
             entry_fg="#111827",
             output_bg="#F0F9FF",
-            secondary_bg="#F9FAFB"
+            secondary_bg="#F9FAFB",
+            sb_trough="#E5E7EB",
+            sb_thumb="#9CA3AF"
         )
         
         self.dark = dict(
@@ -112,7 +114,9 @@ class ThemeManager:
             entry_bg="#1F2937",
             entry_fg="#E5E7EB",
             output_bg="#1F2937",
-            secondary_bg="#0F172A"
+            secondary_bg="#0F172A",
+            sb_trough="#1F2937",
+            sb_thumb="#4B5563"
         )
         
         self.current_mode = 'light'
@@ -196,8 +200,45 @@ class ThemeManager:
         
         self.style.configure('TSeparator', background=p['border'])
         
-        self.style.configure('Vertical.TScrollbar', background=p['surface'], troughcolor=p['bg'])
-        self.style.configure('Horizontal.TScrollbar', background=p['surface'], troughcolor=p['bg'])
+        self.style.layout('Slim.Vertical.TScrollbar',
+            [('Vertical.Scrollbar.trough', {
+                'children': [('Vertical.Scrollbar.thumb', {'expand': 1, 'sticky': 'nswe'})],
+                'sticky': 'ns'
+            })])
+        
+        self.style.layout('Slim.Horizontal.TScrollbar',
+            [('Horizontal.Scrollbar.trough', {
+                'children': [('Horizontal.Scrollbar.thumb', {'expand': 1, 'sticky': 'nswe'})],
+                'sticky': 'we'
+            })])
+        
+        self.style.configure('Slim.Vertical.TScrollbar',
+            width=10,
+            relief='flat',
+            background=p['sb_thumb'],
+            darkcolor=p['sb_thumb'],
+            lightcolor=p['sb_thumb'],
+            troughcolor=p['sb_trough'],
+            bordercolor=p['sb_trough'],
+            arrowcolor=p['sb_thumb'],
+            gripcount=0)
+        
+        self.style.configure('Slim.Horizontal.TScrollbar',
+            width=10,
+            relief='flat',
+            background=p['sb_thumb'],
+            darkcolor=p['sb_thumb'],
+            lightcolor=p['sb_thumb'],
+            troughcolor=p['sb_trough'],
+            bordercolor=p['sb_trough'],
+            arrowcolor=p['sb_thumb'],
+            gripcount=0)
+        
+        self.style.map('Slim.Vertical.TScrollbar',
+            background=[('active', p['sb_thumb']), ('pressed', p['sb_thumb'])])
+        
+        self.style.map('Slim.Horizontal.TScrollbar',
+            background=[('active', p['sb_thumb']), ('pressed', p['sb_thumb'])])
         
         return p
 
@@ -1866,7 +1907,7 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             tree.column('resultado', width=120)
             tree.column('estado', width=100)
             
-            scrollbar = ttk.Scrollbar(frame_principal, orient='vertical', command=tree.yview)
+            scrollbar = ttk.Scrollbar(frame_principal, orient='vertical', command=tree.yview, style='Slim.Vertical.TScrollbar')
             tree.configure(yscrollcommand=scrollbar.set)
             
             tree.pack(side='left', fill='both', expand=True)
@@ -1901,7 +1942,7 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                     return
                 
                 canvas = tk.Canvas(frame_principal, bg="#2c3e50", highlightthickness=0)
-                scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview)
+                scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview, style='Slim.Vertical.TScrollbar')
                 scrollable_frame = tk.Frame(canvas, bg="#2c3e50")
                 
                 scrollable_frame.bind(
@@ -2400,8 +2441,8 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             tree.tag_configure('odd', background='#f0f0f0')
             tree.tag_configure('even', background='white')
             
-            scrollbar_y = ttk.Scrollbar(frame_table, orient='vertical', command=tree.yview)
-            scrollbar_x = ttk.Scrollbar(frame_table, orient='horizontal', command=tree.xview)
+            scrollbar_y = ttk.Scrollbar(frame_table, orient='vertical', command=tree.yview, style='Slim.Vertical.TScrollbar')
+            scrollbar_x = ttk.Scrollbar(frame_table, orient='horizontal', command=tree.xview, style='Slim.Horizontal.TScrollbar')
             tree.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
             
             tree.grid(row=0, column=0, sticky='nsew')
