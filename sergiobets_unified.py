@@ -926,7 +926,6 @@ class SergioBetsUnified:
             config = self.cargar_configuracion()
             odds_min = config.get("odds_min", 1.30)
             odds_max = config.get("odds_max", 1.60)
-            self.output.insert(tk.END, f"🎯 Rango activo: {odds_min}–{odds_max}\n\n")
             
             titulo_extra = ""
             if opcion_numero == 2:
@@ -952,9 +951,6 @@ class SergioBetsUnified:
                     self.mensaje_telegram += f"🕒 {partido['hora']} - {partido['local']} vs {partido['visitante']}\n"
                     self.mensaje_telegram += f"🏦 Casa: {partido['cuotas']['casa']} | 💰 Cuotas -> Local: {partido['cuotas']['local']}, Empate: {partido['cuotas']['empate']}, Visitante: {partido['cuotas']['visitante']}\n\n"
 
-            self.output.insert(tk.END, f"✅ Búsqueda completada para {fecha}\n")
-            self.output.insert(tk.END, f"📊 {len(partidos_filtrados)} partidos encontrados\n")
-            self.output.insert(tk.END, f"🎯 {len(predicciones_ia)} predicciones generadas\n")
 
             self.guardar_datos_json(fecha)
             
