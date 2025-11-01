@@ -72,6 +72,11 @@ def obtener_partidos_del_dia(fecha=None, use_cache=True):
                 comp_id = partido.get('competition_id')
                 if comp_id and 'competition_name' not in partido:
                     partido['competition_name'] = get_league_name(comp_id)
+                
+                if 'homeID' in partido and 'home_id' not in partido:
+                    partido['home_id'] = partido['homeID']
+                if 'awayID' in partido and 'away_id' not in partido:
+                    partido['away_id'] = partido['awayID']
             
             if use_cache:
                 api_cache.set(cache_key, partidos)
