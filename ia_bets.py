@@ -18,7 +18,7 @@ LIGAS_CONOCIDAS = {
 }
 
 ODDS_RANGE_ANALYZE = (1.25, 2.20)
-ODDS_RANGE_PUBLISH = (1.30, 1.75)
+ODDS_RANGE_PUBLISH = (1.42, 1.87)
 
 def cargar_configuracion_cuotas():
     """Carga la configuración de cuotas desde config_app.json"""
@@ -217,8 +217,51 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
             "handicap_visitante_10": 0.6
         }
 
-def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
-    """Simula análisis de rendimiento reciente y enfrentamientos directos"""
+def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int, home_id: int = None, away_id: int = None) -> Dict[str, Any]:
+    """Analiza rendimiento de equipos usando datos reales de FootyStats API"""
+    
+    if home_id and away_id:
+        try:
+            from footystats_api import obtener_estadisticas_equipo
+            
+            home_stats = obtener_estadisticas_equipo(home_id, use_cache=True)
+            away_stats = obtener_estadisticas_equipo(away_id, use_cache=True)
+            
+            if home_stats and away_stats and len(home_stats) > 0 and len(away_stats) > 0:
+                home_data = home_stats[0] if isinstance(home_stats, list) else home_stats
+                away_data = away_stats[0] if isinstance(away_stats, list) else away_stats
+                
+                home_st = home_data.get('stats', {})
+                away_st = away_data.get('stats', {})
+                
+                home_matches = max(1, home_st.get('seasonMatchesPlayed_overall', 1))
+                away_matches = max(1, away_st.get('seasonMatchesPlayed_overall', 1))
+                
+                goles_local = home_st.get('seasonGoals_overall', 0) / home_matches
+                goles_contra_local = home_st.get('seasonConceded_overall', 0) / home_matches
+                goles_visitante = away_st.get('seasonGoals_overall', 0) / away_matches
+                goles_contra_visitante = away_st.get('seasonConceded_overall', 0) / away_matches
+                
+                home_wins = home_st.get('seasonWinsNum_overall', 0)
+                away_wins = away_st.get('seasonWinsNum_overall', 0)
+                forma_local = home_wins / home_matches if home_matches > 0 else 0.5
+                forma_visitante = away_wins / away_matches if away_matches > 0 else 0.5
+                
+                return {
+                    "goles_promedio_local": max(0.5, min(3.0, goles_local)),
+                    "goles_promedio_visitante": max(0.5, min(3.0, goles_visitante)),
+                    "tarjetas_promedio": 1.0,  # Default, can be enhanced later
+                    "corners_promedio": 1.0,  # Default, can be enhanced later
+                    "forma_local": max(0.1, min(0.9, forma_local)),
+                    "forma_visitante": max(0.1, min(0.9, forma_visitante)),
+                    "h2h_goles_total": (goles_local + goles_visitante) / 2,
+                    "ventaja_local": forma_local - forma_visitante,
+                    "goles_contra_local": goles_contra_local,
+                    "goles_contra_visitante": goles_contra_visitante
+                }
+        except Exception as e:
+            print(f"Error obteniendo datos reales de equipos: {e}")
+    
     np.random.seed(semilla + 6)
     
     rendimiento_local = {
@@ -259,10 +302,12 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     local = partido.get('local', 'Local')
     visitante = partido.get('visitante', 'Visitante')
     fecha = partido.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+    home_id = partido.get('home_id')
+    away_id = partido.get('away_id')
     
     semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
     
-    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla)
+    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla, home_id, away_id)
     
     prob_1x2 = calcular_probabilidades_1x2(cuotas)
     prob_btts = calcular_probabilidades_btts(semilla)
@@ -300,7 +345,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     
     return {
         "partido": f"{local} vs {visitante}",
-        "liga": partido.get("liga", "Desconocida"),
+        "liga": partido.get("competition_name", partido.get("liga", "Desconocida")),
         "hora": partido.get("hora", "00:00"),
         "probabilidades_1x2": prob_1x2,
         "probabilidades_btts": prob_btts,
@@ -318,7 +363,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > 0.05  # Mínimo 5% de valor esperado
+    es_value_bet = True  # Sin filtro de valor esperado mínimo
     
     return valor_esperado, es_value_bet
 
@@ -328,10 +373,8 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
     
     if bypass_filters:
         cuota_min, cuota_max = ODDS_RANGE_ANALYZE
-        valor_minimo = 0.0
     else:
         cuota_min, cuota_max = obtener_cuotas_configuradas()
-        valor_minimo = 0.05
     
     cuotas_reales = analisis["cuotas_disponibles"]
     
@@ -420,7 +463,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
                 
             ve, es_value = calcular_value_bet(probabilidad, cuota_real)
             
-            if bypass_filters or (es_value and ve >= valor_minimo):
+            if cuota_min <= cuota_real <= cuota_max:
                 edge_percentage = ve * 100
                 cumple_publicacion = es_value and ve >= 0.05 and (cuota_min <= cuota_real <= cuota_max) and source == "api"
                 
@@ -487,7 +530,16 @@ def generar_justificacion(apuesta: Dict[str, Any], analisis: Dict[str, Any]) -> 
 def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optional[Dict[str, Any]]:
     try:
         analisis = analizar_partido_completo(partido)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=2)
+        
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=False)
+        
+        if not mejores_apuestas:
+            mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=True)
+            
+            min_odds, max_odds = ODDS_RANGE_PUBLISH
+            mejores_apuestas = [a for a in mejores_apuestas if min_odds <= a["cuota"] <= max_odds]
+            
+            mejores_apuestas.sort(key=lambda x: x["confianza"], reverse=True)
         
         if not mejores_apuestas:
             return None
@@ -506,7 +558,7 @@ def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optio
             "liga": analisis["liga"],
             "hora": analisis["hora"],
             "prediccion": mejor_apuesta["descripcion"],
-            "cuota": mejor_apuesta["cuota"],
+            "cuota": round(mejor_apuesta["cuota"], 2),
             "stake_recomendado": mejor_apuesta["stake_recomendado"],
             "confianza": round(mejor_apuesta["confianza"], 1),
             "valor_esperado": round(mejor_apuesta["valor_esperado"], 3),
@@ -564,7 +616,9 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
         mensaje += f"⚽️ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
-        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
+        ve_pct = round(pred['valor_esperado'] * 100, 1)
+        ve_sign = '+' if ve_pct >= 0 else ''
+        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: {ve_sign}{ve_pct}%\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
     mensaje += "⚠️ Apostar con responsabilidad"
@@ -572,8 +626,14 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
     return mensaje
 
 def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None:
-    """Guarda predicción en el historial para seguimiento futuro"""
+    """Guarda predicción en el historial (PostgreSQL + JSON backup)"""
     try:
+        try:
+            from db_predictions import save_prediction
+            save_prediction(prediccion, fecha)
+        except Exception as db_error:
+            print(f"Warning: Could not save to PostgreSQL: {db_error}")
+        
         from json_storage import guardar_json, cargar_json
         
         historial = cargar_json("historial_predicciones.json") or []

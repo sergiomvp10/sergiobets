@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 ADMIN_TELEGRAM_ID = int(os.getenv('ADMIN_TELEGRAM_ID', '7659029315'))
 PAYMENTS_GROUP_ID = int(os.getenv('PAYMENTS_GROUP_ID', os.getenv('ADMIN_TELEGRAM_ID', '7659029315')))
 USUARIOS_FILE = 'usuarios.txt'
@@ -60,7 +60,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             mensaje_acceso = ""
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
+    mensaje = f"𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼 𝗮 𝗕𝗲𝘁𝗴𝗲𝗻𝗶𝘂𝘅\n¡Prepárate para ganar! 🤑{mensaje_acceso}"
     
     keyboard = [
         [
@@ -224,17 +224,41 @@ async def mostrar_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(mensaje, reply_markup=reply_markup)
 
 async def mostrar_estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostrar estadísticas del sistema"""
+    """Mostrar estadísticas del sistema (PostgreSQL + JSON fallback)"""
     query = update.callback_query
     try:
-        from track_record import TrackRecordManager
+        try:
+            from db_predictions import get_statistics
+            stats = get_statistics(days=None)
+            
+            if stats['total'] > 0:
+                fallos = stats['fallos']
+                mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
+
+PRONOSTICOS:
+
+• Total: {stats['total']}
+• Resueltos: {stats['aciertos'] + stats['fallos']}
+• Pendientes: {stats['pendientes']}
+• Aciertos: {stats['aciertos']}
+• Fallos: {fallos}
+• Tasa de éxito: {stats['win_rate']:.1f}%
+
+📅 Actualizado: {datetime.now().strftime('%Y-%m-%d')}"""
+            else:
+                raise Exception("No data in PostgreSQL, falling back to JSON")
         
-        api_key = "ba2674c1de1595d6af7c099be1bcef8c915f9324f0c1f0f5ac926106d199dafd"
-        tracker = TrackRecordManager(api_key)
-        metricas = tracker.calcular_metricas_rendimiento()
-        
-        if "error" in metricas:
-            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
+        except Exception as db_error:
+            # Fallback to JSON + TrackRecordManager
+            logger.warning(f"PostgreSQL stats failed, using JSON fallback: {db_error}")
+            from track_record import TrackRecordManager
+            
+            api_key = os.getenv('FOOTYSTATS_API_KEY')
+            tracker = TrackRecordManager(api_key)
+            metricas = tracker.calcular_metricas_rendimiento()
+            
+            if "error" in metricas:
+                mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 PRONOSTICOS:
 
@@ -246,9 +270,9 @@ PRONOSTICOS:
 • Tasa de éxito: 68.2%
 
 📅 Actualizado: 2025-08-25"""
-        else:
-            fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
-            mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
+            else:
+                fallos = metricas['predicciones_resueltas'] - metricas['aciertos']
+                mensaje = f"""📊 ESTADÍSTICAS BETGENIUX
 
 PRONOSTICOS:
 
@@ -311,9 +335,9 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ngrok_url = get_current_ngrok_url()
     
     if ngrok_url:
-        mensaje = f"""MEMBRESÍA VIP BETGENIUX
+        mensaje = f"""MEMBRESÍA BETGENIUX
 
-⭐ ACCESO VIP 7 DÍAS ⭐
+⭐️ ACCESO VIP 7 DÍAS ⭐️
 
 • Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
@@ -326,14 +350,14 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔐 MÉTODOS DE PAGO DISPONIBLES:
 
 • USDT (TRC20)
-• Litecoin (LTC)
+• PAYPAL (USD)
 • NEQUI (Colombia)
 
 🚀 ¡Selecciona tu método de pago preferido!"""
     else:
-        mensaje = """MEMBRESÍA VIP BETGENIUX
+        mensaje = """MEMBRESÍA BETGENIUX
 
-⭐ ACCESO VIP 7 DÍAS ⭐
+⭐️ ACCESO VIP 7 DÍAS ⭐️
 
 • Predicciones diarias exclusivas de alta confianza
 • Alertas en tiempo real
@@ -346,7 +370,7 @@ async def mostrar_membresia(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔐 MÉTODOS DE PAGO DISPONIBLES:
 
 • USDT (TRC20)
-• Litecoin (LTC)
+• PAYPAL (USD)
 • NEQUI (Colombia)
 
 🚀 ¡Selecciona tu método de pago preferido!"""
@@ -400,9 +424,26 @@ async def volver_menu_principal(update: Update, context: ContextTypes.DEFAULT_TY
     """Volver al menú principal"""
     query = update.callback_query
     user = query.from_user
-    first_name = user.first_name
+    user_id = user.id
     
-    mensaje = f"Bienvenido a 𝔹𝕖𝕥𝔾𝕖𝕟𝕚𝕦𝕏 \n\n¡Prepárate para ganar! \n\nTu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
+    access_manager.limpiar_usuarios_expirados()
+    
+    tiene_acceso = verificar_acceso(str(user_id))
+    if not tiene_acceso:
+        mensaje_acceso = "\n\n⚠️ Tu acceso premium ha expirado o no tienes acceso premium.\nContacta soporte para renovarlo o adquiere una membresía."
+    else:
+        usuario_info = access_manager.obtener_usuario(str(user_id))
+        if usuario_info and usuario_info.get('fecha_expiracion'):
+            from datetime import datetime
+            try:
+                fecha_exp = datetime.fromisoformat(usuario_info['fecha_expiracion'])
+                mensaje_acceso = f"\n\n👑 Acceso Premium Activo hasta: {fecha_exp.strftime('%Y-%m-%d %H:%M')}"
+            except:
+                mensaje_acceso = "\n\n👑 Acceso Premium Activo"
+        else:
+            mensaje_acceso = ""
+    
+    mensaje = f"𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼 𝗮 𝗕𝗲𝘁𝗴𝗲𝗻𝗶𝘂𝘅\n¡Prepárate para ganar! 🤑{mensaje_acceso}"
     
     keyboard = [
         [
@@ -425,6 +466,11 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def iniciar_bot_listener():
     """Iniciar el bot listener para registrar usuarios"""
     try:
+        import sys
+        import telegram as telegram_module
+        logger.info(f"🐍 Python runtime: {sys.version}")
+        logger.info(f"📦 python-telegram-bot version: {telegram_module.__version__}")
+        
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         application.add_handler(CommandHandler("start", start_command))
@@ -444,7 +490,7 @@ def iniciar_bot_listener():
         logger.info(f"🔧 USDT_PAYMENTS_FILE: {USDT_PAYMENTS_FILE}")
         logger.info(f"🔧 PAYPAL_PAYMENTS_FILE: {PAYPAL_PAYMENTS_FILE}")
         
-        application.run_polling(stop_signals=None)
+        application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
         logger.error(f"Error iniciando bot listener: {e}")
