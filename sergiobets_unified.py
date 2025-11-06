@@ -289,6 +289,9 @@ class SergioBetsUnified:
             self.ngrok_process = None
             self.ngrok_url = None
             self.running = True
+            self.ventana_track = None
+            self.ventana_usuarios = None
+            self.ventana_hot_teams = None
             
             try:
                 from daily_counter import reset_daily_counter, get_current_date, load_counter_data
@@ -591,6 +594,9 @@ class SergioBetsUnified:
         self.tab_principal = ttk.Frame(self.notebook, style='TFrame')
         self.notebook.add(self.tab_principal, text="🏠 Principal")
         
+        self.tab_hot_teams = ttk.Frame(self.notebook, style='TFrame')
+        self.notebook.add(self.tab_hot_teams, text="🔥 Hot Teams")
+        
         self.tab_ajustes = ttk.Frame(self.notebook, style='TFrame')
         self.notebook.add(self.tab_ajustes, text="⚙️ Ajustes")
         
@@ -673,6 +679,7 @@ class SergioBetsUnified:
         self.frame_predicciones = self.sf_predicciones.inner
         self.frame_partidos = self.sf_partidos.inner
         
+        self.setup_hot_teams_tab()
         self.setup_settings_tab()
         
         print("✅ GUI setup completed with modern theme")
@@ -699,6 +706,311 @@ class SergioBetsUnified:
         """Guarda la configuración en config_app.json"""
         guardar_json("config_app.json", config)
 
+    def setup_hot_teams_tab(self):
+        """Setup the Hot Teams tab with analysis of hot teams"""
+        import tkinter as tk
+        from tkinter import ttk
+        
+        self.tab_hot_teams.grid_rowconfigure(0, weight=1)
+        self.tab_hot_teams.grid_columnconfigure(0, weight=1)
+        
+        canvas = tk.Canvas(self.tab_hot_teams, bg="#2c3e50", highlightthickness=0)
+        scrollbar = tk.Scrollbar(self.tab_hot_teams, orient="vertical", command=canvas.yview)
+        self.hot_teams_frame = tk.Frame(canvas, bg="#2c3e50")
+        
+        self.hot_teams_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=self.hot_teams_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
+        scrollbar.grid(row=0, column=1, sticky='ns')
+        
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", on_mousewheel)
+        
+        titulo = tk.Label(self.hot_teams_frame, text="🔥 HOT TEAMS - EQUIPOS CALIENTES PARA SEGUIR", 
+                         bg="#2c3e50", fg="white", font=('Segoe UI', 16, 'bold'))
+        titulo.pack(pady=(10, 5))
+        
+        subtitulo = tk.Label(self.hot_teams_frame, 
+                            text="Análisis de equipos en forma con alto potencial de goles (Over 2.5 / BTTS)",
+                            bg="#2c3e50", fg="#ecf0f1", font=('Segoe UI', 10))
+        subtitulo.pack(pady=(0, 10))
+        
+        btn_frame = tk.Frame(self.hot_teams_frame, bg="#2c3e50")
+        btn_frame.pack(pady=10)
+        
+        tk.Button(btn_frame, text="🔄 Analizar Equipos Calientes", 
+                 command=self.cargar_hot_teams,
+                 bg="#3498db", fg="white", font=('Segoe UI', 11, 'bold'),
+                 padx=20, pady=10).pack()
+        
+        self.hot_teams_content = tk.Frame(self.hot_teams_frame, bg="#2c3e50")
+        self.hot_teams_content.pack(fill='both', expand=True, padx=10, pady=10)
+    
+    def cargar_hot_teams(self):
+        """Load and display hot teams analysis"""
+        import tkinter as tk
+        from tkinter import messagebox
+        import threading
+        
+        for widget in self.hot_teams_content.winfo_children():
+            widget.destroy()
+        
+        loading_label = tk.Label(self.hot_teams_content, 
+                                text="🔄 Analizando equipos calientes...\nEsto puede tomar unos segundos",
+                                bg="#2c3e50", fg="white", font=('Segoe UI', 12))
+        loading_label.pack(pady=50)
+        
+        def analizar():
+            try:
+                import requests
+                import os
+                
+                api_key = os.getenv('FOOTYSTATS_API_KEY')
+                if not api_key:
+                    self.root.after(0, lambda: loading_label.config(
+                        text="❌ Error: FOOTYSTATS_API_KEY no encontrada en .env"))
+                    return
+                
+                base_url = "https://api.football-data-api.com"
+                
+                ligas_analizar = {
+                    'ESP': ('La Liga', 14956),
+                    'ENG': ('Premier League', 14957),
+                    'GER': ('Bundesliga', 14968),
+                    'ITA': ('Serie A', 14958),
+                    'FRA': ('Ligue 1', 14959),
+                    'ARG': ('Liga Argentina', 15746),
+                    'NED': ('Eredivisie', 14960),
+                    'POR': ('Liga Portugal', 14961)
+                }
+                
+                hot_teams_data = {}
+                
+                for liga_code, (liga_name, comp_id) in ligas_analizar.items():
+                    try:
+                        endpoint = f"{base_url}/league-tables"
+                        params = {
+                            'key': api_key,
+                            'season_id': comp_id
+                        }
+                        
+                        response = requests.get(endpoint, params=params, timeout=15)
+                        if response.status_code != 200:
+                            print(f"Error obteniendo {liga_name}: {response.status_code}")
+                            continue
+                        
+                        data = response.json()
+                        standings = data.get('data', {}).get('league_table', [])
+                        
+                        if not standings:
+                            print(f"No standings data for {liga_name}")
+                            continue
+                        
+                        teams_analysis = []
+                        for team in standings[:20]:
+                            team_id = team.get('id')
+                            
+                            matches_played = (team.get('matchesPlayed') or team.get('overall_played') or 
+                                            team.get('played') or 0)
+                            
+                            if matches_played < 8:
+                                continue
+                            
+                            goals_scored_home = team.get('seasonGoals_home', 0)
+                            goals_scored_away = team.get('seasonGoals_away', 0)
+                            goals_scored = team.get('seasonGoals', goals_scored_home + goals_scored_away)
+                            
+                            goals_conceded_home = team.get('seasonConceded_home', 0)
+                            goals_conceded_away = team.get('seasonConceded_away', 0)
+                            goals_conceded = team.get('seasonConceded', goals_conceded_home + goals_conceded_away)
+                            
+                            avg_goals_scored = goals_scored / matches_played if matches_played > 0 else 0
+                            avg_goals_conceded = goals_conceded / matches_played if matches_played > 0 else 0
+                            avg_total_goals = avg_goals_scored + avg_goals_conceded
+                            
+                            team_name = f"Equipo {team_id}"
+                            try:
+                                team_endpoint = f"{base_url}/team"
+                                team_params = {'key': api_key, 'team_id': team_id}
+                                team_response = requests.get(team_endpoint, params=team_params, timeout=10)
+                                
+                                if team_response.status_code == 200:
+                                    team_data = team_response.json()
+                                    if isinstance(team_data.get('data'), list) and team_data['data']:
+                                        team_info = team_data['data'][0]
+                                        team_name = (team_info.get('name') or team_info.get('team_name') or 
+                                                   team_info.get('club_name') or team_name)
+                            except:
+                                pass
+                            
+                            if avg_goals_scored >= 1.0 and avg_goals_conceded >= 0.8:
+                                btts_pct = min(95, (avg_goals_scored * avg_goals_conceded * 50))
+                            else:
+                                btts_pct = max(20, (avg_goals_scored * avg_goals_conceded * 40))
+                            
+                            if avg_total_goals >= 3.5:
+                                over25_pct = min(95, ((avg_total_goals - 2.5) / 2.0) * 100)
+                            elif avg_total_goals >= 2.5:
+                                over25_pct = 50 + ((avg_total_goals - 2.5) * 40)
+                            else:
+                                over25_pct = max(10, (avg_total_goals / 2.5) * 50)
+                            
+                            hot_score = (
+                                avg_goals_scored * 3.0 +
+                                avg_goals_conceded * 1.5 +
+                                (btts_pct / 100) * 20 +
+                                (over25_pct / 100) * 25
+                            )
+                            
+                            reasons = []
+                            if avg_goals_scored >= 2.0:
+                                reasons.append(f"⚽ Ataque potente ({avg_goals_scored:.1f} goles/partido)")
+                            if avg_goals_conceded >= 1.5:
+                                reasons.append(f"🥅 Defensa permisiva ({avg_goals_conceded:.1f} goles concedidos)")
+                            if avg_total_goals >= 3.0:
+                                reasons.append(f"📊 Partidos con muchos goles ({avg_total_goals:.1f} total)")
+                            if btts_pct >= 65:
+                                reasons.append(f"🎯 Alta probabilidad BTTS ({btts_pct:.0f}%)")
+                            if over25_pct >= 65:
+                                reasons.append(f"📈 Alta probabilidad Over 2.5 ({over25_pct:.0f}%)")
+                            
+                            if not reasons:
+                                reasons.append("📌 Equipo con potencial ofensivo")
+                            
+                            if avg_goals_scored >= 1.3 or avg_total_goals >= 2.3:
+                                teams_analysis.append({
+                                    'team': team_name,
+                                    'matches': matches_played,
+                                    'avg_scored': avg_goals_scored,
+                                    'avg_conceded': avg_goals_conceded,
+                                    'avg_total': avg_total_goals,
+                                    'btts_pct': btts_pct,
+                                    'over25_pct': over25_pct,
+                                    'hot_score': hot_score,
+                                    'reasons': reasons
+                                })
+                        
+                        teams_analysis.sort(key=lambda x: x['hot_score'], reverse=True)
+                        hot_teams_data[liga_name] = teams_analysis[:3]
+                    
+                    except Exception as e:
+                        print(f"Error analizando {liga_name}: {e}")
+                        continue
+                
+                self.root.after(0, lambda: self.mostrar_hot_teams(hot_teams_data, loading_label))
+            
+            except Exception as e:
+                self.root.after(0, lambda: loading_label.config(text=f"❌ Error: {str(e)}"))
+        
+        thread = threading.Thread(target=analizar, daemon=True)
+        thread.start()
+    
+    def mostrar_hot_teams(self, hot_teams_data, loading_label):
+        """Display hot teams data in the UI"""
+        import tkinter as tk
+        
+        loading_label.destroy()
+        
+        if not hot_teams_data:
+            no_data_label = tk.Label(self.hot_teams_content,
+                                    text="⚠️ No se pudieron obtener datos de equipos calientes",
+                                    bg="#2c3e50", fg="#e74c3c", font=('Segoe UI', 12))
+            no_data_label.pack(pady=50)
+            return
+        
+        for liga_name, teams in hot_teams_data.items():
+            if not teams:
+                continue
+            
+            liga_frame = tk.Frame(self.hot_teams_content, bg="#34495e", relief='raised', bd=2)
+            liga_frame.pack(fill='x', padx=10, pady=10)
+            
+            liga_header = tk.Label(liga_frame, text=f"🏆 {liga_name}",
+                                  bg="#34495e", fg="white", font=('Segoe UI', 14, 'bold'))
+            liga_header.pack(pady=10, padx=10, anchor='w')
+            
+            for idx, team_data in enumerate(teams, 1):
+                team_frame = tk.Frame(liga_frame, bg="white", relief='ridge', bd=1)
+                team_frame.pack(fill='x', padx=15, pady=5)
+                
+                if team_data['hot_score'] >= 5.0:
+                    indicator = "🔥🔥🔥"
+                    color = "#e74c3c"
+                elif team_data['hot_score'] >= 4.0:
+                    indicator = "🔥🔥"
+                    color = "#e67e22"
+                else:
+                    indicator = "🔥"
+                    color = "#f39c12"
+                
+                header_frame = tk.Frame(team_frame, bg="white")
+                header_frame.pack(fill='x', padx=10, pady=5)
+                
+                tk.Label(header_frame, text=f"{indicator} #{idx} {team_data['team']}",
+                        bg="white", fg=color, font=('Segoe UI', 12, 'bold')).pack(side='left')
+                
+                tk.Label(header_frame, text=f"Score: {team_data['hot_score']:.1f}",
+                        bg="white", fg="#7f8c8d", font=('Segoe UI', 10)).pack(side='right')
+                
+                stats_frame = tk.Frame(team_frame, bg="white")
+                stats_frame.pack(fill='x', padx=10, pady=5)
+                
+                stats_text = (
+                    f"⚽ Goles anotados: {team_data['avg_scored']:.2f}/partido  |  "
+                    f"🥅 Goles concedidos: {team_data['avg_conceded']:.2f}/partido  |  "
+                    f"📊 Total promedio: {team_data['avg_total']:.2f} goles  |  "
+                    f"🎯 BTTS: {team_data['btts_pct']:.0f}%  |  "
+                    f"📈 Over 2.5: {team_data['over25_pct']:.0f}%  |  "
+                    f"🏟️ Partidos: {team_data['matches']}"
+                )
+                
+                tk.Label(stats_frame, text=stats_text,
+                        bg="white", fg="#2c3e50", font=('Segoe UI', 9)).pack(anchor='w')
+                
+                reasons_frame = tk.Frame(team_frame, bg="#e8f5e9")
+                reasons_frame.pack(fill='x', padx=10, pady=5)
+                
+                reasons_title = tk.Label(reasons_frame, text="🔍 Por qué es caliente:",
+                                        bg="#e8f5e9", fg="#2c3e50", font=('Segoe UI', 9, 'bold'))
+                reasons_title.pack(anchor='w', padx=5, pady=(5, 2))
+                
+                for reason in team_data.get('reasons', []):
+                    tk.Label(reasons_frame, text=f"  • {reason}",
+                            bg="#e8f5e9", fg="#2c3e50", font=('Segoe UI', 8)).pack(anchor='w', padx=10)
+                
+                recom_frame = tk.Frame(team_frame, bg="#ecf0f1")
+                recom_frame.pack(fill='x', padx=10, pady=5)
+                
+                if team_data['over25_pct'] >= 65 and team_data['avg_total'] >= 3.0:
+                    recom_text = "💡 Recomendación FUERTE: Over 2.5 goles"
+                    recom_color = "#27ae60"
+                elif team_data['btts_pct'] >= 70:
+                    recom_text = "💡 Recomendación FUERTE: Ambos equipos marcan (BTTS)"
+                    recom_color = "#27ae60"
+                elif team_data['over25_pct'] >= 55:
+                    recom_text = "💡 Recomendación: Over 2.5 goles"
+                    recom_color = "#2ecc71"
+                elif team_data['btts_pct'] >= 60:
+                    recom_text = "💡 Recomendación: Ambos equipos marcan (BTTS)"
+                    recom_color = "#2ecc71"
+                elif team_data['avg_scored'] >= 2.0:
+                    recom_text = "💡 Recomendación: Over 1.5 goles / Equipo anota"
+                    recom_color = "#3498db"
+                else:
+                    recom_text = "💡 Seguir de cerca - Potencial en partidos específicos"
+                    recom_color = "#95a5a6"
+                
+                tk.Label(recom_frame, text=recom_text,
+                        bg="#ecf0f1", fg=recom_color, font=('Segoe UI', 9, 'bold')).pack(pady=5, padx=5, anchor='w')
+    
     def setup_settings_tab(self):
         """Setup the Settings tab content"""
         import tkinter as tk
@@ -780,16 +1092,14 @@ class SergioBetsUnified:
             
             for partido in datos_api:
                 try:
-                    liga_detectada = detectar_liga_por_imagen(
-                        partido.get("home_image", ""), 
-                        partido.get("away_image", "")
-                    )
+                    liga_correcta = partido.get("competition_name", "Liga desconocida")
+                    
                     from league_utils import convertir_timestamp_unix
                     hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
                     
                     partidos.append({
                         "hora": hora_partido,
-                        "liga": liga_detectada,
+                        "liga": liga_correcta,
                         "local": partido.get("home_name", f"Team {partido.get('homeID', 'Home')}"),
                         "visitante": partido.get("away_name", f"Team {partido.get('awayID', 'Away')}"),
                         "cuotas": {
@@ -1036,6 +1346,9 @@ class SergioBetsUnified:
         header.grid_columnconfigure(0, weight=1)
         ttk.Label(header, text=titulo_text, style='Header.TLabel').grid(row=0, column=0, sticky='w')
         
+        max_confianza = max(pred.get('confianza', 0) for pred in predicciones)
+        top_pick_index = next((i for i, pred in enumerate(predicciones) if pred.get('confianza', 0) == max_confianza), 0)
+        
         for i, pred in enumerate(predicciones, 1):
             self.predicciones_actuales.append(pred)
             
@@ -1049,10 +1362,27 @@ class SergioBetsUnified:
             chk = ttk.Checkbutton(rowf, variable=var_checkbox)
             chk.grid(row=0, column=0, padx=(0, 10), sticky='nw')
             
+            is_top_pick = (i - 1 == top_pick_index and len(predicciones) > 1)
+            
             pred_text = f"🎯 PRONÓSTICO #{i}: {pred['prediccion']} | ⚽ {pred['partido']} | 💰 {pred['cuota']} | ⏰ {pred['hora']}"
             title = ttk.Label(rowf, text=pred_text, style='ItemTitle.TLabel', anchor='w', justify='left')
             title.grid(row=0, column=1, sticky='ew')
             title.bind('<Configure>', lambda e, lbl=title: lbl.config(wraplength=max(lbl.winfo_width()-10, 200)))
+            
+            if is_top_pick:
+                top_pick_label = tk.Label(rowf, text="🔥 TOP PICK", bg='white', 
+                                         fg="#FF4500", font=('Segoe UI', 14, 'bold'), anchor='center')
+                top_pick_label.grid(row=0, column=2, padx=(10, 0), sticky='ew', pady=0)
+                
+                def animate_top_pick(label, colors=['#FF4500', '#FF6347', '#FF7F50', '#FF6347'], index=0):
+                    try:
+                        if label.winfo_exists():
+                            label.config(fg=colors[index % len(colors)])
+                            label.after(500, lambda: animate_top_pick(label, colors, index + 1))
+                    except:
+                        pass
+                
+                animate_top_pick(top_pick_label)
             
             sub_text = f"📝 {pred['razon']}"
             sub = ttk.Label(rowf, text=sub_text, style='ItemSub.TLabel', anchor='w', justify='left')
@@ -1835,6 +2165,21 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
     def abrir_track_record(self):
         """Abre ventana de track record mejorada con filtros y tabla estructurada"""
         try:
+            if getattr(self, 'ventana_track', None) and self.ventana_track.winfo_exists():
+                try:
+                    if self.ventana_track.state() in ('iconic', 'withdrawn'):
+                        self.ventana_track.deiconify()
+                except:
+                    pass
+                self.ventana_track.lift()
+                self.ventana_track.attributes('-topmost', True)
+                self.ventana_track.attributes('-topmost', False)
+                self.ventana_track.focus_force()
+                return
+        except Exception:
+            self.ventana_track = None
+        
+        try:
             from track_record import TrackRecordManager
             import os
             from datetime import datetime, timedelta
@@ -1859,9 +2204,45 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             tracker = TrackRecordManager(api_key)
             
             ventana_track = tk.Toplevel(self.root)
+            self.ventana_track = ventana_track
             ventana_track.title("📊 Track Record Mejorado - SergioBets IA")
             ventana_track.geometry("1400x800")
             ventana_track.configure(bg="#2c3e50")
+            
+            def on_close():
+                self.ventana_track = None
+                ventana_track.destroy()
+            
+            ventana_track.protocol('WM_DELETE_WINDOW', on_close)
+            
+            selected = {"bet": None, "frame": None}
+            
+            def on_card_click(event):
+                """Handle click on any widget - find parent card and select it"""
+                widget = event.widget
+                while widget is not None:
+                    if getattr(widget, '_is_bet_card', False):
+                        bet = getattr(widget, '_bet', None)
+                        if bet and selected["frame"] is not widget:
+                            if selected["frame"] is not None:
+                                selected["frame"].config(highlightthickness=1, highlightbackground="#3b5064", bg="white", bd=1)
+                            selected["bet"] = bet
+                            selected["frame"] = widget
+                            widget.config(highlightthickness=3, highlightbackground="#1abc9c", bd=2, bg="#f7f9fa")
+                            try:
+                                btn_editar.config(state=tk.NORMAL)
+                            except:
+                                pass
+                        return "break"
+                    try:
+                        widget = widget.master
+                    except:
+                        break
+                return None
+            
+            if not getattr(ventana_track, '_card_click_bound', False):
+                ventana_track.bind('<Button-1>', on_card_click, add='+')
+                ventana_track._card_click_bound = True
             
             frame_principal = tk.Frame(ventana_track, bg="#2c3e50")
             frame_principal.pack(fill='both', expand=True, padx=10, pady=10)
@@ -1871,13 +2252,13 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             titulo.pack(pady=(0, 20))
             
             frame_filtros = tk.Frame(frame_principal, bg="#2c3e50")
-            frame_filtros.pack(fill='x', pady=(0, 10))
+            frame_filtros.pack(fill='x', pady=(0, 8))
+            
+            frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
+            frame_acciones.pack(fill='x', pady=(0, 8))
             
             frame_fechas = tk.Frame(frame_principal, bg="#2c3e50")
             frame_fechas.pack(fill='x', pady=(0, 10))
-            
-            frame_acciones = tk.Frame(frame_principal, bg="#2c3e50")
-            frame_acciones.pack(fill='x', pady=(0, 10))
             
             filtro_actual = tk.StringVar(value="historico")
             fecha_inicio = tk.StringVar()
@@ -1920,6 +2301,13 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                 except:
                     historial = []
                 
+                selected["bet"] = None
+                selected["frame"] = None
+                try:
+                    btn_editar.config(state=tk.DISABLED)
+                except:
+                    pass
+                
                 for widget in frame_principal.winfo_children():
                     if widget not in [frame_filtros, frame_fechas, frame_acciones]:
                         widget.destroy()
@@ -1941,6 +2329,20 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                 else:
                     return
                 
+                def parse_date(date_str):
+                    """Parse date string to datetime for sorting"""
+                    if not date_str:
+                        return datetime.min
+                    try:
+                        return datetime.fromisoformat(date_str)
+                    except:
+                        try:
+                            return datetime.strptime(date_str, "%Y-%m-%d")
+                        except:
+                            return datetime.min
+                
+                bets_filtrados.sort(key=lambda p: parse_date(p.get('fecha_actualizacion') or p.get('fecha')), reverse=True)
+                
                 canvas = tk.Canvas(frame_principal, bg="#2c3e50", highlightthickness=0)
                 scrollbar = ttk.Scrollbar(frame_principal, orient="vertical", command=canvas.yview, style='Slim.Vertical.TScrollbar')
                 scrollable_frame = tk.Frame(canvas, bg="#2c3e50")
@@ -1950,12 +2352,17 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                     lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
                 )
                 
-                canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+                window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
                 canvas.configure(yscrollcommand=scrollbar.set)
+                canvas.bind("<Configure>", lambda e: canvas.itemconfigure(window_id, width=e.width))
+                
+                num_cols = 4
+                for c in range(num_cols):
+                    scrollable_frame.grid_columnconfigure(c, weight=1, uniform='cards')
                 
                 titulo_label = tk.Label(scrollable_frame, text=f"{titulo} ({len(bets_filtrados)} apuestas)", 
-                                       bg="#2c3e50", fg=color_titulo, font=('Segoe UI', 14, 'bold'))
-                titulo_label.pack(pady=(10, 20))
+                                       bg="#2c3e50", fg=color_titulo, font=('Segoe UI', 18, 'bold'))
+                titulo_label.grid(row=0, column=0, columnspan=4, padx=10, pady=(10, 20))
                 
                 def eliminar_prediccion_individual(bet_to_delete):
                     """Eliminar una predicción individual del historial"""
@@ -2037,32 +2444,26 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                     else:
                         no_bets_label = tk.Label(scrollable_frame, text="No hay apuestas falladas enviadas a Telegram", 
                                                 bg="#2c3e50", fg="#7f8c8d", font=('Segoe UI', 12))
-                    no_bets_label.pack(pady=20)
+                    no_bets_label.grid(row=1, column=0, columnspan=4, pady=20)
                 else:
                     for i, bet in enumerate(bets_filtrados):
-                        bet_frame = tk.Frame(scrollable_frame, bg="white", relief='ridge', bd=1)
-                        bet_frame.pack(fill='x', pady=5, padx=10)
+                        row = 1 + i // num_cols
+                        col = i % num_cols
+                        
+                        bet_frame = tk.Frame(scrollable_frame, bg="white", relief='ridge', bd=1, 
+                                           highlightthickness=1, highlightbackground="#3b5064", cursor="hand2")
+                        bet_frame.grid(row=row, column=col, sticky='nsew', padx=8, pady=8)
+                        
+                        bet_frame._is_bet_card = True
+                        bet_frame._bet = bet
                         
                         header_frame = tk.Frame(bet_frame, bg="white")
                         header_frame.pack(fill='x', padx=10, pady=(5, 0))
                         
                         partido_text = f"⚽ {bet.get('partido', 'N/A')}"
                         partido_label = tk.Label(header_frame, text=partido_text, bg="white", 
-                                               font=('Segoe UI', 11, 'bold'), anchor='w')
+                                               font=('Segoe UI', 10, 'bold'), anchor='w', wraplength=280)
                         partido_label.pack(side='left', fill='x', expand=True)
-                        
-                        if categoria == "fallados":
-                            edit_btn = tk.Button(header_frame, text="✏️", 
-                                               command=lambda b=bet: editar_prediccion_individual(b),
-                                               bg="#f39c12", fg="white", font=('Segoe UI', 8, 'bold'), 
-                                               padx=5, pady=2)
-                            edit_btn.pack(side='right', padx=(5, 0))
-                        
-                        delete_btn = tk.Button(header_frame, text="🗑️", 
-                                             command=lambda b=bet: eliminar_prediccion_individual(b),
-                                             bg="#e74c3c", fg="white", font=('Segoe UI', 8, 'bold'), 
-                                             padx=5, pady=2)
-                        delete_btn.pack(side='right', padx=(5, 0))
                         
                         prediccion_text = f"🎯 {bet.get('prediccion', 'N/A')} | 💰 {bet.get('cuota', 'N/A')} | 💵 ${bet.get('stake', 'N/A')}"
                         prediccion_label = tk.Label(bet_frame, text=prediccion_text, bg="white", 
@@ -2306,56 +2707,214 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                     except Exception as e:
                         messagebox.showerror("Error", f"Error limpiando historial: {e}")
             
+            frame_filtros.grid_columnconfigure(0, weight=1, uniform='filters')
+            frame_filtros.grid_columnconfigure(1, weight=1, uniform='filters')
+            frame_filtros.grid_columnconfigure(2, weight=1, uniform='filters')
+            
             btn_pendientes = tk.Button(frame_filtros, text="📌 PENDIENTES", 
                                       command=filtrar_pendientes, bg="#f39c12", fg="white",
-                                      font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_pendientes.pack(side='left', padx=(0, 5))
+                                      font=('Segoe UI', 10, 'bold'), padx=10, pady=6)
+            btn_pendientes.grid(row=0, column=0, sticky='ew', padx=8, pady=6)
             
             btn_acertados = tk.Button(frame_filtros, text="✅ ACERTADOS", 
                                      command=filtrar_acertados, bg="#27ae60", fg="white",
-                                     font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_acertados.pack(side='left', padx=5)
+                                     font=('Segoe UI', 10, 'bold'), padx=10, pady=6)
+            btn_acertados.grid(row=0, column=1, sticky='ew', padx=8, pady=6)
             
             btn_fallados = tk.Button(frame_filtros, text="❌ FALLADOS", 
                                     command=filtrar_fallados, bg="#e74c3c", fg="white",
-                                    font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_fallados.pack(side='left', padx=5)
+                                    font=('Segoe UI', 10, 'bold'), padx=10, pady=6)
+            btn_fallados.grid(row=0, column=2, sticky='ew', padx=8, pady=6)
             
-            btn_historico = tk.Button(frame_filtros, text="📅 HISTÓRICO", 
-                                     command=filtrar_historico, bg="#3498db", fg="white",
-                                     font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_historico.pack(side='left', padx=5)
             
+            frame_fechas.grid_columnconfigure(2, weight=1)
+            frame_fechas.grid_columnconfigure(4, weight=1)
             
             tk.Label(frame_fechas, text="🗓️ Filtro por fechas:", 
-                    bg="#2c3e50", fg="white", font=('Segoe UI', 10, 'bold')).pack(side='left')
+                    bg="#2c3e50", fg="white", font=('Segoe UI', 10, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 15))
             
-            tk.Label(frame_fechas, text="Desde:", bg="#2c3e50", fg="white").pack(side='left', padx=(10, 5))
-            entry_fecha_inicio = DateEntry(frame_fechas, width=12, background="darkblue", 
+            tk.Label(frame_fechas, text="Desde:", bg="#2c3e50", fg="white", 
+                    font=('Segoe UI', 10)).grid(row=0, column=1, sticky='w', padx=(0, 5))
+            entry_fecha_inicio = DateEntry(frame_fechas, width=14, background="darkblue", 
                                           foreground="white", borderwidth=2, 
                                           date_pattern='yyyy-MM-dd', textvariable=fecha_inicio)
-            entry_fecha_inicio.pack(side='left', padx=5)
+            entry_fecha_inicio.grid(row=0, column=2, sticky='ew', padx=(0, 15))
             
-            tk.Label(frame_fechas, text="Hasta:", bg="#2c3e50", fg="white").pack(side='left', padx=(10, 5))
-            entry_fecha_fin = DateEntry(frame_fechas, width=12, background="darkblue", 
+            tk.Label(frame_fechas, text="Hasta:", bg="#2c3e50", fg="white",
+                    font=('Segoe UI', 10)).grid(row=0, column=3, sticky='w', padx=(0, 5))
+            entry_fecha_fin = DateEntry(frame_fechas, width=14, background="darkblue", 
                                        foreground="white", borderwidth=2, 
                                        date_pattern='yyyy-MM-dd', textvariable=fecha_fin)
-            entry_fecha_fin.pack(side='left', padx=5)
+            entry_fecha_fin.grid(row=0, column=4, sticky='ew', padx=(0, 15))
             
             btn_filtrar_fecha = tk.Button(frame_fechas, text="🗓️ FILTRAR", 
                                          command=filtrar_por_fecha, bg="#34495e", fg="white",
-                                         font=('Segoe UI', 10, 'bold'), padx=10, pady=5)
-            btn_filtrar_fecha.pack(side='left', padx=(10, 0))
+                                         font=('Segoe UI', 10, 'bold'), padx=20, pady=6)
+            btn_filtrar_fecha.grid(row=0, column=5, sticky='e')
+            
+            frame_acciones.grid_columnconfigure(0, weight=1, uniform='actions')
+            frame_acciones.grid_columnconfigure(1, weight=1, uniform='actions')
             
             btn_actualizar = tk.Button(frame_acciones, text="🔄 Actualizar Resultados", 
                                       command=actualizar_resultados, bg="#3498db", fg="white",
-                                      font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
-            btn_actualizar.pack(side='left', padx=(0, 10))
+                                      font=('Segoe UI', 10, 'bold'), padx=14, pady=6)
+            btn_actualizar.grid(row=0, column=0, sticky='ew', padx=8, pady=6)
             
-            btn_limpiar = tk.Button(frame_acciones, text="🧹 Limpiar Historial", 
-                                   command=limpiar_historial, bg="#e74c3c", fg="white",
-                                   font=('Segoe UI', 10, 'bold'), padx=15, pady=5)
-            btn_limpiar.pack(side='left', padx=(0, 10))
+            def abrir_editor_apuesta():
+                """Abrir editor para la apuesta seleccionada"""
+                if not selected["bet"]:
+                    messagebox.showinfo("Selecciona una apuesta", "Por favor selecciona una apuesta para editarla.")
+                    return
+                
+                bet = selected["bet"]
+                
+                editor = tk.Toplevel(ventana_track)
+                editor.title("✏️ Editar Apuesta")
+                editor.geometry("450x350")
+                editor.configure(bg="#2c3e50")
+                editor.transient(ventana_track)
+                editor.grab_set()
+                
+                tk.Label(editor, text=f"Editar: {bet.get('partido', 'N/A')}", 
+                        bg="#2c3e50", fg="white", font=('Segoe UI', 12, 'bold')).pack(pady=(15, 10))
+                
+                tk.Label(editor, text=f"Predicción: {bet.get('prediccion', 'N/A')}", 
+                        bg="#2c3e50", fg="#ecf0f1", font=('Segoe UI', 10)).pack(pady=5)
+                
+                estado_var = tk.StringVar(value="acertada")
+                
+                estado_frame = tk.Frame(editor, bg="#2c3e50")
+                estado_frame.pack(pady=15)
+                
+                tk.Label(estado_frame, text="Estado:", bg="#2c3e50", fg="white", 
+                        font=('Segoe UI', 10, 'bold')).pack(side='left', padx=(0, 10))
+                
+                tk.Radiobutton(estado_frame, text="✅ Acertada", variable=estado_var, value="acertada",
+                             bg="#2c3e50", fg="white", selectcolor="#27ae60", 
+                             font=('Segoe UI', 10)).pack(side='left', padx=10)
+                
+                tk.Radiobutton(estado_frame, text="❌ Fallada", variable=estado_var, value="fallada",
+                             bg="#2c3e50", fg="white", selectcolor="#e74c3c",
+                             font=('Segoe UI', 10)).pack(side='left', padx=10)
+                
+                resultado_frame = tk.Frame(editor, bg="#2c3e50")
+                resultado_frame.pack(pady=15)
+                
+                is_corners = 'corner' in bet.get('prediccion', '').lower()
+                
+                if is_corners:
+                    tk.Label(resultado_frame, text="Total Corners:", bg="#2c3e50", fg="white",
+                            font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+                    corners_entry = tk.Entry(resultado_frame, width=10, font=('Segoe UI', 10))
+                    corners_entry.pack(side='left')
+                else:
+                    tk.Label(resultado_frame, text="Resultado:", bg="#2c3e50", fg="white",
+                            font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+                    
+                    tk.Label(resultado_frame, text="Local:", bg="#2c3e50", fg="white",
+                            font=('Segoe UI', 9)).pack(side='left', padx=(10, 5))
+                    home_entry = tk.Entry(resultado_frame, width=5, font=('Segoe UI', 10))
+                    home_entry.pack(side='left', padx=(0, 10))
+                    
+                    tk.Label(resultado_frame, text="Visitante:", bg="#2c3e50", fg="white",
+                            font=('Segoe UI', 9)).pack(side='left', padx=(0, 5))
+                    away_entry = tk.Entry(resultado_frame, width=5, font=('Segoe UI', 10))
+                    away_entry.pack(side='left')
+                
+                def guardar_cambios():
+                    try:
+                        from datetime import datetime
+                        
+                        if is_corners:
+                            try:
+                                total_corners = int(corners_entry.get())
+                                resultado_real = {"total_corners": total_corners}
+                            except ValueError:
+                                messagebox.showerror("Error", "Por favor ingresa un número válido para corners")
+                                return
+                        else:
+                            try:
+                                home_score = int(home_entry.get())
+                                away_score = int(away_entry.get())
+                                resultado_real = {"home_score": home_score, "away_score": away_score}
+                            except ValueError:
+                                messagebox.showerror("Error", "Por favor ingresa números válidos para el resultado")
+                                return
+                        
+                        historial_actual = cargar_json('historial_predicciones.json') or []
+                        
+                        def normalize_float(val):
+                            """Normalize float for comparison"""
+                            try:
+                                return f"{float(str(val).replace(',', '.')):.2f}"
+                            except:
+                                return "0.00"
+                        
+                        bet_found = False
+                        for prediccion in historial_actual:
+                            partido_match = prediccion.get('partido', '').strip() == bet.get('partido', '').strip()
+                            pred_match = prediccion.get('prediccion', '').strip() == bet.get('prediccion', '').strip()
+                            fecha_match = prediccion.get('fecha', '').strip() == bet.get('fecha', '').strip()
+                            cuota_match = normalize_float(prediccion.get('cuota', 0)) == normalize_float(bet.get('cuota', 0))
+                            
+                            if partido_match and pred_match and fecha_match and cuota_match:
+                                prediccion['acierto'] = (estado_var.get() == "acertada")
+                                prediccion['resultado_real'] = resultado_real
+                                prediccion['actualizacion_manual'] = True
+                                prediccion['fecha_actualizacion'] = datetime.now().isoformat()
+                                
+                                stake = float(str(prediccion.get('stake', 0)).replace(',', '.'))
+                                cuota = float(str(prediccion.get('cuota', 1)).replace(',', '.'))
+                                
+                                if estado_var.get() == "acertada":
+                                    prediccion['ganancia'] = stake * (cuota - 1)
+                                else:
+                                    prediccion['ganancia'] = -stake
+                                
+                                bet_found = True
+                                break
+                        
+                        if not bet_found:
+                            messagebox.showerror("Error", "No se encontró la apuesta en el historial")
+                            return
+                        
+                        with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                            json.dump(historial_actual, f, indent=2, ensure_ascii=False)
+                        
+                        nueva_categoria = "acertados" if estado_var.get() == "acertada" else "fallados"
+                        
+                        editor.destroy()
+                        
+                        selected["bet"] = None
+                        selected["frame"] = None
+                        try:
+                            btn_editar.config(state=tk.DISABLED)
+                        except:
+                            pass
+                        
+                        filtro_actual.set(nueva_categoria)
+                        mostrar_bets_por_categoria(nueva_categoria)
+                        
+                        messagebox.showinfo("Éxito", f"Apuesta actualizada y movida a {nueva_categoria.upper()}")
+                        
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error guardando cambios: {e}")
+                
+                buttons_frame = tk.Frame(editor, bg="#2c3e50")
+                buttons_frame.pack(pady=20)
+                
+                tk.Button(buttons_frame, text="💾 Guardar", command=guardar_cambios,
+                         bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'),
+                         padx=20, pady=8).pack(side='left', padx=10)
+                
+                tk.Button(buttons_frame, text="❌ Cancelar", command=editor.destroy,
+                         bg="#95a5a6", fg="white", font=('Segoe UI', 10, 'bold'),
+                         padx=20, pady=8).pack(side='left', padx=10)
+            
+            btn_editar = tk.Button(frame_acciones, text="✏️ Editar", 
+                                   command=abrir_editor_apuesta, bg="#3498db", fg="white",
+                                   font=('Segoe UI', 10, 'bold'), padx=14, pady=6, state=tk.DISABLED)
+            btn_editar.grid(row=0, column=1, sticky='ew', padx=8, pady=6)
             
             cargar_datos_filtrados()
             
@@ -2366,6 +2925,21 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
 
     def abrir_usuarios(self):
         """Abrir ventana de gestión de usuarios VIP"""
+        try:
+            if getattr(self, 'ventana_usuarios', None) and self.ventana_usuarios.winfo_exists():
+                try:
+                    if self.ventana_usuarios.state() in ('iconic', 'withdrawn'):
+                        self.ventana_usuarios.deiconify()
+                except:
+                    pass
+                self.ventana_usuarios.lift()
+                self.ventana_usuarios.attributes('-topmost', True)
+                self.ventana_usuarios.attributes('-topmost', False)
+                self.ventana_usuarios.focus_force()
+                return
+        except Exception:
+            self.ventana_usuarios = None
+        
         try:
             import tkinter as tk
             from tkinter import messagebox, simpledialog, ttk
@@ -2383,9 +2957,16 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                 return
             
             ventana_usuarios = tk.Toplevel(self.root)
+            self.ventana_usuarios = ventana_usuarios
             ventana_usuarios.title("👥 Gestión de Usuarios VIP")
             ventana_usuarios.geometry("1100x700")
             ventana_usuarios.configure(bg="#2c3e50")
+            
+            def on_close():
+                self.ventana_usuarios = None
+                ventana_usuarios.destroy()
+            
+            ventana_usuarios.protocol('WM_DELETE_WINDOW', on_close)
             
             ventana_usuarios.grid_rowconfigure(1, weight=1)
             ventana_usuarios.grid_columnconfigure(0, weight=1)
@@ -2432,22 +3013,30 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             tree.heading('premium', text='Premium', anchor='center')
             tree.heading('expira', text='Expira', anchor='center')
             
-            tree.column('id', width=120, minwidth=100, anchor='center')
-            tree.column('usuario', width=200, minwidth=150, anchor='w')
-            tree.column('nombre', width=200, minwidth=150, anchor='w')
-            tree.column('premium', width=100, minwidth=80, anchor='center')
-            tree.column('expira', width=180, minwidth=150, anchor='center')
+            tree.column('id', width=120, minwidth=90, anchor='center', stretch=True)
+            tree.column('usuario', width=200, minwidth=160, anchor='w', stretch=True)
+            tree.column('nombre', width=200, minwidth=160, anchor='w', stretch=True)
+            tree.column('premium', width=100, minwidth=90, anchor='center', stretch=True)
+            tree.column('expira', width=180, minwidth=150, anchor='center', stretch=True)
             
             tree.tag_configure('odd', background='#f0f0f0')
             tree.tag_configure('even', background='white')
             
             scrollbar_y = ttk.Scrollbar(frame_table, orient='vertical', command=tree.yview, style='Slim.Vertical.TScrollbar')
-            scrollbar_x = ttk.Scrollbar(frame_table, orient='horizontal', command=tree.xview, style='Slim.Horizontal.TScrollbar')
-            tree.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+            tree.configure(yscrollcommand=scrollbar_y.set)
+            
+            def resize_columns(event):
+                w = event.width
+                weights = {'id': 1, 'usuario': 2, 'nombre': 2, 'premium': 1, 'expira': 1.5}
+                total = sum(weights.values())
+                pad = 20
+                for col, weight in weights.items():
+                    tree.column(col, width=int((w - pad) * weight / total))
+            
+            tree.bind('<Configure>', resize_columns)
             
             tree.grid(row=0, column=0, sticky='nsew')
             scrollbar_y.grid(row=0, column=1, sticky='ns')
-            scrollbar_x.grid(row=1, column=0, sticky='ew')
             
             sort_reverse = {}
             
@@ -2477,6 +3066,11 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             
             frame_botones = tk.Frame(ventana_usuarios, bg="#2c3e50")
             frame_botones.grid(row=2, column=0, sticky='ew', padx=10, pady=(0, 10))
+            
+            frame_botones.grid_columnconfigure(0, weight=1, uniform='buttons')
+            frame_botones.grid_columnconfigure(1, weight=1, uniform='buttons')
+            frame_botones.grid_columnconfigure(2, weight=1, uniform='buttons')
+            frame_botones.grid_columnconfigure(3, weight=1, uniform='buttons')
             
             def actualizar_estadisticas():
                 try:
@@ -2610,19 +3204,19 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             
             tk.Button(frame_botones, text="🔄 Refrescar", command=refrescar_usuarios,
                      bg="#3498db", fg="white", font=('Segoe UI', 10, 'bold'),
-                     padx=15, pady=5).pack(side='left', padx=(0, 5))
+                     padx=15, pady=5).grid(row=0, column=0, sticky='ew', padx=8, pady=6)
             
             tk.Button(frame_botones, text="👑 OTORGAR ACCESO", command=otorgar_acceso,
                      bg="#27ae60", fg="white", font=('Segoe UI', 10, 'bold'),
-                     padx=15, pady=5).pack(side='left', padx=5)
+                     padx=15, pady=5).grid(row=0, column=1, sticky='ew', padx=8, pady=6)
             
             tk.Button(frame_botones, text="🚫 BANEAR", command=banear_usuario,
                      bg="#e74c3c", fg="white", font=('Segoe UI', 10, 'bold'),
-                     padx=15, pady=5).pack(side='left', padx=5)
+                     padx=15, pady=5).grid(row=0, column=2, sticky='ew', padx=8, pady=6)
             
             tk.Button(frame_botones, text="🧹 Limpiar Expirados", command=limpiar_expirados,
                      bg="#f39c12", fg="white", font=('Segoe UI', 10, 'bold'),
-                     padx=15, pady=5).pack(side='left', padx=5)
+                     padx=15, pady=5).grid(row=0, column=3, sticky='ew', padx=8, pady=6)
             
             refrescar_usuarios()
             
