@@ -1451,13 +1451,14 @@ class SergioBetsUnified:
             messagebox.showerror("Error", f"Error en análisis: {str(e)}")
     
     def mostrar_resultado_analisis_individual(self, resultado):
-        """Muestra resultado de análisis individual con mejor pick + botones de acción"""
+        """Muestra resultado de análisis individual con mejor pick + top opciones"""
         import tkinter as tk
         from tkinter import messagebox
+        from tkinter.scrolledtext import ScrolledText
         
         popup = tk.Toplevel(self.root)
         popup.title("🔍 Análisis Individual")
-        popup.geometry("500x400")
+        popup.geometry("600x650")
         popup.configure(bg="#ecf0f1")
         popup.resizable(False, False)
         
@@ -1467,7 +1468,7 @@ class SergioBetsUnified:
         header_frame = tk.Frame(popup, bg="#34495e")
         header_frame.pack(fill='x', pady=(0,10))
         
-        header_label = tk.Label(header_frame, text="🎯 ANÁLISIS INDIVIDUAL", 
+        header_label = tk.Label(header_frame, text="🎯 ANÁLISIS OPTIMIZADO", 
                                bg="#34495e", fg="white", font=('Segoe UI', 12, 'bold'), pady=10)
         header_label.pack()
         
@@ -1482,6 +1483,13 @@ class SergioBetsUnified:
                              bg="#ecf0f1", font=('Segoe UI', 9), fg="#7f8c8d")
         liga_label.pack()
         
+        if resultado.get('warning'):
+            warning_frame = tk.Frame(popup, bg="#fff3cd", relief='solid', bd=1)
+            warning_frame.pack(fill='x', padx=20, pady=5)
+            warning_label = tk.Label(warning_frame, text=resultado['warning'], 
+                                    bg="#fff3cd", fg="#856404", font=('Segoe UI', 9), pady=5)
+            warning_label.pack()
+        
         pick_frame = tk.Frame(popup, bg="#d5f4e6", relief='ridge', bd=2)
         pick_frame.pack(fill='x', padx=20, pady=10)
         
@@ -1494,21 +1502,43 @@ class SergioBetsUnified:
         
         pick_text = f"🔮 {mejor['prediccion']}\n"
         pick_text += f"💰 Cuota: {mejor['cuota']} | Stake: {mejor['stake_recomendado']}u\n"
-        pick_text += f"📊 Confianza: {mejor['confianza']}% | VE: +{mejor['valor_esperado']:.3f}\n"
+        pick_text += f"📊 Confianza: {mejor['confianza']}% | VE: +{edge_pct:.1f}%\n"
         
-        if edge_pct < 5:
-            pick_text += f"⚠️ Edge bajo: {edge_pct:.1f}% - no cumple criterio para publicación automática"
+        if mejor.get('es_near_miss'):
+            pick_text += f"⚠️ Edge: {edge_pct:.1f}% - Por debajo del umbral óptimo (7%)"
+        elif edge_pct < 5:
+            pick_text += f"⚠️ Edge: {edge_pct:.1f}% - No cumple criterio de publicación automática"
         else:
-            pick_text += f"✅ Edge: {edge_pct:.1f}% - cumple criterios de publicación"
+            pick_text += f"✅ Edge: {edge_pct:.1f}% - Excelente valor"
         
         pick_label = tk.Label(pick_frame, text=pick_text, bg="#d5f4e6", 
                              font=('Segoe UI', 9), justify='left')
         pick_label.pack(pady=5)
         
+        top_picks = resultado.get('top_picks', [])
+        if len(top_picks) > 1:
+            alt_frame = tk.Frame(popup, bg="#ecf0f1")
+            alt_frame.pack(fill='both', expand=True, padx=20, pady=5)
+            
+            alt_title = tk.Label(alt_frame, text=f"🎲 OTRAS OPCIONES CON VALOR (Top {len(top_picks)-1})", 
+                                bg="#ecf0f1", font=('Segoe UI', 10, 'bold'))
+            alt_title.pack(pady=(0,5))
+            
+            alt_scroll = ScrolledText(alt_frame, height=8, width=65, font=('Consolas', 9),
+                                     bg="#ffffff", fg="#2c3e50", relief='solid', bd=1)
+            alt_scroll.pack(fill='both', expand=True)
+            
+            for i, pick in enumerate(top_picks[1:], start=2):
+                alt_text = f"#{i}  {pick['prediccion']}\n"
+                alt_text += f"     Cuota: {pick['cuota']} · VE: +{pick['edge_percentage']:.1f}% · Conf: {pick['confianza']}% · Stake: {pick['stake_recomendado']}u\n\n"
+                alt_scroll.insert(tk.END, alt_text)
+            
+            alt_scroll.config(state='disabled')
+        
         buttons_frame = tk.Frame(popup, bg="#ecf0f1")
         buttons_frame.pack(fill='x', padx=20, pady=10)
         
-        detail_btn = tk.Button(buttons_frame, text="📊 Ver Detalle", bg="#9b59b6", fg="white",
+        detail_btn = tk.Button(buttons_frame, text="📊 Ver Todos", bg="#9b59b6", fg="white",
                               font=('Segoe UI', 9), relief='flat', cursor='hand2',
                               command=lambda: self.mostrar_detalle_mercados_individual(resultado))
         detail_btn.pack(side=tk.LEFT, padx=5)
@@ -1523,9 +1553,9 @@ class SergioBetsUnified:
                              command=popup.destroy)
         close_btn.pack(side=tk.RIGHT, padx=5)
         
-        print(f"📋 ANÁLISIS INDIVIDUAL: {resultado['partido']}")
+        print(f"📋 ANÁLISIS OPTIMIZADO: {resultado['partido']}")
         print(f"   Mejor pick: {mejor['prediccion']} @ {mejor['cuota']}")
-        print(f"   Edge: {edge_pct:.1f}% | Cumple publicación: {'Sí' if mejor.get('cumple_publicacion', False) else 'No'}")
+        print(f"   Edge: {edge_pct:.1f}% | Top picks: {len(top_picks)}")
         print(f"   Mercados analizados: {len(resultado['todos_mercados'])}")
     
     def mostrar_detalle_mercados_individual(self, resultado):

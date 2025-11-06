@@ -17,8 +17,12 @@ LIGAS_CONOCIDAS = {
     "Liga Uruguaya", "Liga Boliviana", "Liga Internacional"
 }
 
-ODDS_RANGE_ANALYZE = (1.25, 2.20)
+ODDS_RANGE_ANALYZE = (1.50, 2.40)
 ODDS_RANGE_PUBLISH = (1.42, 1.87)
+
+ANALYSIS_MIN_VE = 0.07
+ANALYSIS_MIN_CONF = 62.0
+ANALYSIS_TOP_N = 5
 
 def cargar_configuracion_cuotas():
     """Carga la configuración de cuotas desde config_app.json"""
@@ -715,7 +719,7 @@ def generar_reporte_rendimiento() -> Dict[str, Any]:
         return {"error": str(e)}
 
 def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = True) -> Dict[str, Any]:
-    """Analiza un partido individual con rango de análisis amplio"""
+    """Analiza un partido individual con rango de análisis amplio y retorna top N opciones"""
     import json
     from datetime import datetime
     
@@ -724,9 +728,9 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
         partido_con_fecha = {**partido, 'fecha': fecha}
         
         analisis = analizar_partido_completo(partido_con_fecha)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=50, bypass_filters=True)
+        todas_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=100, bypass_filters=True)
         
-        if not mejores_apuestas:
+        if not todas_apuestas:
             log_data = {
                 "timestamp": datetime.now().isoformat(),
                 "action": "individual_analysis",
@@ -745,7 +749,54 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
                 "liga": partido.get('liga', 'N/A')
             }
         
-        mejor_pick = mejores_apuestas[0]
+        apuestas_filtradas = [
+            apuesta for apuesta in todas_apuestas
+            if (apuesta["valor_esperado"] >= ANALYSIS_MIN_VE and
+                apuesta["confianza"] >= ANALYSIS_MIN_CONF and
+                ODDS_RANGE_ANALYZE[0] <= apuesta["cuota"] <= ODDS_RANGE_ANALYZE[1])
+        ]
+        
+        if not apuestas_filtradas:
+            apuestas_near_miss = [
+                apuesta for apuesta in todas_apuestas
+                if apuesta["valor_esperado"] >= 0.05
+            ][:3]
+            
+            if not apuestas_near_miss:
+                return {
+                    "success": False,
+                    "error": f"No se encontraron picks con edge suficiente (mínimo {ANALYSIS_MIN_VE*100:.0f}%)",
+                    "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+                    "liga": partido.get('liga', 'N/A')
+                }
+            
+            mejor_pick = apuestas_near_miss[0]
+            edge_percentage = round(mejor_pick["valor_esperado"] * 100, 1)
+            
+            return {
+                "success": True,
+                "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+                "liga": partido.get('liga', 'N/A'),
+                "hora": partido.get('hora', 'N/A'),
+                "mejor_pick": {
+                    "prediccion": mejor_pick["descripcion"],
+                    "cuota": mejor_pick["cuota"],
+                    "confianza": round(mejor_pick["confianza"], 1),
+                    "valor_esperado": round(mejor_pick["valor_esperado"], 3),
+                    "edge_percentage": edge_percentage,
+                    "stake_recomendado": mejor_pick["stake_recomendado"],
+                    "justificacion": mejor_pick["justificacion"],
+                    "cumple_publicacion": False,
+                    "es_near_miss": True
+                },
+                "top_picks": [],
+                "todos_mercados": todas_apuestas,
+                "analisis_completo": analisis,
+                "warning": f"⚠️ No hay picks con edge ≥{ANALYSIS_MIN_VE*100:.0f}%. Mostrando mejor alternativa."
+            }
+        
+        top_picks = apuestas_filtradas[:ANALYSIS_TOP_N]
+        mejor_pick = top_picks[0]
         
         cumple_publicacion = (
             ODDS_RANGE_PUBLISH[0] <= mejor_pick["cuota"] <= ODDS_RANGE_PUBLISH[1] and
@@ -767,12 +818,27 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
                 "valor_esperado": mejor_pick["valor_esperado"],
                 "edge_percentage": edge_percentage
             },
+            "top_picks_count": len(top_picks),
             "cumple_criterios_publicacion": cumple_publicacion,
             "odds_range_analisis": ODDS_RANGE_ANALYZE,
             "odds_range_publicacion": ODDS_RANGE_PUBLISH,
-            "total_mercados": len(mejores_apuestas)
+            "total_mercados_analizados": len(todas_apuestas),
+            "mercados_filtrados": len(apuestas_filtradas)
         }
         _log_to_file(log_data)
+        
+        top_picks_formatted = []
+        for i, pick in enumerate(top_picks):
+            top_picks_formatted.append({
+                "prediccion": pick["descripcion"],
+                "cuota": pick["cuota"],
+                "confianza": round(pick["confianza"], 1),
+                "valor_esperado": round(pick["valor_esperado"], 3),
+                "edge_percentage": round(pick["valor_esperado"] * 100, 1),
+                "stake_recomendado": pick["stake_recomendado"],
+                "justificacion": pick["justificacion"],
+                "rank": i + 1
+            })
         
         return {
             "success": True,
@@ -787,9 +853,11 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
                 "edge_percentage": edge_percentage,
                 "stake_recomendado": mejor_pick["stake_recomendado"],
                 "justificacion": mejor_pick["justificacion"],
-                "cumple_publicacion": cumple_publicacion
+                "cumple_publicacion": cumple_publicacion,
+                "es_near_miss": False
             },
-            "todos_mercados": mejores_apuestas,
+            "top_picks": top_picks_formatted,
+            "todos_mercados": todas_apuestas,
             "analisis_completo": analisis
         }
         
