@@ -345,7 +345,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     
     return {
         "partido": f"{local} vs {visitante}",
-        "liga": partido.get("competition_name", partido.get("liga", "Desconocida")),
+        "liga": partido.get("liga", partido.get("competition_name", "Liga desconocida")),
         "hora": partido.get("hora", "00:00"),
         "probabilidades_1x2": prob_1x2,
         "probabilidades_btts": prob_btts,
