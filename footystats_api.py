@@ -21,6 +21,7 @@ COMPETITION_ID_TO_NAME = {
     14957: "Premier League",
     14958: "Serie A",
     14959: "Ligue 1",
+    14932: "Ligue 1",
     14960: "Eredivisie",
     14961: "Primeira Liga",
     14962: "Süper Lig",
@@ -31,10 +32,18 @@ COMPETITION_ID_TO_NAME = {
     14967: "Scottish Premiership",
     14969: "2. Bundesliga",
     14970: "Championship",
-    14971: "Serie B",
     14972: "La Liga 2",
     15747: "Primera B Nacional",
     15748: "Copa de la Liga Profesional",
+    14086: "Liga Colombiana",
+    14231: "Brasileirão",
+    15002: "Europa League",
+    14973: "Europa League",
+    14974: "Europa League",
+    15000: "Europa League",
+    15001: "Europa League",
+    14975: "Champions League",
+    14976: "Champions League",
 }
 
 def get_league_name(competition_id: int, fallback: str = "Liga desconocida") -> str:

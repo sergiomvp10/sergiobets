@@ -12,9 +12,9 @@ LIGAS_CONOCIDAS = {
     "Champions League", "Europa League", "Championship", "Liga MX",
     "Primeira Liga", "Eredivisie", "Scottish Premiership", "MLS",
     "Copa Libertadores", "Copa Sudamericana", "Liga Argentina",
-    "Brasileirão", "Liga Colombiana", "Primera División Chile",
-    "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana",
-    "Liga Internacional"
+    "Primera División Argentina", "Brasileirão", "Liga Colombiana", 
+    "Primera División Chile", "Liga Peruana", "Liga Ecuatoriana", 
+    "Liga Uruguaya", "Liga Boliviana", "Liga Internacional"
 }
 
 ODDS_RANGE_ANALYZE = (1.25, 2.20)
@@ -367,9 +367,28 @@ def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tu
     
     return valor_esperado, es_value_bet
 
-def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, bypass_filters: bool = False) -> List[Dict[str, Any]]:
-    """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado"""
+def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, bypass_filters: bool = False, allowed_periods: set = None, allowed_markets: set = None) -> List[Dict[str, Any]]:
+    """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado
+    
+    Args:
+        analisis: Análisis completo del partido
+        num_opciones: Número de opciones a retornar
+        bypass_filters: Si True, ignora filtros de cuotas
+        allowed_periods: Períodos permitidos (default: {"FT"} - solo tiempo completo)
+        allowed_markets: Mercados permitidos (default: Over/BTTS markets)
+    """
     mejores_apuestas = []
+    
+    if allowed_periods is None:
+        allowed_periods = {"1X2", "BTTS", "Over/Under", "DC"}  # Solo mercados de tiempo completo
+    
+    if allowed_markets is None:
+        allowed_markets = {
+            "over_15", "over_25", "over_35", "over_45",  # Over markets
+            "btts_si",  # BTTS Yes
+            "local", "visitante", "empate",  # 1X2
+            "1x", "12", "x2"  # Double Chance
+        }
     
     if bypass_filters:
         cuota_min, cuota_max = ODDS_RANGE_ANALYZE
@@ -451,6 +470,15 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
     
     for tipo_mercado, mercado, probabilidad, cuota_str, descripcion in mercados_disponibles:
         try:
+            if tipo_mercado in {"1H", "2H"}:
+                continue
+            
+            if tipo_mercado not in allowed_periods:
+                continue
+            
+            if mercado not in allowed_markets:
+                continue
+            
             cuota_real = float(cuota_str)
             source = "api" if cuota_real > 1.0 else "calculated"
             
@@ -607,10 +635,18 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
         except ImportError:
             counter_numbers = list(range(1, len(predicciones) + 1))
     
+    max_confianza = max(pred.get('confianza', 0) for pred in predicciones)
+    top_pick_index = next((i for i, pred in enumerate(predicciones) if pred.get('confianza', 0) == max_confianza), None)
+    
     mensaje = f"BETGENIUX® ({fecha})\n\n"
     
     for i, pred in enumerate(predicciones):
         numero_pronostico = counter_numbers[i] if i < len(counter_numbers) else i + 1
+        
+        # Add TOP PICK label if this is the highest confidence prediction
+        if i == top_pick_index and len(predicciones) > 1:
+            mensaje += f"🔥 TOP PICK 🔥\n"
+        
         mensaje += f"🎯 PRONOSTICO #{numero_pronostico}\n"
         mensaje += f"🏆 {pred['liga']}\n"
         mensaje += f"⚽️ {pred['partido']}\n"
