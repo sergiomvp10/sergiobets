@@ -12,13 +12,23 @@ LIGAS_CONOCIDAS = {
     "Champions League", "Europa League", "Championship", "Liga MX",
     "Primeira Liga", "Eredivisie", "Scottish Premiership", "MLS",
     "Copa Libertadores", "Copa Sudamericana", "Liga Argentina",
-    "Brasileirão", "Liga Colombiana", "Primera División Chile",
-    "Liga Peruana", "Liga Ecuatoriana", "Liga Uruguaya", "Liga Boliviana",
-    "Liga Internacional"
+    "Primera División Argentina", "Brasileirão", "Liga Colombiana", 
+    "Primera División Chile", "Liga Peruana", "Liga Ecuatoriana", 
+    "Liga Uruguaya", "Liga Boliviana", "Liga Internacional"
 }
 
-ODDS_RANGE_ANALYZE = (1.25, 2.20)
-ODDS_RANGE_PUBLISH = (1.30, 1.75)
+ODDS_RANGE_ANALYZE = (1.50, 2.40)
+ODDS_RANGE_PUBLISH = (1.42, 1.87)
+
+ANALYSIS_MIN_VE = 0.07
+ANALYSIS_MIN_CONF = 62.0
+ANALYSIS_TOP_N = 5
+
+TOP_PICK_MIN_VE = 0.07
+TOP_PICK_MIN_CONF = 60.0
+TOP_PICK_ODDS_RANGE = (1.50, 2.20)
+TOP_PICK_VE_WEIGHT = 0.7
+TOP_PICK_CONF_WEIGHT = 0.3
 
 def cargar_configuracion_cuotas():
     """Carga la configuración de cuotas desde config_app.json"""
@@ -217,8 +227,51 @@ def calcular_probabilidades_handicap(cuotas: Dict[str, str], rendimiento_equipos
             "handicap_visitante_10": 0.6
         }
 
-def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int) -> Dict[str, Any]:
-    """Simula análisis de rendimiento reciente y enfrentamientos directos"""
+def analizar_rendimiento_equipos(local: str, visitante: str, semilla: int, home_id: int = None, away_id: int = None) -> Dict[str, Any]:
+    """Analiza rendimiento de equipos usando datos reales de FootyStats API"""
+    
+    if home_id and away_id:
+        try:
+            from footystats_api import obtener_estadisticas_equipo
+            
+            home_stats = obtener_estadisticas_equipo(home_id, use_cache=True)
+            away_stats = obtener_estadisticas_equipo(away_id, use_cache=True)
+            
+            if home_stats and away_stats and len(home_stats) > 0 and len(away_stats) > 0:
+                home_data = home_stats[0] if isinstance(home_stats, list) else home_stats
+                away_data = away_stats[0] if isinstance(away_stats, list) else away_stats
+                
+                home_st = home_data.get('stats', {})
+                away_st = away_data.get('stats', {})
+                
+                home_matches = max(1, home_st.get('seasonMatchesPlayed_overall', 1))
+                away_matches = max(1, away_st.get('seasonMatchesPlayed_overall', 1))
+                
+                goles_local = home_st.get('seasonGoals_overall', 0) / home_matches
+                goles_contra_local = home_st.get('seasonConceded_overall', 0) / home_matches
+                goles_visitante = away_st.get('seasonGoals_overall', 0) / away_matches
+                goles_contra_visitante = away_st.get('seasonConceded_overall', 0) / away_matches
+                
+                home_wins = home_st.get('seasonWinsNum_overall', 0)
+                away_wins = away_st.get('seasonWinsNum_overall', 0)
+                forma_local = home_wins / home_matches if home_matches > 0 else 0.5
+                forma_visitante = away_wins / away_matches if away_matches > 0 else 0.5
+                
+                return {
+                    "goles_promedio_local": max(0.5, min(3.0, goles_local)),
+                    "goles_promedio_visitante": max(0.5, min(3.0, goles_visitante)),
+                    "tarjetas_promedio": 1.0,  # Default, can be enhanced later
+                    "corners_promedio": 1.0,  # Default, can be enhanced later
+                    "forma_local": max(0.1, min(0.9, forma_local)),
+                    "forma_visitante": max(0.1, min(0.9, forma_visitante)),
+                    "h2h_goles_total": (goles_local + goles_visitante) / 2,
+                    "ventaja_local": forma_local - forma_visitante,
+                    "goles_contra_local": goles_contra_local,
+                    "goles_contra_visitante": goles_contra_visitante
+                }
+        except Exception as e:
+            print(f"Error obteniendo datos reales de equipos: {e}")
+    
     np.random.seed(semilla + 6)
     
     rendimiento_local = {
@@ -259,10 +312,12 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     local = partido.get('local', 'Local')
     visitante = partido.get('visitante', 'Visitante')
     fecha = partido.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+    home_id = partido.get('home_id')
+    away_id = partido.get('away_id')
     
     semilla = generar_semilla_partido(local, visitante, fecha, cuotas)
     
-    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla)
+    rendimiento = analizar_rendimiento_equipos(local, visitante, semilla, home_id, away_id)
     
     prob_1x2 = calcular_probabilidades_1x2(cuotas)
     prob_btts = calcular_probabilidades_btts(semilla)
@@ -300,7 +355,7 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
     
     return {
         "partido": f"{local} vs {visitante}",
-        "liga": partido.get("liga", "Desconocida"),
+        "liga": partido.get("liga", partido.get("competition_name", "Liga desconocida")),
         "hora": partido.get("hora", "00:00"),
         "probabilidades_1x2": prob_1x2,
         "probabilidades_btts": prob_btts,
@@ -318,20 +373,37 @@ def analizar_partido_completo(partido: Dict[str, Any]) -> Dict[str, Any]:
 def calcular_value_bet(probabilidad_estimada: float, cuota_mercado: float) -> Tuple[float, bool]:
     """Calcula el valor esperado y determina si es una value bet"""
     valor_esperado = (probabilidad_estimada * cuota_mercado) - 1
-    es_value_bet = valor_esperado > 0.05  # Mínimo 5% de valor esperado
+    es_value_bet = True  # Sin filtro de valor esperado mínimo
     
     return valor_esperado, es_value_bet
 
-def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, bypass_filters: bool = False) -> List[Dict[str, Any]]:
-    """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado"""
+def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, bypass_filters: bool = False, allowed_periods: set = None, allowed_markets: set = None) -> List[Dict[str, Any]]:
+    """Encuentra las mejores apuestas basadas en cuotas reales de la API dentro del rango configurado
+    
+    Args:
+        analisis: Análisis completo del partido
+        num_opciones: Número de opciones a retornar
+        bypass_filters: Si True, ignora filtros de cuotas
+        allowed_periods: Períodos permitidos (default: {"FT"} - solo tiempo completo)
+        allowed_markets: Mercados permitidos (default: Over/BTTS markets)
+    """
     mejores_apuestas = []
+    
+    if allowed_periods is None:
+        allowed_periods = {"1X2", "BTTS", "Over/Under", "DC"}  # Solo mercados de tiempo completo
+    
+    if allowed_markets is None:
+        allowed_markets = {
+            "over_15", "over_25", "over_35", "over_45",  # Over markets
+            "btts_si",  # BTTS Yes
+            "local", "visitante", "empate",  # 1X2
+            "1x", "12", "x2"  # Double Chance
+        }
     
     if bypass_filters:
         cuota_min, cuota_max = ODDS_RANGE_ANALYZE
-        valor_minimo = 0.0
     else:
         cuota_min, cuota_max = obtener_cuotas_configuradas()
-        valor_minimo = 0.05
     
     cuotas_reales = analisis["cuotas_disponibles"]
     
@@ -408,6 +480,15 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
     
     for tipo_mercado, mercado, probabilidad, cuota_str, descripcion in mercados_disponibles:
         try:
+            if tipo_mercado in {"1H", "2H"}:
+                continue
+            
+            if tipo_mercado not in allowed_periods:
+                continue
+            
+            if mercado not in allowed_markets:
+                continue
+            
             cuota_real = float(cuota_str)
             source = "api" if cuota_real > 1.0 else "calculated"
             
@@ -420,7 +501,7 @@ def encontrar_mejores_apuestas(analisis: Dict[str, Any], num_opciones: int = 1, 
                 
             ve, es_value = calcular_value_bet(probabilidad, cuota_real)
             
-            if bypass_filters or (es_value and ve >= valor_minimo):
+            if cuota_min <= cuota_real <= cuota_max:
                 edge_percentage = ve * 100
                 cumple_publicacion = es_value and ve >= 0.05 and (cuota_min <= cuota_real <= cuota_max) and source == "api"
                 
@@ -487,7 +568,16 @@ def generar_justificacion(apuesta: Dict[str, Any], analisis: Dict[str, Any]) -> 
 def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optional[Dict[str, Any]]:
     try:
         analisis = analizar_partido_completo(partido)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=2)
+        
+        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=False)
+        
+        if not mejores_apuestas:
+            mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=10, bypass_filters=True)
+            
+            min_odds, max_odds = ODDS_RANGE_PUBLISH
+            mejores_apuestas = [a for a in mejores_apuestas if min_odds <= a["cuota"] <= max_odds]
+            
+            mejores_apuestas.sort(key=lambda x: x["confianza"], reverse=True)
         
         if not mejores_apuestas:
             return None
@@ -506,7 +596,7 @@ def generar_prediccion(partido: Dict[str, Any], opcion_numero: int = 1) -> Optio
             "liga": analisis["liga"],
             "hora": analisis["hora"],
             "prediccion": mejor_apuesta["descripcion"],
-            "cuota": mejor_apuesta["cuota"],
+            "cuota": round(mejor_apuesta["cuota"], 2),
             "stake_recomendado": mejor_apuesta["stake_recomendado"],
             "confianza": round(mejor_apuesta["confianza"], 1),
             "valor_esperado": round(mejor_apuesta["valor_esperado"], 3),
@@ -544,6 +634,61 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
     
     return predicciones_validas[:5]
 
+def choose_top_pick(predicciones: List[Dict[str, Any]]) -> int:
+    """Selecciona el TOP PICK usando score combinado de VE y confianza"""
+    if not predicciones:
+        return None
+    
+    mainstream_markets = {
+        'ambos equipos marcan', 'btts', 'más de 2.5', 'menos de 2.5', 
+        'over 2.5', 'under 2.5', 'victoria', 'empate', 'o empate'
+    }
+    
+    candidates = []
+    for i, pred in enumerate(predicciones):
+        ve = pred.get('valor_esperado', 0)
+        conf = pred.get('confianza', 0)
+        cuota = pred.get('cuota', 0)
+        prediccion_lower = pred.get('prediccion', '').lower()
+        
+        is_mainstream = any(market in prediccion_lower for market in mainstream_markets)
+        is_not_half = '1h' not in prediccion_lower and '2h' not in prediccion_lower
+        
+        if (ve >= TOP_PICK_MIN_VE and 
+            conf >= TOP_PICK_MIN_CONF and 
+            TOP_PICK_ODDS_RANGE[0] <= cuota <= TOP_PICK_ODDS_RANGE[1] and
+            is_mainstream and is_not_half):
+            
+            score = (ve * 100 * TOP_PICK_VE_WEIGHT) + (conf * TOP_PICK_CONF_WEIGHT)
+            candidates.append((i, score, ve, conf))
+    
+    if not candidates:
+        candidates_relaxed = []
+        for i, pred in enumerate(predicciones):
+            ve = pred.get('valor_esperado', 0)
+            conf = pred.get('confianza', 0)
+            prediccion_lower = pred.get('prediccion', '').lower()
+            is_not_half = '1h' not in prediccion_lower and '2h' not in prediccion_lower
+            
+            if ve >= 0.05 and is_not_half:
+                score = (ve * 100 * TOP_PICK_VE_WEIGHT) + (conf * TOP_PICK_CONF_WEIGHT)
+                candidates_relaxed.append((i, score, ve, conf))
+        
+        if candidates_relaxed:
+            candidates_relaxed.sort(key=lambda x: (x[1], x[2], x[3]), reverse=True)
+            return candidates_relaxed[0][0]
+        
+        return None
+    
+    candidates.sort(key=lambda x: (x[1], x[2], x[3]), reverse=True)
+    
+    print(f"🎯 TOP PICK Candidates (Top 5):")
+    for i, (idx, score, ve, conf) in enumerate(candidates[:5], 1):
+        pred = predicciones[idx]
+        print(f"   #{i}: {pred['prediccion']} | Score: {score:.1f} | VE: +{ve*100:.1f}% | Conf: {conf:.1f}%")
+    
+    return candidates[0][0]
+
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_numbers: Optional[List[int]] = None) -> str:
     if not predicciones:
         return f"BETGENIUX® ({fecha})\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
@@ -555,16 +700,25 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
         except ImportError:
             counter_numbers = list(range(1, len(predicciones) + 1))
     
+    top_pick_index = choose_top_pick(predicciones)
+    
     mensaje = f"BETGENIUX® ({fecha})\n\n"
     
     for i, pred in enumerate(predicciones):
         numero_pronostico = counter_numbers[i] if i < len(counter_numbers) else i + 1
+        
+        # Add TOP PICK label if this is the highest confidence prediction
+        if i == top_pick_index and len(predicciones) > 1:
+            mensaje += f"🔥 TOP PICK 🔥\n"
+        
         mensaje += f"🎯 PRONOSTICO #{numero_pronostico}\n"
         mensaje += f"🏆 {pred['liga']}\n"
         mensaje += f"⚽️ {pred['partido']}\n"
         mensaje += f"🔮 {pred['prediccion']}\n"
         mensaje += f"💰 Cuota: {pred['cuota']} | Stake: {pred['stake_recomendado']}u\n"
-        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: +{pred['valor_esperado']}\n"
+        ve_pct = round(pred['valor_esperado'] * 100, 1)
+        ve_sign = '+' if ve_pct >= 0 else ''
+        mensaje += f"📊 Confianza: {pred['confianza']}% | VE: {ve_sign}{ve_pct}%\n"
         mensaje += f"⏰ {pred['hora']}\n\n"
     
     mensaje += "⚠️ Apostar con responsabilidad"
@@ -572,8 +726,14 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
     return mensaje
 
 def guardar_prediccion_historica(prediccion: Dict[str, Any], fecha: str) -> None:
-    """Guarda predicción en el historial para seguimiento futuro"""
+    """Guarda predicción en el historial (PostgreSQL + JSON backup)"""
     try:
+        try:
+            from db_predictions import save_prediction
+            save_prediction(prediccion, fecha)
+        except Exception as db_error:
+            print(f"Warning: Could not save to PostgreSQL: {db_error}")
+        
         from json_storage import guardar_json, cargar_json
         
         historial = cargar_json("historial_predicciones.json") or []
@@ -619,7 +779,7 @@ def generar_reporte_rendimiento() -> Dict[str, Any]:
         return {"error": str(e)}
 
 def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = True) -> Dict[str, Any]:
-    """Analiza un partido individual con rango de análisis amplio"""
+    """Analiza un partido individual con rango de análisis amplio y retorna top N opciones"""
     import json
     from datetime import datetime
     
@@ -628,9 +788,9 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
         partido_con_fecha = {**partido, 'fecha': fecha}
         
         analisis = analizar_partido_completo(partido_con_fecha)
-        mejores_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=50, bypass_filters=True)
+        todas_apuestas = encontrar_mejores_apuestas(analisis, num_opciones=100, bypass_filters=True)
         
-        if not mejores_apuestas:
+        if not todas_apuestas:
             log_data = {
                 "timestamp": datetime.now().isoformat(),
                 "action": "individual_analysis",
@@ -649,7 +809,54 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
                 "liga": partido.get('liga', 'N/A')
             }
         
-        mejor_pick = mejores_apuestas[0]
+        apuestas_filtradas = [
+            apuesta for apuesta in todas_apuestas
+            if (apuesta["valor_esperado"] >= ANALYSIS_MIN_VE and
+                apuesta["confianza"] >= ANALYSIS_MIN_CONF and
+                ODDS_RANGE_ANALYZE[0] <= apuesta["cuota"] <= ODDS_RANGE_ANALYZE[1])
+        ]
+        
+        if not apuestas_filtradas:
+            apuestas_near_miss = [
+                apuesta for apuesta in todas_apuestas
+                if apuesta["valor_esperado"] >= 0.05
+            ][:3]
+            
+            if not apuestas_near_miss:
+                return {
+                    "success": False,
+                    "error": f"No se encontraron picks con edge suficiente (mínimo {ANALYSIS_MIN_VE*100:.0f}%)",
+                    "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+                    "liga": partido.get('liga', 'N/A')
+                }
+            
+            mejor_pick = apuestas_near_miss[0]
+            edge_percentage = round(mejor_pick["valor_esperado"] * 100, 1)
+            
+            return {
+                "success": True,
+                "partido": f"{partido.get('local', 'N/A')} vs {partido.get('visitante', 'N/A')}",
+                "liga": partido.get('liga', 'N/A'),
+                "hora": partido.get('hora', 'N/A'),
+                "mejor_pick": {
+                    "prediccion": mejor_pick["descripcion"],
+                    "cuota": mejor_pick["cuota"],
+                    "confianza": round(mejor_pick["confianza"], 1),
+                    "valor_esperado": round(mejor_pick["valor_esperado"], 3),
+                    "edge_percentage": edge_percentage,
+                    "stake_recomendado": mejor_pick["stake_recomendado"],
+                    "justificacion": mejor_pick["justificacion"],
+                    "cumple_publicacion": False,
+                    "es_near_miss": True
+                },
+                "top_picks": [],
+                "todos_mercados": todas_apuestas,
+                "analisis_completo": analisis,
+                "warning": f"⚠️ No hay picks con edge ≥{ANALYSIS_MIN_VE*100:.0f}%. Mostrando mejor alternativa."
+            }
+        
+        top_picks = apuestas_filtradas[:ANALYSIS_TOP_N]
+        mejor_pick = top_picks[0]
         
         cumple_publicacion = (
             ODDS_RANGE_PUBLISH[0] <= mejor_pick["cuota"] <= ODDS_RANGE_PUBLISH[1] and
@@ -671,12 +878,27 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
                 "valor_esperado": mejor_pick["valor_esperado"],
                 "edge_percentage": edge_percentage
             },
+            "top_picks_count": len(top_picks),
             "cumple_criterios_publicacion": cumple_publicacion,
             "odds_range_analisis": ODDS_RANGE_ANALYZE,
             "odds_range_publicacion": ODDS_RANGE_PUBLISH,
-            "total_mercados": len(mejores_apuestas)
+            "total_mercados_analizados": len(todas_apuestas),
+            "mercados_filtrados": len(apuestas_filtradas)
         }
         _log_to_file(log_data)
+        
+        top_picks_formatted = []
+        for i, pick in enumerate(top_picks):
+            top_picks_formatted.append({
+                "prediccion": pick["descripcion"],
+                "cuota": pick["cuota"],
+                "confianza": round(pick["confianza"], 1),
+                "valor_esperado": round(pick["valor_esperado"], 3),
+                "edge_percentage": round(pick["valor_esperado"] * 100, 1),
+                "stake_recomendado": pick["stake_recomendado"],
+                "justificacion": pick["justificacion"],
+                "rank": i + 1
+            })
         
         return {
             "success": True,
@@ -691,9 +913,11 @@ def analizar_partido_individual(partido: Dict[str, Any], bypass_filters: bool = 
                 "edge_percentage": edge_percentage,
                 "stake_recomendado": mejor_pick["stake_recomendado"],
                 "justificacion": mejor_pick["justificacion"],
-                "cumple_publicacion": cumple_publicacion
+                "cumple_publicacion": cumple_publicacion,
+                "es_near_miss": False
             },
-            "todos_mercados": mejores_apuestas,
+            "top_picks": top_picks_formatted,
+            "todos_mercados": todas_apuestas,
             "analisis_completo": analisis
         }
         
