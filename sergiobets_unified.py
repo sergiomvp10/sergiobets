@@ -1346,8 +1346,10 @@ class SergioBetsUnified:
         header.grid_columnconfigure(0, weight=1)
         ttk.Label(header, text=titulo_text, style='Header.TLabel').grid(row=0, column=0, sticky='w')
         
-        max_confianza = max(pred.get('confianza', 0) for pred in predicciones)
-        top_pick_index = next((i for i, pred in enumerate(predicciones) if pred.get('confianza', 0) == max_confianza), 0)
+        from ia_bets import choose_top_pick
+        top_pick_index = choose_top_pick(predicciones)
+        if top_pick_index is None:
+            top_pick_index = 0
         
         for i, pred in enumerate(predicciones, 1):
             self.predicciones_actuales.append(pred)

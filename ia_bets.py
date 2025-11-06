@@ -24,6 +24,12 @@ ANALYSIS_MIN_VE = 0.07
 ANALYSIS_MIN_CONF = 62.0
 ANALYSIS_TOP_N = 5
 
+TOP_PICK_MIN_VE = 0.07
+TOP_PICK_MIN_CONF = 60.0
+TOP_PICK_ODDS_RANGE = (1.50, 2.20)
+TOP_PICK_VE_WEIGHT = 0.7
+TOP_PICK_CONF_WEIGHT = 0.3
+
 def cargar_configuracion_cuotas():
     """Carga la configuración de cuotas desde config_app.json"""
     from json_storage import cargar_json
@@ -628,6 +634,61 @@ def filtrar_apuestas_inteligentes(partidos: List[Dict[str, Any]], opcion_numero:
     
     return predicciones_validas[:5]
 
+def choose_top_pick(predicciones: List[Dict[str, Any]]) -> int:
+    """Selecciona el TOP PICK usando score combinado de VE y confianza"""
+    if not predicciones:
+        return None
+    
+    mainstream_markets = {
+        'ambos equipos marcan', 'btts', 'más de 2.5', 'menos de 2.5', 
+        'over 2.5', 'under 2.5', 'victoria', 'empate', 'o empate'
+    }
+    
+    candidates = []
+    for i, pred in enumerate(predicciones):
+        ve = pred.get('valor_esperado', 0)
+        conf = pred.get('confianza', 0)
+        cuota = pred.get('cuota', 0)
+        prediccion_lower = pred.get('prediccion', '').lower()
+        
+        is_mainstream = any(market in prediccion_lower for market in mainstream_markets)
+        is_not_half = '1h' not in prediccion_lower and '2h' not in prediccion_lower
+        
+        if (ve >= TOP_PICK_MIN_VE and 
+            conf >= TOP_PICK_MIN_CONF and 
+            TOP_PICK_ODDS_RANGE[0] <= cuota <= TOP_PICK_ODDS_RANGE[1] and
+            is_mainstream and is_not_half):
+            
+            score = (ve * 100 * TOP_PICK_VE_WEIGHT) + (conf * TOP_PICK_CONF_WEIGHT)
+            candidates.append((i, score, ve, conf))
+    
+    if not candidates:
+        candidates_relaxed = []
+        for i, pred in enumerate(predicciones):
+            ve = pred.get('valor_esperado', 0)
+            conf = pred.get('confianza', 0)
+            prediccion_lower = pred.get('prediccion', '').lower()
+            is_not_half = '1h' not in prediccion_lower and '2h' not in prediccion_lower
+            
+            if ve >= 0.05 and is_not_half:
+                score = (ve * 100 * TOP_PICK_VE_WEIGHT) + (conf * TOP_PICK_CONF_WEIGHT)
+                candidates_relaxed.append((i, score, ve, conf))
+        
+        if candidates_relaxed:
+            candidates_relaxed.sort(key=lambda x: (x[1], x[2], x[3]), reverse=True)
+            return candidates_relaxed[0][0]
+        
+        return None
+    
+    candidates.sort(key=lambda x: (x[1], x[2], x[3]), reverse=True)
+    
+    print(f"🎯 TOP PICK Candidates (Top 5):")
+    for i, (idx, score, ve, conf) in enumerate(candidates[:5], 1):
+        pred = predicciones[idx]
+        print(f"   #{i}: {pred['prediccion']} | Score: {score:.1f} | VE: +{ve*100:.1f}% | Conf: {conf:.1f}%")
+    
+    return candidates[0][0]
+
 def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_numbers: Optional[List[int]] = None) -> str:
     if not predicciones:
         return f"BETGENIUX® ({fecha})\n\n❌ No se encontraron apuestas recomendadas para hoy.\nCriterios: Value betting, ligas conocidas, análisis probabilístico."
@@ -639,8 +700,7 @@ def generar_mensaje_ia(predicciones: List[Dict[str, Any]], fecha: str, counter_n
         except ImportError:
             counter_numbers = list(range(1, len(predicciones) + 1))
     
-    max_confianza = max(pred.get('confianza', 0) for pred in predicciones)
-    top_pick_index = next((i for i, pred in enumerate(predicciones) if pred.get('confianza', 0) == max_confianza), None)
+    top_pick_index = choose_top_pick(predicciones)
     
     mensaje = f"BETGENIUX® ({fecha})\n\n"
     
