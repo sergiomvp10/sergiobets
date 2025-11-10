@@ -328,6 +328,65 @@ class TrackRecordManager:
                             acierto = resultado["resultado_1x2"] == "1"
                     else:
                         acierto = False
+            
+            elif "victoria" in tipo_prediccion or "gana" in tipo_prediccion:
+                if "victoria" in tipo_prediccion:
+                    team_name = tipo_prediccion.replace("victoria", "").strip()
+                else:
+                    team_name = tipo_prediccion.replace("gana", "").strip()
+                
+                partido_parts = prediccion.get("partido", "").split(" vs ")
+                if len(partido_parts) == 2:
+                    home_team = partido_parts[0].strip()
+                    away_team = partido_parts[1].strip()
+                    
+                    # Check if team_name matches home or away team
+                    if self._teams_match(team_name, home_team):
+                        acierto = resultado["resultado_1x2"] == "1"
+                        print(f"    🏆 Victory bet validation: {team_name} (home) - Result: {resultado['resultado_1x2']} = {'WIN' if acierto else 'LOSS'}")
+                    elif self._teams_match(team_name, away_team):
+                        acierto = resultado["resultado_1x2"] == "2"
+                        print(f"    🏆 Victory bet validation: {team_name} (away) - Result: {resultado['resultado_1x2']} = {'WIN' if acierto else 'LOSS'}")
+                    else:
+                        print(f"    ⚠️ Could not match team '{team_name}' to home '{home_team}' or away '{away_team}'")
+                        acierto = False
+                else:
+                    print(f"    ⚠️ Could not parse partido: {prediccion.get('partido', '')}")
+                    acierto = False
+            
+            elif " o " in tipo_prediccion and ("empate" in tipo_prediccion or any(x in tipo_prediccion for x in ["local", "visitante"])):
+                parts = tipo_prediccion.split(" o ")
+                if len(parts) == 2:
+                    option1 = parts[0].strip()
+                    option2 = parts[1].strip()
+                    
+                    partido_parts = prediccion.get("partido", "").split(" vs ")
+                    if len(partido_parts) == 2:
+                        home_team = partido_parts[0].strip()
+                        away_team = partido_parts[1].strip()
+                        
+                        winning_outcomes = []
+                        
+                        if "empate" in option1:
+                            winning_outcomes.append("X")
+                        elif "local" in option1 or self._teams_match(option1, home_team):
+                            winning_outcomes.append("1")
+                        elif "visitante" in option1 or self._teams_match(option1, away_team):
+                            winning_outcomes.append("2")
+                        
+                        if "empate" in option2:
+                            winning_outcomes.append("X")
+                        elif "local" in option2 or self._teams_match(option2, home_team):
+                            winning_outcomes.append("1")
+                        elif "visitante" in option2 or self._teams_match(option2, away_team):
+                            winning_outcomes.append("2")
+                        
+                        acierto = resultado["resultado_1x2"] in winning_outcomes
+                        print(f"    🎲 Double Chance validation: {tipo_prediccion} - Winning outcomes: {winning_outcomes} - Result: {resultado['resultado_1x2']} = {'WIN' if acierto else 'LOSS'}")
+                    else:
+                        acierto = False
+                else:
+                    acierto = False
                         
             elif any(x in tipo_prediccion for x in ["local", "empate", "visitante"]):
                 if "local" in tipo_prediccion:
@@ -346,6 +405,8 @@ class TrackRecordManager:
             
         except Exception as e:
             print(f"Error validando predicción: {e}")
+            import traceback
+            traceback.print_exc()
             return False, -stake
     
     def corregir_datos_historicos(self) -> Dict[str, Any]:
@@ -419,10 +480,26 @@ class TrackRecordManager:
             if from_date or to_date:
                 original_count = len(predicciones_pendientes)
                 if from_date and to_date:
-                    predicciones_pendientes = [p for p in predicciones_pendientes 
-                                              if from_date <= p.get("fecha", "") <= to_date]
-                    print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
-                    print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
+                    from datetime import datetime, timedelta
+                    if from_date == to_date:
+                        try:
+                            fecha_obj = datetime.strptime(from_date, '%Y-%m-%d')
+                            expanded_from = (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d')
+                            expanded_to = (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+                            predicciones_pendientes = [p for p in predicciones_pendientes 
+                                                      if expanded_from <= p.get("fecha", "") <= expanded_to]
+                            print(f"🔍 Filtrando por fecha: {from_date} (expandido a ±1 día: {expanded_from} a {expanded_to})")
+                            print(f"   Predicciones en rango expandido: {len(predicciones_pendientes)} de {original_count}")
+                        except:
+                            predicciones_pendientes = [p for p in predicciones_pendientes 
+                                                      if from_date <= p.get("fecha", "") <= to_date]
+                            print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
+                            print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
+                    else:
+                        predicciones_pendientes = [p for p in predicciones_pendientes 
+                                                  if from_date <= p.get("fecha", "") <= to_date]
+                        print(f"🔍 Filtrando por rango de fechas: {from_date} a {to_date}")
+                        print(f"   Predicciones en rango: {len(predicciones_pendientes)} de {original_count}")
                 elif from_date:
                     predicciones_pendientes = [p for p in predicciones_pendientes 
                                               if p.get("fecha", "") >= from_date]
@@ -688,9 +765,12 @@ class TrackRecordManager:
             traceback.print_exc()
             return {"error": str(e)}
     
-    def calcular_metricas_rendimiento(self) -> Dict[str, Any]:
+    def calcular_metricas_rendimiento(self, window_size: int = 100) -> Dict[str, Any]:
         """
         Calcula métricas de rendimiento del sistema de predicciones
+        
+        Args:
+            window_size: Número máximo de predicciones resueltas a considerar (últimas N)
         """
         try:
             historial = cargar_json(self.historial_file) or []
@@ -703,13 +783,18 @@ class TrackRecordManager:
             if not historial:
                 return {"error": "No hay predicciones enviadas a Telegram"}
             
-            con_resultado = [p for p in historial if p.get("resultado_real") is not None]
+            # Separar resueltas y pendientes
+            con_resultado = [p for p in historial if p.get("resultado_real") is not None and p.get("resultado_real") != "pendiente"]
+            pendientes = [p for p in historial if p.get("resultado_real") is None or p.get("resultado_real") == "pendiente"]
+            
+            con_resultado_sorted = sorted(con_resultado, key=lambda x: x.get('fecha', ''), reverse=True)
+            con_resultado = con_resultado_sorted[:window_size]
             
             if not con_resultado:
                 return {
-                    "total_predicciones": len(historial),
+                    "total_predicciones": len(pendientes),
                     "predicciones_resueltas": 0,
-                    "predicciones_pendientes": len(historial),
+                    "predicciones_pendientes": len(pendientes),
                     "aciertos": 0,
                     "tasa_acierto": 0,
                     "total_apostado": 0,
@@ -718,7 +803,7 @@ class TrackRecordManager:
                     "mensaje": "No hay predicciones resueltas aún"
                 }
             
-            total_predicciones = len(historial)
+            total_predicciones = len(con_resultado) + len(pendientes)
             predicciones_resueltas = len(con_resultado)
             aciertos = [p for p in con_resultado if p.get("acierto", False)]
             
@@ -742,7 +827,7 @@ class TrackRecordManager:
                 aciertos_tipo = tipos_apuesta[tipo]["aciertos"]
                 tipos_apuesta[tipo]["win_rate"] = (aciertos_tipo / total * 100) if total > 0 else 0
             
-            predicciones_pendientes = total_predicciones - predicciones_resueltas
+            predicciones_pendientes = len(pendientes)
             
             predicciones_con_ve = [p for p in historial if "valor_esperado" in p]
             valor_esperado_promedio = 0

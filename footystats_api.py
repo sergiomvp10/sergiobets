@@ -1,14 +1,54 @@
 # footystats_api.py
 
+import os
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
 from api_cache import APICache
 from error_handler import safe_api_call
 
-API_KEY = "1d19b51cc6be6520d3b96a60c3d0fb862b120d9826886671c28dd796989048ee"
+load_dotenv()
+
+API_KEY = os.getenv("FOOTYSTATS_API_KEY", "")
 BASE_URL = "https://api.football-data-api.com"
 
 api_cache = APICache(cache_duration_minutes=30)
+
+COMPETITION_ID_TO_NAME = {
+    14968: "Bundesliga",
+    14956: "La Liga",
+    15746: "Primera División Argentina",
+    14957: "Premier League",
+    14958: "Serie A",
+    14959: "Ligue 1",
+    14932: "Ligue 1",
+    14960: "Eredivisie",
+    14961: "Primeira Liga",
+    14962: "Süper Lig",
+    14963: "Russian Premier League",
+    14964: "Belgian First Division A",
+    14965: "Austrian Bundesliga",
+    14966: "Swiss Super League",
+    14967: "Scottish Premiership",
+    14969: "2. Bundesliga",
+    14970: "Championship",
+    14972: "La Liga 2",
+    15747: "Primera B Nacional",
+    15748: "Copa de la Liga Profesional",
+    14086: "Liga Colombiana",
+    14231: "Brasileirão",
+    15002: "Europa League",
+    14973: "Europa League",
+    14974: "Europa League",
+    15000: "Europa League",
+    15001: "Europa League",
+    14975: "Champions League",
+    14976: "Champions League",
+}
+
+def get_league_name(competition_id: int, fallback: str = "Liga desconocida") -> str:
+    """Obtiene el nombre de la liga desde el competition_id"""
+    return COMPETITION_ID_TO_NAME.get(competition_id, fallback)
 
 @safe_api_call
 def obtener_partidos_del_dia(fecha=None, use_cache=True):
@@ -37,6 +77,16 @@ def obtener_partidos_del_dia(fecha=None, use_cache=True):
             data = response.json()
             partidos = data.get("data", [])
             
+            for partido in partidos:
+                comp_id = partido.get('competition_id')
+                if comp_id and 'competition_name' not in partido:
+                    partido['competition_name'] = get_league_name(comp_id)
+                
+                if 'homeID' in partido and 'home_id' not in partido:
+                    partido['home_id'] = partido['homeID']
+                if 'awayID' in partido and 'away_id' not in partido:
+                    partido['away_id'] = partido['awayID']
+            
             if use_cache:
                 api_cache.set(cache_key, partidos)
             
@@ -56,3 +106,39 @@ def clear_api_cache():
     cleared = api_cache.clear_expired()
     print(f"🧹 Cleared {cleared} expired cache entries")
     return cleared
+
+@safe_api_call
+def obtener_estadisticas_equipo(team_id: int, use_cache=True):
+    """Obtiene estadísticas de un equipo específico"""
+    if not team_id:
+        return None
+    
+    cache_key = f"team_{team_id}"
+    
+    if use_cache:
+        cached_data = api_cache.get(cache_key)
+        if cached_data is not None:
+            return cached_data
+    
+    endpoint = f"{BASE_URL}/team"
+    params = {
+        "key": API_KEY,
+        "team_id": team_id
+    }
+    
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            team_data = data.get("data", [])
+            
+            if use_cache and team_data:
+                api_cache.set(cache_key, team_data)
+            
+            return team_data
+        else:
+            print(f"Error al obtener estadísticas del equipo {team_id}: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Excepción al obtener estadísticas del equipo {team_id}: {e}")
+        return None
