@@ -2328,7 +2328,6 @@ class SergioBetsUnified:
         """Guarda el análisis manual en el historial con source=manual"""
         try:
             from ia_bets import guardar_prediccion_historica
-            from datetime import datetime
             
             mejor = resultado['mejor_pick']
             prediccion_data = {
@@ -2342,7 +2341,7 @@ class SergioBetsUnified:
                 "source": "manual"  # Mark as manual analysis
             }
             
-            fecha = datetime.now().strftime('%Y-%m-%d')
+            fecha = hora_bogota().strftime('%Y-%m-%d')
             guardar_prediccion_historica(prediccion_data, fecha)
             
             import tkinter.messagebox as messagebox
@@ -2488,7 +2487,6 @@ class SergioBetsUnified:
         """Guarda el análisis manual en el historial con source=manual"""
         try:
             from ia_bets import guardar_prediccion_historica
-            from datetime import datetime
             
             mejor = resultado['mejor_pick']
             prediccion_data = {
@@ -2502,7 +2500,7 @@ class SergioBetsUnified:
                 "source": "manual"
             }
             
-            fecha = datetime.now().strftime('%Y-%m-%d')
+            fecha = hora_bogota().strftime('%Y-%m-%d')
             guardar_prediccion_historica(prediccion_data, fecha)
             
             import tkinter.messagebox as messagebox
@@ -2648,7 +2646,6 @@ class SergioBetsUnified:
         """Guarda el análisis manual en el historial con source=manual"""
         try:
             from ia_bets import guardar_prediccion_historica
-            from datetime import datetime
             
             mejor = resultado['mejor_pick']
             prediccion_data = {
@@ -2662,7 +2659,7 @@ class SergioBetsUnified:
                 "source": "manual"
             }
             
-            fecha = datetime.now().strftime('%Y-%m-%d')
+            fecha = hora_bogota().strftime('%Y-%m-%d')
             guardar_prediccion_historica(prediccion_data, fecha)
             
             import tkinter.messagebox as messagebox
@@ -2725,7 +2722,7 @@ class SergioBetsUnified:
                 
                 for pred in predicciones_seleccionadas:
                     pred['sent_to_telegram'] = True
-                    pred['fecha_envio_telegram'] = datetime.now().isoformat()
+                    pred['fecha_envio_telegram'] = hora_bogota().isoformat()
                     guardar_prediccion_historica(pred, fecha)
                 
                 with open("pronosticos_seleccionados.json", "w", encoding="utf-8") as f:
@@ -2952,7 +2949,7 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
             fecha_inicio = tk.StringVar()
             fecha_fin = tk.StringVar()
             
-            hoy = datetime.now()
+            hoy = hora_bogota()
             hace_mes = hoy - timedelta(days=30)
             fecha_inicio.set(hace_mes.strftime('%Y-%m-%d'))
             fecha_fin.set(hoy.strftime('%Y-%m-%d'))
@@ -3078,7 +3075,7 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                                     
                                     prediccion['acierto'] = True
                                     prediccion['actualizacion_manual'] = True
-                                    prediccion['fecha_actualizacion'] = datetime.now().isoformat()
+                                    prediccion['fecha_actualizacion'] = hora_bogota().isoformat()
                                     
                                     stake = float(prediccion.get('stake', 0))
                                     cuota = float(prediccion.get('cuota', 1))
