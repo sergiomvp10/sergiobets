@@ -894,6 +894,11 @@ class SergioBetsUnified:
         self._filter_bar.grid(row=1, column=0, sticky='ew')
         self._stats_row.grid(row=2, column=0, sticky='ew')
         self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
+        # Update button text based on mode
+        if mode == 'partidos':
+            self._gen_btn.configure(text="Ver Partidos")
+        else:
+            self._gen_btn.configure(text="Generar Pronosticos")
         # Show/hide scroll frames based on mode
         self.sf_predicciones.grid_forget()
         self.sf_partidos.grid_forget()
