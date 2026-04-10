@@ -61,16 +61,15 @@ def detectar_liga_por_imagen(home_image, away_image):
 
 def convertir_timestamp_unix(timestamp_unix):
     """
-    Convierte timestamp unix a formato legible en zona horaria de Arizona
+    Convierte timestamp unix a formato legible en zona horaria de Bogota, Colombia (UTC-5)
     """
     if timestamp_unix and timestamp_unix > 0:
-        from datetime import datetime
-        import pytz
+        from datetime import datetime, timezone, timedelta
         try:
-            dt_utc = datetime.fromtimestamp(timestamp_unix, tz=pytz.UTC)
-            arizona_tz = pytz.timezone('US/Arizona')
-            dt_arizona = dt_utc.astimezone(arizona_tz)
-            return dt_arizona.strftime("%H:%M")
+            TZ_BOGOTA = timezone(timedelta(hours=-5))
+            dt_utc = datetime.fromtimestamp(timestamp_unix, tz=timezone.utc)
+            dt_bogota = dt_utc.astimezone(TZ_BOGOTA)
+            return dt_bogota.strftime("%H:%M")
         except Exception as e:
             print(f"Error convirtiendo timestamp {timestamp_unix}: {e}")
             return "Por confirmar"
