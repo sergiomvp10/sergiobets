@@ -23,19 +23,12 @@ def test_token_loading():
         from telegram_utils import TELEGRAM_TOKEN as utils_token
         print(f"   Utils token: {utils_token[:10]}...")
         
-        expected_token = '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c'
-        
-        if TELEGRAM_TOKEN == expected_token:
-            print("   ✅ Correct token loaded in bot listener")
+        if TELEGRAM_TOKEN and utils_token and TELEGRAM_TOKEN == utils_token:
+            print("   ✅ Tokens loaded and matching in bot listener and utils")
+            return True
         else:
-            print("   ❌ Wrong token in bot listener")
-            
-        if utils_token == expected_token:
-            print("   ✅ Correct token loaded in utils")
-        else:
-            print("   ❌ Wrong token in utils")
-            
-        return TELEGRAM_TOKEN == expected_token and utils_token == expected_token
+            print("   ❌ Token mismatch or missing")
+            return False
         
     except Exception as e:
         print(f"   ❌ Error loading tokens: {e}")

@@ -15,7 +15,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN no está configurado en el archivo .env")
 ADMIN_TELEGRAM_ID = int(os.getenv('ADMIN_TELEGRAM_ID', '7659029315'))
 PAYMENTS_GROUP_ID = int(os.getenv('PAYMENTS_GROUP_ID', os.getenv('ADMIN_TELEGRAM_ID', '7659029315')))
 USUARIOS_FILE = 'usuarios.txt'

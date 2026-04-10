@@ -16,8 +16,12 @@ from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_d
 from league_utils import detectar_liga_por_imagen
 
 # CONFIG TELEGRAM
-TELEGRAM_TOKEN = '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c'
-TELEGRAM_CHAT_ID = '7659029315'
+from dotenv import load_dotenv
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN no está configurado en el archivo .env")
+TELEGRAM_CHAT_ID = os.getenv('ADMIN_TELEGRAM_ID', '7659029315')
 
 
 def cargar_partidos_reales(fecha):

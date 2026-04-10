@@ -31,13 +31,8 @@ def test_fresh_imports():
         print(f"✅ telegram_bot_listener.py token: {listener_token[:10]}...")
         
         if utils_token == listener_token == env_token:
-            print("✅ All tokens match")
-            if utils_token.startswith('8487580276'):
-                print("✅ NEW TOKEN CONFIRMED - imports are working correctly!")
-                return True
-            else:
-                print(f"❌ Still importing OLD TOKEN: {utils_token[:10]}...")
-                return False
+            print("✅ ALL TOKENS MATCH - imports are working correctly!")
+            return True
         else:
             print("❌ Token mismatch between sources!")
             return False
