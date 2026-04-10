@@ -609,7 +609,7 @@ class SergioBetsUnified:
             padx=10, pady=6, command=self._toggle_theme)
         self._theme_toggle_btn.pack(fill='x')
 
-        self._set_active_nav('pronosticos')
+        self._set_active_nav('dashboard')
 
         # ── CONTENT AREA ─────────────────────────────────────────
         content = tk.Frame(self.root, bg=palette['bg'])
@@ -708,7 +708,7 @@ class SergioBetsUnified:
                             highlightbackground=palette['card_border'], highlightthickness=1)
             card.grid(row=0, column=col, sticky='ew', padx=6)
             tk.Label(card, text=icon, bg=palette['stats_bg'],
-                     font=('Segoe UI', 14)).pack(anchor='w')
+                     fg=palette['fg'], font=('Segoe UI', 14)).pack(anchor='w')
             v_lbl = tk.Label(card, text=val, bg=palette['stats_bg'],
                              fg=palette['fg'], font=('Segoe UI', 24, 'bold'))
             v_lbl.pack(anchor='w', pady=(4, 0))
@@ -806,6 +806,10 @@ class SergioBetsUnified:
         self._alertas_frame = tk.Frame(content, bg=palette['bg'])
         self._build_alertas_content(palette)
 
+        # ── Dashboard page (hidden) ──────────────────────────────────
+        self._dashboard_frame = tk.Frame(content, bg=palette['bg'])
+        self._dashboard_loaded = False
+
         # Legacy references for backward compatibility
         self.notebook = None
         self.tab_ajustes = self._settings_frame
@@ -814,8 +818,8 @@ class SergioBetsUnified:
         # Start live Colombia clock
         self._update_clock()
 
-        # Show pronosticos view by default
-        self.sf_predicciones.grid(row=0, column=0, sticky='nsew')
+        # Show dashboard view by default
+        self._show_dashboard_page()
 
         print("✅ GUI setup completed with professional theme")
     
@@ -849,7 +853,7 @@ class SergioBetsUnified:
     def _on_nav_click(self, nav_id):
         """Handle sidebar navigation click"""
         if nav_id == "dashboard":
-            self._show_main_content('dashboard')
+            self._show_dashboard_page()
             self._set_active_nav(nav_id)
         elif nav_id == "pronosticos":
             self._show_main_content('pronosticos')
@@ -880,6 +884,7 @@ class SergioBetsUnified:
         self._tracking_frame.grid_forget()
         self._usuarios_frame.grid_forget()
         self._alertas_frame.grid_forget()
+        self._dashboard_frame.grid_forget()
 
     def _show_main_content(self, mode='pronosticos'):
         """Show the main predictions/matches content based on sidebar selection"""
@@ -927,6 +932,292 @@ class SergioBetsUnified:
         """Show the alertas page inline in the content area"""
         self._hide_all_pages()
         self._alertas_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+
+    def _show_dashboard_page(self):
+        """Show the dashboard page with owner metrics"""
+        self._hide_all_pages()
+        if not self._dashboard_loaded:
+            self._build_dashboard_content(self._palette)
+            self._dashboard_loaded = True
+        self._refresh_dashboard_data()
+        self._dashboard_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+
+    def _build_dashboard_content(self, p):
+        """Build the owner dashboard with detailed metrics and KPIs"""
+        import tkinter as tk
+
+        self._dashboard_frame.grid_rowconfigure(4, weight=1)
+        self._dashboard_frame.grid_columnconfigure(0, weight=1)
+
+        # Title
+        title_f = tk.Frame(self._dashboard_frame, bg=p['bg'])
+        title_f.grid(row=0, column=0, sticky='ew', pady=(0, 16))
+        tk.Label(title_f, text="📊  Panel de Control",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+        tk.Label(title_f, text="Resumen ejecutivo del sistema BetGeniuX",
+                 bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 10)).pack(anchor='w', pady=(4, 0))
+
+        # ── Top KPI cards row ────────────────────────────────
+        kpi_row = tk.Frame(self._dashboard_frame, bg=p['bg'])
+        kpi_row.grid(row=1, column=0, sticky='ew', pady=(0, 16))
+        for c in range(4):
+            kpi_row.grid_columnconfigure(c, weight=1, uniform='kpi')
+
+        kpi_defs = [
+            ("usuarios_activos", "👥", "Usuarios Activos", "0", "#3B82F6"),
+            ("pronosticos_hoy",  "🎯", "Pronosticos Hoy",  "0", "#10B981"),
+            ("tasa_acierto",     "📈", "Tasa de Acierto",  "0%", "#F59E0B"),
+            ("roi_global",       "💰", "ROI Global",        "0%", "#8B5CF6"),
+        ]
+        self._dash_kpi_labels = {}
+        for col, (kid, icon, label, val, accent) in enumerate(kpi_defs):
+            card = tk.Frame(kpi_row, bg=p['card_bg'], padx=20, pady=16,
+                            highlightbackground=accent, highlightthickness=2)
+            card.grid(row=0, column=col, sticky='ew', padx=6)
+
+            top_row = tk.Frame(card, bg=p['card_bg'])
+            top_row.pack(fill='x')
+            tk.Label(top_row, text=icon, bg=p['card_bg'], fg=p['fg'],
+                     font=('Segoe UI', 16)).pack(side='left')
+            tk.Label(top_row, text=label, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 9)).pack(side='right')
+
+            v_lbl = tk.Label(card, text=val, bg=p['card_bg'],
+                             fg=accent, font=('Segoe UI', 28, 'bold'))
+            v_lbl.pack(anchor='w', pady=(8, 0))
+
+            self._dash_kpi_labels[kid] = v_lbl
+
+        # ── Second row: Rendimiento + Distribucion ───────────
+        mid_row = tk.Frame(self._dashboard_frame, bg=p['bg'])
+        mid_row.grid(row=2, column=0, sticky='ew', pady=(0, 16))
+        mid_row.grid_columnconfigure(0, weight=3)
+        mid_row.grid_columnconfigure(1, weight=2)
+
+        # Performance card
+        perf_card = tk.Frame(mid_row, bg=p['card_bg'], padx=24, pady=20,
+                              highlightbackground=p['card_border'], highlightthickness=1)
+        perf_card.grid(row=0, column=0, sticky='nsew', padx=(0, 8))
+
+        tk.Label(perf_card, text="📊  Rendimiento de Predicciones",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 16))
+
+        perf_items = [
+            ("total_enviados",    "Total Enviados a Telegram"),
+            ("total_acertados",   "Acertadas"),
+            ("total_fallados",    "Falladas"),
+            ("total_pendientes",  "Pendientes de Resultado"),
+            ("promedio_cuota",    "Promedio Cuota"),
+            ("mejor_racha",       "Mejor Racha Actual"),
+        ]
+        self._dash_perf_labels = {}
+        for pid, plabel in perf_items:
+            row = tk.Frame(perf_card, bg=p['card_bg'])
+            row.pack(fill='x', pady=3)
+            tk.Label(row, text=plabel, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 10)).pack(side='left')
+            val_l = tk.Label(row, text="0", bg=p['card_bg'], fg=p['fg'],
+                             font=('Segoe UI', 10, 'bold'))
+            val_l.pack(side='right')
+            self._dash_perf_labels[pid] = val_l
+
+        # Distribution / status card
+        status_card = tk.Frame(mid_row, bg=p['card_bg'], padx=24, pady=20,
+                                highlightbackground=p['card_border'], highlightthickness=1)
+        status_card.grid(row=0, column=1, sticky='nsew', padx=(8, 0))
+
+        tk.Label(status_card, text="🏆  Estado del Sistema",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 16))
+
+        status_items = [
+            ("estado_bot",        "Bot Telegram"),
+            ("usuarios_premium",  "Usuarios Premium"),
+            ("usuarios_free",     "Usuarios Free"),
+            ("ligas_cubiertas",   "Ligas Cubiertas"),
+            ("ultima_prediccion", "Ultima Prediccion"),
+            ("uptime_sistema",    "Estado del Sistema"),
+        ]
+        self._dash_status_labels = {}
+        for sid, slabel in status_items:
+            row = tk.Frame(status_card, bg=p['card_bg'])
+            row.pack(fill='x', pady=3)
+            tk.Label(row, text=slabel, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 10)).pack(side='left')
+            val_l = tk.Label(row, text="--", bg=p['card_bg'], fg=p['fg'],
+                             font=('Segoe UI', 10, 'bold'))
+            val_l.pack(side='right')
+            self._dash_status_labels[sid] = val_l
+
+        # ── Third row: Recent activity ────────────────────────
+        recent_card = tk.Frame(self._dashboard_frame, bg=p['card_bg'], padx=24, pady=20,
+                                highlightbackground=p['card_border'], highlightthickness=1)
+        recent_card.grid(row=3, column=0, sticky='ew', pady=(0, 16))
+
+        tk.Label(recent_card, text="🕐  Actividad Reciente",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 12))
+
+        self._dash_activity_frame = tk.Frame(recent_card, bg=p['card_bg'])
+        self._dash_activity_frame.pack(fill='x')
+
+        # ── Spacer for scrollable area ───────────────────────
+        spacer = tk.Frame(self._dashboard_frame, bg=p['bg'])
+        spacer.grid(row=4, column=0, sticky='nsew')
+
+    def _refresh_dashboard_data(self):
+        """Load real data into dashboard metrics"""
+        try:
+            historial = cargar_json('historial_predicciones.json') or []
+        except Exception:
+            historial = []
+
+        enviados = [pr for pr in historial if pr.get('sent_to_telegram', False)]
+        acertados = [pr for pr in enviados if pr.get('acierto') is True]
+        fallados = [pr for pr in enviados if pr.get('acierto') is False]
+        pendientes = [pr for pr in enviados if pr.get('acierto') is None]
+
+        # Today's predictions
+        hoy_str = hora_bogota().strftime('%Y-%m-%d')
+        pred_hoy = [pr for pr in enviados if pr.get('fecha', '') == hoy_str]
+
+        # Accuracy
+        resueltos = len(acertados) + len(fallados)
+        tasa = (len(acertados) / resueltos * 100) if resueltos > 0 else 0
+
+        # ROI calculation
+        total_stake = 0
+        total_retorno = 0
+        for pr in enviados:
+            stake = float(pr.get('stake', pr.get('stake_recomendado', 1)))
+            cuota = float(pr.get('cuota', 1))
+            total_stake += stake
+            if pr.get('acierto') is True:
+                total_retorno += stake * cuota
+            elif pr.get('acierto') is False:
+                total_retorno += 0  # lost
+            else:
+                total_retorno += stake  # pending = neutral
+        roi = ((total_retorno - total_stake) / total_stake * 100) if total_stake > 0 else 0
+
+        # Average odds
+        cuotas = [float(pr.get('cuota', 0)) for pr in enviados if pr.get('cuota')]
+        avg_cuota = sum(cuotas) / len(cuotas) if cuotas else 0
+
+        # Win streak
+        racha = 0
+        for pr in reversed(enviados):
+            if pr.get('acierto') is True:
+                racha += 1
+            elif pr.get('acierto') is False:
+                break
+
+        # Users
+        usuarios_premium = 0
+        usuarios_free = 0
+        try:
+            from access_manager import access_manager
+            if access_manager and hasattr(access_manager, 'listar_usuarios'):
+                usuarios = access_manager.listar_usuarios()
+                if usuarios and isinstance(usuarios, (list, tuple)):
+                    for u in usuarios:
+                        if isinstance(u, dict):
+                            if u.get('premium') or u.get('is_premium'):
+                                usuarios_premium += 1
+                            else:
+                                usuarios_free += 1
+                        elif isinstance(u, (list, tuple)) and len(u) >= 4:
+                            if u[3]:
+                                usuarios_premium += 1
+                            else:
+                                usuarios_free += 1
+        except Exception:
+            pass
+        total_usuarios = usuarios_premium + usuarios_free
+
+        # Leagues covered
+        ligas = set()
+        for pr in enviados:
+            liga = pr.get('liga', '')
+            if liga:
+                ligas.add(liga)
+
+        # Last prediction time
+        ultima = "--"
+        if enviados:
+            last = enviados[-1]
+            ultima = last.get('fecha', last.get('fecha_envio_telegram', '--'))
+            if len(ultima) > 10:
+                ultima = ultima[:16].replace('T', ' ')
+
+        # Update KPI cards
+        p = self._palette
+        if hasattr(self, '_dash_kpi_labels'):
+            self._dash_kpi_labels['usuarios_activos'].config(text=str(total_usuarios))
+            self._dash_kpi_labels['pronosticos_hoy'].config(text=str(len(pred_hoy)))
+            self._dash_kpi_labels['tasa_acierto'].config(text=f"{tasa:.1f}%")
+            roi_color = "#10B981" if roi >= 0 else "#EF4444"
+            self._dash_kpi_labels['roi_global'].config(text=f"{roi:+.1f}%", fg=roi_color)
+
+        # Update performance labels
+        if hasattr(self, '_dash_perf_labels'):
+            self._dash_perf_labels['total_enviados'].config(text=str(len(enviados)))
+            self._dash_perf_labels['total_acertados'].config(text=str(len(acertados)), fg="#10B981")
+            self._dash_perf_labels['total_fallados'].config(text=str(len(fallados)), fg="#EF4444")
+            self._dash_perf_labels['total_pendientes'].config(text=str(len(pendientes)), fg="#F59E0B")
+            self._dash_perf_labels['promedio_cuota'].config(text=f"{avg_cuota:.2f}" if avg_cuota else "--")
+            self._dash_perf_labels['mejor_racha'].config(
+                text=f"{racha} seguidas" if racha > 0 else "0",
+                fg="#10B981" if racha > 0 else p['fg'])
+
+        # Update status labels
+        if hasattr(self, '_dash_status_labels'):
+            self._dash_status_labels['estado_bot'].config(text="Activo", fg="#10B981")
+            self._dash_status_labels['usuarios_premium'].config(text=str(usuarios_premium))
+            self._dash_status_labels['usuarios_free'].config(text=str(usuarios_free))
+            self._dash_status_labels['ligas_cubiertas'].config(text=str(len(ligas)))
+            self._dash_status_labels['ultima_prediccion'].config(text=ultima)
+            self._dash_status_labels['uptime_sistema'].config(text="Operativo", fg="#10B981")
+
+        # Update recent activity
+        if hasattr(self, '_dash_activity_frame'):
+            import tkinter as tk
+            for w in self._dash_activity_frame.winfo_children():
+                w.destroy()
+
+            recent = list(reversed(enviados[-8:])) if enviados else []
+            if not recent:
+                tk.Label(self._dash_activity_frame,
+                         text="Sin actividad reciente. Genera pronosticos para comenzar.",
+                         bg=p['card_bg'], fg=p['muted'],
+                         font=('Segoe UI', 10)).pack(anchor='w')
+            else:
+                for pr in recent:
+                    act_row = tk.Frame(self._dash_activity_frame, bg=p['card_bg'])
+                    act_row.pack(fill='x', pady=2)
+
+                    # Status icon
+                    if pr.get('acierto') is True:
+                        status_icon, status_fg = "✅", "#10B981"
+                    elif pr.get('acierto') is False:
+                        status_icon, status_fg = "❌", "#EF4444"
+                    else:
+                        status_icon, status_fg = "⏳", "#F59E0B"
+
+                    tk.Label(act_row, text=status_icon, bg=p['card_bg'], fg=status_fg,
+                             font=('Segoe UI', 10)).pack(side='left', padx=(0, 8))
+                    partido = pr.get('partido', 'Desconocido')
+                    pred_text = pr.get('prediccion', '')
+                    cuota_val = pr.get('cuota', '')
+                    tk.Label(act_row, text=f"{partido}  |  {pred_text}  @{cuota_val}",
+                             bg=p['card_bg'], fg=p['fg'],
+                             font=('Segoe UI', 9)).pack(side='left')
+                    fecha_val = pr.get('fecha', '')
+                    tk.Label(act_row, text=fecha_val, bg=p['card_bg'], fg=p['muted'],
+                             font=('Segoe UI', 8)).pack(side='right')
 
     def _on_tab_click(self, tab_id):
         """Handle content tab switching"""
@@ -1183,7 +1474,7 @@ class SergioBetsUnified:
                              cursor='hand2')
             btn_f.grid(row=row_idx, column=col_idx, sticky='ew', padx=4, pady=4)
             tk.Label(btn_f, text=title.split(' ', 1)[0], bg=p['secondary_bg'],
-                     font=('Segoe UI', 18)).pack(anchor='w')
+                     fg=p['fg'], font=('Segoe UI', 18)).pack(anchor='w')
             tk.Label(btn_f, text=title.split(' ', 1)[1] if ' ' in title else title,
                      bg=p['secondary_bg'], fg=p['fg'],
                      font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(4, 0))
