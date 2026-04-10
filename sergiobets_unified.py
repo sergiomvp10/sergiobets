@@ -20,8 +20,15 @@ from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 from tkcalendar import DateEntry
 import pygame
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 from dotenv import load_dotenv, find_dotenv
+
+# Zona horaria de Bogota, Colombia (UTC-5)
+TZ_BOGOTA = timezone(timedelta(hours=-5))
+
+def hora_bogota():
+    """Retorna la hora actual en zona horaria de Bogota, Colombia"""
+    return datetime.now(TZ_BOGOTA)
 
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
@@ -631,6 +638,13 @@ class SergioBetsUnified:
 
         hdr_icons = tk.Frame(header, bg=palette['header_bg'])
         hdr_icons.grid(row=0, column=0, sticky='e', padx=20, pady=10)
+        # Live Colombia clock
+        self._clock_lbl = tk.Label(hdr_icons, text="", bg=palette['header_bg'],
+                                    fg=palette['fg'], font=('Segoe UI', 10, 'bold'))
+        self._clock_lbl.pack(side='left', padx=(0, 12))
+        clock_flag = tk.Label(hdr_icons, text="🇨🇴", bg=palette['header_bg'],
+                              font=('Segoe UI', 12))
+        clock_flag.pack(side='left', padx=(0, 16))
         for ic_txt in ("🔍", "🔔", "💬"):
             tk.Label(hdr_icons, text=ic_txt, bg=palette['header_bg'],
                      fg=palette['muted'], font=('Segoe UI', 14), padx=6).pack(side='left')
@@ -729,20 +743,18 @@ class SergioBetsUnified:
         scroll_container = tk.Frame(content, bg=palette['bg'])
         scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
         scroll_container.grid_rowconfigure(0, weight=1)
-        scroll_container.grid_rowconfigure(1, weight=1)
         scroll_container.grid_columnconfigure(0, weight=1)
         self._scroll_container = scroll_container
 
         self.sf_predicciones = ScrollableFrame(scroll_container, bg=palette['bg'])
-        self.sf_predicciones.grid(row=0, column=0, sticky='nsew', pady=(0, 4))
         self.sf_predicciones.inner.grid_columnconfigure(0, weight=1)
 
         self.sf_partidos = ScrollableFrame(scroll_container, bg=palette['bg'])
-        self.sf_partidos.grid(row=1, column=0, sticky='nsew', pady=(4, 0))
         self.sf_partidos.inner.grid_columnconfigure(0, weight=1)
 
         self.frame_predicciones = self.sf_predicciones.inner
         self.frame_partidos = self.sf_partidos.inner
+        self._current_main_mode = 'pronosticos'  # Track which mode is active
 
         # ── Bottom action bar ────────────────────────────────────
         bottom = tk.Frame(content, bg=palette['bottom_bg'], height=56,
@@ -782,10 +794,28 @@ class SergioBetsUnified:
         self._settings_frame = tk.Frame(content, bg=palette['bg'])
         self._build_settings_content(palette)
 
+        # ── Tracking page (hidden) ────────────────────────────────
+        self._tracking_frame = tk.Frame(content, bg=palette['bg'])
+        self._tracking_loaded = False
+
+        # ── Usuarios page (hidden) ────────────────────────────────
+        self._usuarios_frame = tk.Frame(content, bg=palette['bg'])
+        self._usuarios_loaded = False
+
+        # ── Alertas page (hidden) ─────────────────────────────────
+        self._alertas_frame = tk.Frame(content, bg=palette['bg'])
+        self._build_alertas_content(palette)
+
         # Legacy references for backward compatibility
         self.notebook = None
         self.tab_ajustes = self._settings_frame
         self.tab_principal = scroll_container
+
+        # Start live Colombia clock
+        self._update_clock()
+
+        # Show pronosticos view by default
+        self.sf_predicciones.grid(row=0, column=0, sticky='nsew')
 
         print("✅ GUI setup completed with professional theme")
     
@@ -818,39 +848,85 @@ class SergioBetsUnified:
 
     def _on_nav_click(self, nav_id):
         """Handle sidebar navigation click"""
-        if nav_id in ("dashboard", "pronosticos"):
-            self._show_main_content()
+        if nav_id == "dashboard":
+            self._show_main_content('dashboard')
+            self._set_active_nav(nav_id)
+        elif nav_id == "pronosticos":
+            self._show_main_content('pronosticos')
             self._set_active_nav(nav_id)
         elif nav_id == "partidos":
-            self._show_main_content()
+            self._show_main_content('partidos')
             self._set_active_nav(nav_id)
         elif nav_id == "alertas":
-            self.enviar_alerta()
+            self._show_alertas_page()
+            self._set_active_nav(nav_id)
         elif nav_id == "tracking":
-            self.abrir_track_record()
+            self._show_tracking_page()
             self._set_active_nav(nav_id)
         elif nav_id == "usuarios":
-            self.abrir_usuarios()
+            self._show_usuarios_page()
             self._set_active_nav(nav_id)
         elif nav_id == "ajustes":
             self._show_settings_page()
             self._set_active_nav(nav_id)
 
-    def _show_main_content(self):
-        """Show the main predictions/matches content"""
-        self._settings_frame.grid_forget()
-        self._scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
-        self._filter_bar.grid(row=1, column=0, sticky='ew')
-        self._stats_row.grid(row=2, column=0, sticky='ew')
-        self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
-
-    def _show_settings_page(self):
-        """Show the settings page in the content area"""
+    def _hide_all_pages(self):
+        """Hide all content pages"""
         self._scroll_container.grid_forget()
         self._filter_bar.grid_forget()
         self._stats_row.grid_forget()
         self._tabs_frame.grid_forget()
+        self._settings_frame.grid_forget()
+        self._tracking_frame.grid_forget()
+        self._usuarios_frame.grid_forget()
+        self._alertas_frame.grid_forget()
+
+    def _show_main_content(self, mode='pronosticos'):
+        """Show the main predictions/matches content based on sidebar selection"""
+        self._hide_all_pages()
+        self._current_main_mode = mode
+        self._scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
+        self._filter_bar.grid(row=1, column=0, sticky='ew')
+        self._stats_row.grid(row=2, column=0, sticky='ew')
+        self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
+        # Show/hide scroll frames based on mode
+        self.sf_predicciones.grid_forget()
+        self.sf_partidos.grid_forget()
+        if mode == 'pronosticos':
+            self.sf_predicciones.grid(row=0, column=0, sticky='nsew')
+        elif mode == 'partidos':
+            self.sf_partidos.grid(row=0, column=0, sticky='nsew')
+        else:  # dashboard - show both
+            self._scroll_container.grid_rowconfigure(1, weight=1)
+            self.sf_predicciones.grid(row=0, column=0, sticky='nsew', pady=(0, 4))
+            self.sf_partidos.grid(row=1, column=0, sticky='nsew', pady=(4, 0))
+
+    def _show_settings_page(self):
+        """Show the settings page in the content area"""
+        self._hide_all_pages()
         self._settings_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+
+    def _show_tracking_page(self):
+        """Show the tracking page inline in the content area"""
+        self._hide_all_pages()
+        if not self._tracking_loaded:
+            self._build_tracking_content(self._palette)
+            self._tracking_loaded = True
+        self._tracking_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+
+    def _show_usuarios_page(self):
+        """Show the usuarios page inline in the content area"""
+        self._hide_all_pages()
+        if not self._usuarios_loaded:
+            self._build_usuarios_content(self._palette)
+            self._usuarios_loaded = True
+        self._usuarios_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+        self._refresh_usuarios_inline()
+
+    def _show_alertas_page(self):
+        """Show the alertas page inline in the content area"""
+        self._hide_all_pages()
+        self._alertas_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
 
     def _on_tab_click(self, tab_id):
         """Handle content tab switching"""
@@ -863,7 +939,8 @@ class SergioBetsUnified:
                 font=('Segoe UI', 10, 'bold' if is_act else 'normal'))
         self._active_tab = tab_id
         if tab_id == "historial":
-            self.abrir_track_record()
+            self._show_tracking_page()
+            self._set_active_nav('tracking')
 
     def _toggle_theme(self):
         """Toggle between dark and light themes"""
@@ -876,10 +953,25 @@ class SergioBetsUnified:
         self._theme_toggle_btn.config(
             text="🌙 Modo Oscuro" if new_mode == 'light' else "☀️ Modo Claro")
 
+    def _update_clock(self):
+        """Update the live Colombia clock every second"""
+        try:
+            now = hora_bogota()
+            time_str = now.strftime('%H:%M:%S')
+            self._clock_lbl.config(text=time_str)
+        except Exception:
+            pass
+        try:
+            self.root.after(1000, self._update_clock)
+        except Exception:
+            pass
+
     def _rebuild_theme(self, p):
         """Rebuild all custom tk widgets with the new palette"""
         try:
-            for frame in (self._content, self._scroll_container):
+            for frame in (self._content, self._scroll_container,
+                          self._tracking_frame, self._usuarios_frame,
+                          self._alertas_frame, self._settings_frame):
                 frame.configure(bg=p['bg'])
             self._header.configure(bg=p['header_bg'])
             self._filter_bar.configure(bg=p['header_bg'])
@@ -1027,7 +1119,639 @@ class SergioBetsUnified:
             
         except ValueError:
             messagebox.showerror("Error", "Por favor ingresa valores numéricos válidos")
-    
+
+    # ── Alertas inline page builder ─────────────────────────────
+
+    def _build_alertas_content(self, p):
+        """Build alertas page content with multiple alert types and manual alerts"""
+        import tkinter as tk
+        from tkinter import ttk
+
+        self._alertas_frame.grid_rowconfigure(2, weight=1)
+        self._alertas_frame.grid_columnconfigure(0, weight=1)
+
+        # Title
+        title_f = tk.Frame(self._alertas_frame, bg=p['bg'])
+        title_f.grid(row=0, column=0, sticky='ew', pady=(0, 16))
+        tk.Label(title_f, text="📢  Centro de Alertas y Mensajes",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+        tk.Label(title_f, text="Envia alertas predefinidas o mensajes personalizados a tus usuarios",
+                 bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 10)).pack(anchor='w', pady=(4, 0))
+
+        # Predefined alert types card
+        predef_card = tk.Frame(self._alertas_frame, bg=p['card_bg'], padx=24, pady=20,
+                               highlightbackground=p['card_border'], highlightthickness=1)
+        predef_card.grid(row=1, column=0, sticky='ew', pady=(0, 16))
+
+        tk.Label(predef_card, text="Alertas Rapidas",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 16))
+
+        alerts_grid = tk.Frame(predef_card, bg=p['card_bg'])
+        alerts_grid.pack(fill='x')
+        for c in range(3):
+            alerts_grid.grid_columnconfigure(c, weight=1, uniform='alert')
+
+        alert_types = [
+            ("📢 Alerta de Pronostico", "#3B82F6",
+             "📢 ¡Alerta de pronostico! 📢\nNuestro sistema ha detectado una oportunidad con valor.\nEn unos momentos compartiremos nuestra apuesta recomendada. ⚽💰",
+             True),
+            ("🎁 Promocion Premium", "#10B981",
+             "🎁 ¡OFERTA ESPECIAL! 🎁\n\n💎 Unete a BetGeniuX Premium y accede a:\n• Pronosticos exclusivos con analisis detallado\n• Estadisticas avanzadas de partidos\n• Alertas en tiempo real\n• Soporte prioritario\n\n💰 Solo $12 USD por semana\n📈 Mejora tus resultados con nuestros expertos\n\n🔥 ¡No te pierdas las mejores oportunidades!\nActiva tu membresia ahora y empieza a ganar. ⚽💰",
+             False),
+            ("⚽ Jornada en Vivo", "#F59E0B",
+             "⚽ ¡JORNADA EN VIVO! ⚽\n\nLos partidos de hoy ya estan en juego.\nRevisa nuestros pronosticos actualizados y no te pierdas ninguna oportunidad.\n\n📊 Analisis en tiempo real disponible.\n💰 ¡Buena suerte!",
+             True),
+            ("🔥 Alta Confianza", "#EF4444",
+             "🔥 ¡PICK DE ALTA CONFIANZA! 🔥\n\nNuestro modelo ha identificado una apuesta con confianza superior al 85%.\n\n⚡ Revisa el pick destacado en la app.\n💎 Solo para miembros Premium.",
+             True),
+            ("📊 Resumen Diario", "#8B5CF6",
+             "📊 RESUMEN DEL DIA 📊\n\nAqui tienes el resumen de los pronosticos de hoy.\n\n✅ Revisa los resultados en la seccion de Tracking.\n📈 Sigue mejorando con BetGeniuX.",
+             True),
+            ("🚨 Ultimo Momento", "#DC2626",
+             "🚨 ¡ULTIMO MOMENTO! 🚨\n\nInformacion importante sobre los partidos de hoy.\nRevisa las actualizaciones en la app.\n\n⚠️ Cambios de alineacion o condiciones que pueden afectar los pronosticos.",
+             True),
+        ]
+
+        for idx, (title, color, msg, premium_only) in enumerate(alert_types):
+            row_idx = idx // 3
+            col_idx = idx % 3
+            btn_f = tk.Frame(alerts_grid, bg=p['secondary_bg'], padx=16, pady=12,
+                             highlightbackground=p['card_border'], highlightthickness=1,
+                             cursor='hand2')
+            btn_f.grid(row=row_idx, column=col_idx, sticky='ew', padx=4, pady=4)
+            tk.Label(btn_f, text=title.split(' ', 1)[0], bg=p['secondary_bg'],
+                     font=('Segoe UI', 18)).pack(anchor='w')
+            tk.Label(btn_f, text=title.split(' ', 1)[1] if ' ' in title else title,
+                     bg=p['secondary_bg'], fg=p['fg'],
+                     font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(4, 0))
+            audience_text = "Solo Premium" if premium_only else "No Premium"
+            tk.Label(btn_f, text=audience_text, bg=p['secondary_bg'], fg=p['muted'],
+                     font=('Segoe UI', 8)).pack(anchor='w', pady=(2, 0))
+            send_btn = tk.Button(btn_f, text="Enviar", bg=color, fg='#FFFFFF',
+                                 font=('Segoe UI', 9, 'bold'), relief='flat',
+                                 cursor='hand2', padx=12, pady=3, bd=0,
+                                 command=lambda m=msg, po=premium_only: self._enviar_alerta_tipo(m, po))
+            send_btn.pack(anchor='w', pady=(8, 0))
+
+        # Manual alert card
+        manual_card = tk.Frame(self._alertas_frame, bg=p['card_bg'], padx=24, pady=20,
+                               highlightbackground=p['card_border'], highlightthickness=1)
+        manual_card.grid(row=2, column=0, sticky='nsew', pady=(0, 10))
+        manual_card.grid_rowconfigure(2, weight=1)
+        manual_card.grid_columnconfigure(0, weight=1)
+
+        tk.Label(manual_card, text="Mensaje Personalizado",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 13, 'bold')).grid(row=0, column=0, sticky='w', pady=(0, 8))
+
+        tk.Label(manual_card, text="Escribe un mensaje personalizado para enviar a tus usuarios:",
+                 bg=p['card_bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).grid(row=1, column=0, sticky='w', pady=(0, 8))
+
+        self._alerta_manual_text = tk.Text(manual_card, font=('Segoe UI', 11),
+                                           bg=p['entry_bg'], fg=p['entry_fg'],
+                                           insertbackground=p['fg'], relief='flat',
+                                           highlightbackground=p['border'], highlightthickness=1,
+                                           wrap='word', height=6)
+        self._alerta_manual_text.grid(row=2, column=0, sticky='nsew', pady=(0, 12))
+
+        btns_row = tk.Frame(manual_card, bg=p['card_bg'])
+        btns_row.grid(row=3, column=0, sticky='w')
+
+        # Audience selection
+        self._alerta_audience = tk.StringVar(value='premium')
+        tk.Label(btns_row, text="Enviar a:", bg=p['card_bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 8))
+        for val, text in [('premium', 'Solo Premium'), ('todos', 'Todos'), ('no_premium', 'No Premium')]:
+            tk.Radiobutton(btns_row, text=text, variable=self._alerta_audience, value=val,
+                           bg=p['card_bg'], fg=p['fg'], selectcolor=p['entry_bg'],
+                           activebackground=p['card_bg'], activeforeground=p['fg'],
+                           font=('Segoe UI', 9)).pack(side='left', padx=(0, 12))
+
+        tk.Button(btns_row, text="📤 Enviar Mensaje", bg=p['primary'], fg='#FFFFFF',
+                  font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
+                  padx=16, pady=6, bd=0,
+                  command=self._enviar_alerta_manual).pack(side='right', padx=(20, 0))
+
+    def _enviar_alerta_tipo(self, mensaje, premium_only):
+        """Send a predefined alert type"""
+        from tkinter import messagebox
+        try:
+            if premium_only:
+                resultado = enviar_telegram_masivo(mensaje, only_premium=True)
+            else:
+                resultado = enviar_telegram_masivo(mensaje, only_premium=False, exclude_premium=True)
+            if resultado["exito"]:
+                audiencia = resultado.get('audiencia', 'usuarios')
+                msg = f"✅ Alerta enviada correctamente.\n\n"
+                msg += f"📊 Audiencia: {audiencia}\n"
+                msg += f"• Total: {resultado['total_usuarios']}\n"
+                msg += f"• Enviados: {resultado['enviados_exitosos']}"
+                messagebox.showinfo("Alerta Enviada", msg)
+            else:
+                if resultado.get('total_usuarios', 0) == 0:
+                    messagebox.showinfo("Sin usuarios",
+                                        "⚠️ No hay usuarios en la audiencia seleccionada.")
+                else:
+                    messagebox.showerror("Error", "No se pudo enviar la alerta.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando alerta: {e}")
+
+    def _enviar_alerta_manual(self):
+        """Send a manual custom alert"""
+        from tkinter import messagebox
+        mensaje = self._alerta_manual_text.get('1.0', 'end').strip()
+        if not mensaje:
+            messagebox.showwarning("Vacio", "Escribe un mensaje antes de enviar.")
+            return
+        audience = self._alerta_audience.get()
+        try:
+            if audience == 'premium':
+                resultado = enviar_telegram_masivo(mensaje, only_premium=True)
+            elif audience == 'no_premium':
+                resultado = enviar_telegram_masivo(mensaje, only_premium=False, exclude_premium=True)
+            else:
+                resultado = enviar_telegram_masivo(mensaje, only_premium=False)
+            if resultado["exito"]:
+                audiencia = resultado.get('audiencia', 'usuarios')
+                msg = f"✅ Mensaje enviado correctamente.\n\n"
+                msg += f"📊 Audiencia: {audiencia}\n"
+                msg += f"• Total: {resultado['total_usuarios']}\n"
+                msg += f"• Enviados: {resultado['enviados_exitosos']}"
+                messagebox.showinfo("Mensaje Enviado", msg)
+                self._alerta_manual_text.delete('1.0', 'end')
+            else:
+                if resultado.get('total_usuarios', 0) == 0:
+                    messagebox.showinfo("Sin usuarios",
+                                        "⚠️ No hay usuarios en la audiencia seleccionada.")
+                else:
+                    messagebox.showerror("Error", "No se pudo enviar el mensaje.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error enviando mensaje: {e}")
+
+    # ── Tracking inline page builder ────────────────────────────
+
+    def _build_tracking_content(self, p):
+        """Build tracking/track record page inline"""
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+
+        self._tracking_frame.grid_rowconfigure(3, weight=1)
+        self._tracking_frame.grid_columnconfigure(0, weight=1)
+
+        # Title
+        tk.Label(self._tracking_frame, text="📊  Track Record de Predicciones",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 16, 'bold')).grid(row=0, column=0, sticky='w', pady=(0, 12))
+
+        # Filter buttons row
+        filter_row = tk.Frame(self._tracking_frame, bg=p['bg'])
+        filter_row.grid(row=1, column=0, sticky='ew', pady=(0, 10))
+
+        self._track_filtro = tk.StringVar(value="historico")
+
+        track_filter_btns = [
+            ("📌 Pendientes", "pendientes", "#F59E0B"),
+            ("✅ Acertados", "acertados", "#10B981"),
+            ("❌ Fallados", "fallados", "#EF4444"),
+            ("📅 Historico", "historico", p['primary']),
+        ]
+        self._track_filter_btn_refs = []
+        for text, filt, color in track_filter_btns:
+            btn = tk.Button(filter_row, text=text, bg=color, fg='#FFFFFF',
+                            font=('Segoe UI', 9, 'bold'), relief='flat',
+                            cursor='hand2', padx=12, pady=5, bd=0,
+                            command=lambda f=filt: self._track_filter_click(f))
+            btn.pack(side='left', padx=(0, 6))
+            self._track_filter_btn_refs.append(btn)
+
+        # Date filter row
+        date_row = tk.Frame(self._tracking_frame, bg=p['bg'])
+        date_row.grid(row=2, column=0, sticky='ew', pady=(0, 10))
+
+        tk.Label(date_row, text="Desde:", bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 4))
+        self._track_fecha_inicio = DateEntry(date_row, width=12, background="#2563EB",
+                                              foreground="white", borderwidth=0,
+                                              date_pattern='yyyy-MM-dd')
+        self._track_fecha_inicio.pack(side='left', padx=(0, 12))
+
+        tk.Label(date_row, text="Hasta:", bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 4))
+        self._track_fecha_fin = DateEntry(date_row, width=12, background="#2563EB",
+                                           foreground="white", borderwidth=0,
+                                           date_pattern='yyyy-MM-dd')
+        self._track_fecha_fin.pack(side='left', padx=(0, 12))
+
+        tk.Button(date_row, text="Filtrar por Fecha", bg=p['secondary_bg'], fg=p['fg'],
+                  font=('Segoe UI', 9), relief='flat', cursor='hand2', padx=12, pady=4, bd=0,
+                  command=lambda: self._track_filter_click("por_fecha")).pack(side='left', padx=(0, 12))
+
+        # Action buttons
+        self._track_btn_actualizar = tk.Button(date_row, text="🔄 Actualizar Resultados",
+                                               bg=p['primary'], fg='#FFFFFF',
+                                               font=('Segoe UI', 9, 'bold'), relief='flat',
+                                               cursor='hand2', padx=12, pady=4, bd=0,
+                                               command=self._track_actualizar_resultados)
+        self._track_btn_actualizar.pack(side='left', padx=(0, 6))
+
+        tk.Button(date_row, text="🧹 Limpiar Historial", bg='#EF4444', fg='#FFFFFF',
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
+                  padx=12, pady=4, bd=0,
+                  command=self._track_limpiar_historial).pack(side='left')
+
+        # Content area - scrollable frame for bets
+        self._track_content = ScrollableFrame(self._tracking_frame, bg=p['bg'])
+        self._track_content.grid(row=3, column=0, sticky='nsew')
+        self._track_content.inner.grid_columnconfigure(0, weight=1)
+        self._track_inner = self._track_content.inner
+
+        # Load initial data
+        self._track_filter_click("historico")
+
+    def _track_filter_click(self, filtro):
+        """Handle track record filter button click"""
+        import tkinter as tk
+        self._track_filtro.set(filtro)
+        p = self._palette
+
+        # Clear content
+        for w in self._track_inner.winfo_children():
+            w.destroy()
+
+        try:
+            historial = cargar_json('historial_predicciones.json') or []
+        except Exception:
+            historial = []
+
+        historial = [pr for pr in historial if pr.get('sent_to_telegram', False)]
+
+        if filtro == "pendientes":
+            bets = [pr for pr in historial if pr.get("resultado_real") is None or pr.get("acierto") is None]
+            titulo = "⏳ Apuestas Pendientes"
+        elif filtro == "acertados":
+            bets = [pr for pr in historial if pr.get("acierto") is True]
+            titulo = "✅ Apuestas Acertadas"
+        elif filtro == "fallados":
+            bets = [pr for pr in historial if pr.get("acierto") is False]
+            titulo = "❌ Apuestas Falladas"
+        elif filtro == "por_fecha":
+            f_ini = self._track_fecha_inicio.get()
+            f_fin = self._track_fecha_fin.get()
+            bets = [pr for pr in historial
+                    if f_ini <= pr.get('fecha', '') <= f_fin]
+            titulo = f"📅 Historial ({f_ini} a {f_fin})"
+        else:
+            bets = historial
+            titulo = "📅 Historial Completo"
+
+        tk.Label(self._track_inner, text=f"{titulo}  ({len(bets)} apuestas)",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 13, 'bold')).grid(row=0, column=0, sticky='w', pady=(0, 10))
+
+        if not bets:
+            tk.Label(self._track_inner, text="No hay apuestas en esta categoria",
+                     bg=p['bg'], fg=p['muted'],
+                     font=('Segoe UI', 11)).grid(row=1, column=0, sticky='w', pady=10)
+            return
+
+        for i, bet in enumerate(bets):
+            card = tk.Frame(self._track_inner, bg=p['card_bg'], padx=16, pady=12,
+                            highlightbackground=p['card_border'], highlightthickness=1)
+            card.grid(row=i + 1, column=0, sticky='ew', pady=3)
+            card.grid_columnconfigure(1, weight=1)
+
+            # Team/match name
+            partido_text = bet.get('partido', 'N/A')
+            tk.Label(card, text=partido_text, bg=p['card_bg'], fg=p['fg'],
+                     font=('Segoe UI', 11, 'bold'), anchor='w').grid(
+                row=0, column=0, columnspan=2, sticky='w')
+
+            # Prediction + odds + stake
+            pred_text = f"{bet.get('prediccion', 'N/A')}  |  Cuota: {bet.get('cuota', 'N/A')}  |  Stake: ${bet.get('stake', 'N/A')}"
+            tk.Label(card, text=pred_text, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 9), anchor='w').grid(
+                row=1, column=0, columnspan=2, sticky='w', pady=(2, 0))
+
+            # Date
+            fecha_text = f"📅 {bet.get('fecha', 'N/A')}"
+            if bet.get('fecha_actualizacion'):
+                fecha_text += f"  |  Actualizado: {bet.get('fecha_actualizacion', '')[:10]}"
+            tk.Label(card, text=fecha_text, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 8), anchor='w').grid(
+                row=2, column=0, columnspan=2, sticky='w', pady=(2, 0))
+
+            # Result info on right
+            right = tk.Frame(card, bg=p['card_bg'])
+            right.grid(row=0, column=2, rowspan=3, sticky='e', padx=(12, 0))
+
+            resultado_real = bet.get('resultado_real')
+            acierto = bet.get('acierto')
+            if resultado_real is None:
+                badge_bg, badge_fg = p['badge_mid_bg'], p['badge_mid_fg']
+                badge_text = "⏳ Pendiente"
+            elif acierto:
+                badge_bg, badge_fg = p['badge_high_bg'], p['badge_high_fg']
+                ganancia = bet.get('ganancia', 0)
+                badge_text = f"✅ +${ganancia:.2f}" if isinstance(ganancia, (int, float)) else "✅ Ganada"
+            else:
+                badge_bg, badge_fg = p['badge_low_bg'], p['badge_low_fg']
+                badge_text = "❌ Perdida"
+
+            tk.Label(right, text=badge_text, bg=badge_bg, fg=badge_fg,
+                     font=('Segoe UI', 9, 'bold'), padx=8, pady=2).pack(anchor='e')
+
+            # Delete button
+            def make_delete(b=bet, f=filtro):
+                return lambda: self._track_delete_bet(b, f)
+            tk.Button(right, text="🗑️", bg=p['secondary_bg'], fg=p['fg'],
+                      font=('Segoe UI', 8), relief='flat', cursor='hand2', bd=0,
+                      padx=4, pady=2,
+                      command=make_delete(bet, filtro)).pack(anchor='e', pady=(4, 0))
+
+    def _track_delete_bet(self, bet_to_delete, current_filter):
+        """Delete a bet from track record"""
+        from tkinter import messagebox
+        respuesta = messagebox.askyesno("Confirmar",
+            f"¿Eliminar esta prediccion?\n\n{bet_to_delete.get('partido', 'N/A')}\n{bet_to_delete.get('prediccion', 'N/A')}")
+        if respuesta:
+            try:
+                historial = cargar_json('historial_predicciones.json') or []
+                removed = False
+                new_hist = []
+                for pr in historial:
+                    if (not removed and pr.get('partido') == bet_to_delete.get('partido')
+                            and pr.get('prediccion') == bet_to_delete.get('prediccion')
+                            and pr.get('fecha') == bet_to_delete.get('fecha')
+                            and pr.get('cuota') == bet_to_delete.get('cuota')):
+                        removed = True
+                        continue
+                    new_hist.append(pr)
+                with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                    json.dump(new_hist, f, indent=2, ensure_ascii=False)
+                messagebox.showinfo("Exito", "Prediccion eliminada")
+                self._track_filter_click(current_filter)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error eliminando: {e}")
+
+    def _track_actualizar_resultados(self):
+        """Update track record results from API"""
+        from tkinter import messagebox
+        try:
+            api_key = os.getenv('FOOTYSTATS_API_KEY')
+            if not api_key:
+                messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
+                return
+            tracker = TrackRecordManager(api_key)
+            self._track_btn_actualizar.config(state='disabled', text="🔄 Actualizando...")
+
+            def update_thread():
+                try:
+                    resultado = tracker.actualizar_historial_con_resultados(
+                        max_matches=50, timeout_per_match=15)
+
+                    def on_done():
+                        try:
+                            acts = resultado.get('actualizaciones', 0)
+                            if acts > 0:
+                                self._track_btn_actualizar.config(text=f"✅ {acts} actualizadas")
+                            else:
+                                self._track_btn_actualizar.config(text="✅ Sin cambios")
+                            self.root.after(3000, lambda: self._track_btn_actualizar.config(
+                                text="🔄 Actualizar Resultados", state='normal'))
+                            self._track_filter_click(self._track_filtro.get())
+                        except Exception:
+                            self._track_btn_actualizar.config(text="🔄 Actualizar Resultados", state='normal')
+
+                    self.root.after(0, on_done)
+                except Exception as e:
+                    def on_error():
+                        self._track_btn_actualizar.config(text="❌ Error", state='normal')
+                        self.root.after(2000, lambda: self._track_btn_actualizar.config(
+                            text="🔄 Actualizar Resultados"))
+                    self.root.after(0, on_error)
+
+            threading.Thread(target=update_thread, daemon=True).start()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}")
+
+    def _track_limpiar_historial(self):
+        """Clear all track record history"""
+        from tkinter import messagebox
+        respuesta = messagebox.askyesno("Confirmar",
+            "¿Limpiar todo el historial?\n\nEsta accion no se puede deshacer.")
+        if respuesta:
+            try:
+                with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
+                    f.write('[]')
+                messagebox.showinfo("Exito", "Historial limpiado")
+                self._track_filter_click(self._track_filtro.get())
+            except Exception as e:
+                messagebox.showerror("Error", f"Error: {e}")
+
+    # ── Usuarios inline page builder ────────────────────────────
+
+    def _build_usuarios_content(self, p):
+        """Build usuarios management page inline"""
+        import tkinter as tk
+        from tkinter import ttk
+
+        self._usuarios_frame.grid_rowconfigure(2, weight=1)
+        self._usuarios_frame.grid_columnconfigure(0, weight=1)
+
+        # Title + stats
+        header_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
+        header_f.grid(row=0, column=0, sticky='ew', pady=(0, 12))
+        tk.Label(header_f, text="👥  Gestion de Usuarios VIP",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+
+        stats_card = tk.Frame(self._usuarios_frame, bg=p['card_bg'], padx=20, pady=12,
+                              highlightbackground=p['card_border'], highlightthickness=1)
+        stats_card.grid(row=1, column=0, sticky='ew', pady=(0, 12))
+        self._usuarios_stats_lbl = tk.Label(stats_card, text="📊 Cargando estadisticas...",
+                                             bg=p['card_bg'], fg=p['fg'],
+                                             font=('Segoe UI', 11))
+        self._usuarios_stats_lbl.pack(anchor='w')
+
+        # Table frame
+        table_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
+        table_f.grid(row=2, column=0, sticky='nsew')
+        table_f.grid_rowconfigure(0, weight=1)
+        table_f.grid_columnconfigure(0, weight=1)
+
+        columns = ('id', 'usuario', 'nombre', 'premium', 'expira')
+        self._usuarios_tree = ttk.Treeview(table_f, columns=columns, show='headings',
+                                            selectmode='browse', height=15)
+        self._usuarios_tree.heading('id', text='ID', anchor='center')
+        self._usuarios_tree.heading('usuario', text='Usuario', anchor='w')
+        self._usuarios_tree.heading('nombre', text='Nombre', anchor='w')
+        self._usuarios_tree.heading('premium', text='Premium', anchor='center')
+        self._usuarios_tree.heading('expira', text='Expira', anchor='center')
+
+        self._usuarios_tree.column('id', width=120, minwidth=100, anchor='center')
+        self._usuarios_tree.column('usuario', width=200, minwidth=150, anchor='w')
+        self._usuarios_tree.column('nombre', width=200, minwidth=150, anchor='w')
+        self._usuarios_tree.column('premium', width=100, minwidth=80, anchor='center')
+        self._usuarios_tree.column('expira', width=180, minwidth=150, anchor='center')
+
+        self._usuarios_tree.tag_configure('odd', background='#f0f0f0')
+        self._usuarios_tree.tag_configure('even', background='white')
+
+        sb_y = ttk.Scrollbar(table_f, orient='vertical', command=self._usuarios_tree.yview)
+        self._usuarios_tree.configure(yscrollcommand=sb_y.set)
+        self._usuarios_tree.grid(row=0, column=0, sticky='nsew')
+        sb_y.grid(row=0, column=1, sticky='ns')
+
+        # Action buttons row
+        btns_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
+        btns_f.grid(row=3, column=0, sticky='ew', pady=(12, 0))
+
+        tk.Button(btns_f, text="🔄 Refrescar", bg=p['primary'], fg='#FFFFFF',
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
+                  padx=12, pady=5, bd=0,
+                  command=self._refresh_usuarios_inline).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="👑 Otorgar Acceso", bg='#10B981', fg='#FFFFFF',
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
+                  padx=12, pady=5, bd=0,
+                  command=self._usuarios_otorgar_acceso).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="🚫 Banear", bg='#EF4444', fg='#FFFFFF',
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
+                  padx=12, pady=5, bd=0,
+                  command=self._usuarios_banear).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="🧹 Limpiar Expirados", bg='#F59E0B', fg='#FFFFFF',
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
+                  padx=12, pady=5, bd=0,
+                  command=self._usuarios_limpiar_expirados).pack(side='left')
+
+    def _refresh_usuarios_inline(self):
+        """Refresh the inline usuarios table"""
+        from tkinter import messagebox
+        try:
+            from access_manager import access_manager
+            if not access_manager or not hasattr(access_manager, 'listar_usuarios'):
+                self._usuarios_stats_lbl.config(text="❌ Sistema de usuarios no configurado")
+                return
+        except ImportError:
+            self._usuarios_stats_lbl.config(text="❌ Modulo access_manager no encontrado")
+            return
+        except Exception as e:
+            self._usuarios_stats_lbl.config(text=f"❌ Error: {e}")
+            return
+
+        try:
+            usuarios = access_manager.listar_usuarios()
+            for item in self._usuarios_tree.get_children():
+                self._usuarios_tree.delete(item)
+
+            if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
+                for idx, usuario in enumerate(usuarios):
+                    if usuario and isinstance(usuario, dict):
+                        user_id = str(usuario.get('user_id', 'N/A'))
+                        username = usuario.get('username', 'N/A') or 'N/A'
+                        first_name = usuario.get('first_name', 'N/A') or 'N/A'
+                        premium = "✅ SI" if usuario.get('premium', False) else "❌ NO"
+                        expira = "N/A"
+                        if usuario.get('fecha_expiracion'):
+                            try:
+                                fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
+                                expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                            except Exception:
+                                expira = "Error fecha"
+                        tag = 'even' if idx % 2 == 0 else 'odd'
+                        self._usuarios_tree.insert('', 'end',
+                                                    values=(user_id, username, first_name, premium, expira),
+                                                    tags=(tag,))
+
+            # Update stats
+            try:
+                stats = access_manager.obtener_estadisticas()
+                if stats and isinstance(stats, dict):
+                    total = stats.get('total_usuarios', 0)
+                    prem = stats.get('usuarios_premium', 0)
+                    gratis = stats.get('usuarios_gratuitos', 0)
+                    pct = stats.get('porcentaje_premium', 0)
+                    self._usuarios_stats_lbl.config(
+                        text=f"📊 Total: {total}  |  👑 Premium: {prem}  |  🆓 Gratuitos: {gratis}  |  📈 {pct:.1f}%")
+                else:
+                    self._usuarios_stats_lbl.config(text="📊 Estadisticas no disponibles")
+            except Exception:
+                self._usuarios_stats_lbl.config(text="📊 Estadisticas no disponibles")
+
+        except Exception as e:
+            self._usuarios_stats_lbl.config(text=f"❌ Error cargando usuarios: {e}")
+
+    def _usuarios_otorgar_acceso(self):
+        """Grant premium access to a user"""
+        from tkinter import messagebox, simpledialog
+        try:
+            from access_manager import access_manager
+        except Exception:
+            messagebox.showerror("Error", "Modulo access_manager no disponible")
+            return
+
+        user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
+        if not user_id or not user_id.strip():
+            return
+        user_id = user_id.strip()
+        dias = simpledialog.askinteger("Dias de Acceso",
+                                        "¿Cuantos dias de acceso premium?",
+                                        minvalue=1, maxvalue=365)
+        if not dias:
+            return
+        try:
+            if access_manager.otorgar_acceso(user_id, dias):
+                try:
+                    msg_conf = access_manager.generar_mensaje_confirmacion_premium(user_id)
+                    chat_id = int(user_id) if user_id.lstrip('-').isdigit() else user_id
+                    enviar_telegram(chat_id=chat_id, mensaje=msg_conf)
+                except Exception:
+                    pass
+                messagebox.showinfo("Exito", f"✅ Acceso premium otorgado a {user_id} por {dias} dias")
+                self._refresh_usuarios_inline()
+            else:
+                messagebox.showerror("Error", "❌ Usuario no encontrado")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}")
+
+    def _usuarios_banear(self):
+        """Ban a user"""
+        from tkinter import messagebox, simpledialog
+        try:
+            from access_manager import access_manager
+        except Exception:
+            messagebox.showerror("Error", "Modulo access_manager no disponible")
+            return
+
+        user_id = simpledialog.askstring("Banear Usuario", "Ingresa el ID del usuario a banear:")
+        if not user_id:
+            return
+        confirm = messagebox.askyesno("Confirmar",
+                                       f"¿Banear al usuario {user_id}?\nSe removera su acceso premium.")
+        if confirm:
+            try:
+                if access_manager.banear_usuario(user_id):
+                    messagebox.showinfo("Exito", "✅ Usuario baneado")
+                    self._refresh_usuarios_inline()
+                else:
+                    messagebox.showerror("Error", "❌ Usuario no encontrado")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error: {e}")
+
+    def _usuarios_limpiar_expirados(self):
+        """Clean expired users"""
+        from tkinter import messagebox
+        try:
+            from access_manager import access_manager
+            count = access_manager.limpiar_usuarios_expirados()
+            messagebox.showinfo("Limpieza", f"🧹 {count} usuarios expirados limpiados")
+            self._refresh_usuarios_inline()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}")
+
     def cargar_partidos_reales(self, fecha):
         """Cargar partidos reales de la API - solo para la fecha exacta solicitada"""
         try:
