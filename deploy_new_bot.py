@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SergioBets - New Bot Deployment Script
-Completely replaces old bot with new token: 8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c
+SergioBets - Bot Deployment Script
+Deploys bot using token from .env file
 """
 
 import os
@@ -10,8 +10,12 @@ import time
 import signal
 import subprocess
 from pathlib import Path
+from dotenv import load_dotenv
 
-NEW_TOKEN = '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c'
+load_dotenv()
+NEW_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+if not NEW_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN no está configurado en el archivo .env")
 
 def kill_old_bot_processes():
     """Kill any existing bot processes"""

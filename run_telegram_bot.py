@@ -4,9 +4,7 @@ from telegram_bot_listener import iniciar_bot_listener
 
 if __name__ == "__main__":
     print("🤖 Iniciando SergioBets Bot Listener...")
-    print("🔄 REEMPLAZANDO BOT ANTERIOR CON NUEVO TOKEN")
-    print("📱 Nuevo bot: @BetGeniuXbot")
-    print("🔑 Token: 8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c")
+    print("📱 Bot: @BetGeniuXbot")
     print("📝 Registrando usuarios automáticamente...")
     print("💬 Los usuarios pueden usar /start o enviar cualquier mensaje")
     print("📁 Usuarios se guardan en usuarios.txt")

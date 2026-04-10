@@ -8,12 +8,17 @@ sys.path.append('.')
 
 async def test_new_token():
     """Test if the new token works"""
-    new_token = '8487580276:AAE9aa9dx3Vbbuq9OsKr_d-26mkNQ6csc0c'
+    from dotenv import load_dotenv
+    load_dotenv()
+    new_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    if not new_token:
+        print('❌ TELEGRAM_BOT_TOKEN not set in .env')
+        return False
     
     try:
         from telegram.ext import Application
         
-        print(f"Testing new token: {new_token[:10]}...")
+        print(f"Testing token: {new_token[:10]}...")
         
         app = Application.builder().token(new_token).build()
         bot = app.bot
