@@ -669,15 +669,17 @@ class SergioBetsUnified:
         self.combo_ligas.set('Todas')
         self.combo_ligas.bind('<<ComboboxSelected>>', self.on_liga_changed)
 
-        tk.Label(fbar, text="Corners", bg=palette['header_bg'], fg=palette['muted'],
-                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 4))
+        self._corners_lbl = tk.Label(fbar, text="Corners", bg=palette['header_bg'], fg=palette['muted'],
+                 font=('Segoe UI', 9))
+        self._corners_lbl.pack(side='left', padx=(0, 4))
         self._combo_corners = ttk.Combobox(fbar, state='readonly', width=12,
                                            values=['Todos', 'Over 8.5', 'Over 9.5', 'Over 10.5'])
         self._combo_corners.pack(side='left', padx=(0, 16))
         self._combo_corners.set('Todos')
 
-        tk.Label(fbar, text="Confianza", bg=palette['header_bg'], fg=palette['muted'],
-                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 4))
+        self._conf_lbl = tk.Label(fbar, text="Confianza", bg=palette['header_bg'], fg=palette['muted'],
+                 font=('Segoe UI', 9))
+        self._conf_lbl.pack(side='left', padx=(0, 4))
         self._combo_conf = ttk.Combobox(fbar, state='readonly', width=14,
                                         values=['Todas', 'Alta (>80%)', 'Media (60-80%)', 'Baja (<60%)'])
         self._combo_conf.pack(side='left', padx=(0, 16))
@@ -892,13 +894,25 @@ class SergioBetsUnified:
         self._current_main_mode = mode
         self._scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
         self._filter_bar.grid(row=1, column=0, sticky='ew')
-        self._stats_row.grid(row=2, column=0, sticky='ew')
-        self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
-        # Update button text based on mode
+        # Update button text and show/hide elements based on mode
         if mode == 'partidos':
             self._gen_btn.configure(text="Ver Partidos")
+            # Hide stats, tabs, corners and confianza filters for Partidos
+            self._stats_row.grid_forget()
+            self._tabs_frame.grid_forget()
+            self._corners_lbl.pack_forget()
+            self._combo_corners.pack_forget()
+            self._conf_lbl.pack_forget()
+            self._combo_conf.pack_forget()
         else:
             self._gen_btn.configure(text="Generar Pronosticos")
+            self._stats_row.grid(row=2, column=0, sticky='ew')
+            self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
+            # Restore corners and confianza filters
+            self._corners_lbl.pack(side='left', padx=(0, 4))
+            self._combo_corners.pack(side='left', padx=(0, 16))
+            self._conf_lbl.pack(side='left', padx=(0, 4))
+            self._combo_conf.pack(side='left', padx=(0, 16))
         # Show/hide scroll frames based on mode
         self.sf_predicciones.grid_forget()
         self.sf_partidos.grid_forget()
