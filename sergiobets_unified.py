@@ -600,15 +600,6 @@ class SergioBetsUnified:
                 w.bind('<Enter>', lambda e, nid=nav_id: self._on_nav_hover(nid, True))
                 w.bind('<Leave>', lambda e, nid=nav_id: self._on_nav_hover(nid, False))
 
-        # Theme toggle at sidebar bottom
-        tog_f = tk.Frame(sidebar, bg=sb['bg'])
-        tog_f.pack(side='bottom', fill='x', padx=16, pady=16)
-        self._theme_toggle_btn = tk.Button(
-            tog_f, text="☀️ Modo Claro", bg=sb['hover'], fg=sb['text'],
-            font=('Segoe UI', 9), relief='flat', cursor='hand2', bd=0,
-            padx=10, pady=6, command=self._toggle_theme)
-        self._theme_toggle_btn.pack(fill='x')
-
         self._set_active_nav('dashboard')
 
         # ── CONTENT AREA ─────────────────────────────────────────
@@ -718,28 +709,6 @@ class SergioBetsUnified:
                              fg=palette['muted'], font=('Segoe UI', 9))
             n_lbl.pack(anchor='w')
             self._stats_labels[sid] = {'card': card, 'value': v_lbl, 'name': n_lbl}
-
-        # ── Content tabs ─────────────────────────────────────────
-        tabs_f = tk.Frame(content, bg=palette['bg'], padx=20)
-        tabs_f.grid(row=3, column=0, sticky='ew', pady=(0, 6))
-        self._tabs_frame = tabs_f
-
-        tab_defs = [
-            ("picks",      "Picks Recomendados"),
-            ("todos",      "Todos los Partidos"),
-            ("historial",  "Historial"),
-            ("alto_valor", "Alto Valor Esperado"),
-        ]
-        for tid, label in tab_defs:
-            is_act = (tid == "picks")
-            bg = palette['tab_active'] if is_act else palette['tab_inactive']
-            fg = palette['tab_active_text'] if is_act else palette['tab_text']
-            lbl = tk.Label(tabs_f, text=label, bg=bg, fg=fg,
-                           font=('Segoe UI', 10, 'bold' if is_act else 'normal'),
-                           padx=16, pady=8, cursor='hand2')
-            lbl.pack(side='left', padx=(0, 4))
-            lbl.bind('<Button-1>', lambda e, t=tid: self._on_tab_click(t))
-            self._content_tab_btns[tid] = lbl
 
         # ── Scrollable content ───────────────────────────────────
         scroll_container = tk.Frame(content, bg=palette['bg'])
@@ -1353,8 +1322,9 @@ class SergioBetsUnified:
         palette = self.theme.apply(new_mode)
         self._palette = palette
         self._rebuild_theme(palette)
-        self._theme_toggle_btn.config(
-            text="🌙 Modo Oscuro" if new_mode == 'light' else "☀️ Modo Claro")
+        if hasattr(self, '_theme_toggle_btn'):
+            self._theme_toggle_btn.config(
+                text="🌙 Modo Oscuro" if new_mode == 'light' else "☀️ Modo Claro")
 
     def _update_clock(self):
         """Update the live Colombia clock every second"""
@@ -1398,8 +1368,9 @@ class SergioBetsUnified:
                 parts['name'].configure(bg=p['stats_bg'], fg=p['muted'])
                 for c in parts['card'].winfo_children():
                     c.configure(bg=p['stats_bg'])
-            # Update tabs
-            self._tabs_frame.configure(bg=p['bg'])
+            # Update tabs (if they exist)
+            if hasattr(self, '_tabs_frame'):
+                self._tabs_frame.configure(bg=p['bg'])
             for tid, lbl in self._content_tab_btns.items():
                 is_act = (tid == self._active_tab)
                 lbl.configure(
