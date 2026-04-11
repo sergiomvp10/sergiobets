@@ -1559,6 +1559,10 @@ class SergioBetsUnified:
                                  cursor='hand2', padx=12, pady=3, bd=0,
                                  command=lambda m=msg, po=premium_only: self._enviar_alerta_tipo(m, po))
             send_btn.pack(anchor='w', pady=(8, 0))
+            # Double-click to edit message
+            for widget in [btn_f] + btn_f.winfo_children():
+                widget.bind('<Double-Button-1>',
+                            lambda e, t=title, m=msg, po=premium_only, c=color: self._abrir_editor_alerta(t, m, po, c))
 
         # Manual alert card
         manual_card = tk.Frame(self._alertas_frame, bg=p['card_bg'], padx=24, pady=20,
@@ -1599,6 +1603,105 @@ class SergioBetsUnified:
                   font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
                   padx=16, pady=6, bd=0,
                   command=self._enviar_alerta_manual).pack(side='right', padx=(20, 0))
+
+    def _abrir_editor_alerta(self, titulo, mensaje, premium_only, color):
+        """Open a centered popup to edit and send an alert message"""
+        import tkinter as tk
+        from tkinter import messagebox
+        p = self._palette
+
+        popup = tk.Toplevel(self.root)
+        popup.title(f"Editar: {titulo}")
+        popup.configure(bg=p['bg'])
+        popup.resizable(True, True)
+
+        # Size and center
+        w, h = 600, 480
+        popup.geometry(f"{w}x{h}")
+        popup.update_idletasks()
+        x = (popup.winfo_screenwidth() - w) // 2
+        y = (popup.winfo_screenheight() - h) // 2
+        popup.geometry(f"{w}x{h}+{x}+{y}")
+        popup.transient(self.root)
+        popup.grab_set()
+
+        # Header
+        header = tk.Frame(popup, bg=color, height=50)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+        tk.Label(header, text=titulo, bg=color, fg='#FFFFFF',
+                 font=('Segoe UI', 14, 'bold')).pack(expand=True)
+
+        # Body
+        body = tk.Frame(popup, bg=p['bg'], padx=24, pady=16)
+        body.pack(fill='both', expand=True)
+        body.grid_rowconfigure(1, weight=1)
+        body.grid_columnconfigure(0, weight=1)
+
+        tk.Label(body, text="Edita el mensaje antes de enviar:",
+                 bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 10)).grid(row=0, column=0, sticky='w', pady=(0, 8))
+
+        text_widget = tk.Text(body, font=('Segoe UI', 11),
+                              bg=p['entry_bg'], fg=p['entry_fg'],
+                              insertbackground=p['fg'], relief='flat',
+                              highlightbackground=p['border'], highlightthickness=1,
+                              wrap='word')
+        text_widget.grid(row=1, column=0, sticky='nsew')
+        text_widget.insert('1.0', mensaje)
+
+        # Audience
+        audience_var = tk.StringVar(value='premium' if premium_only else 'no_premium')
+        aud_row = tk.Frame(body, bg=p['bg'])
+        aud_row.grid(row=2, column=0, sticky='w', pady=(12, 0))
+        tk.Label(aud_row, text="Enviar a:", bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 8))
+        for val, text in [('premium', 'Solo Premium'), ('todos', 'Todos'), ('no_premium', 'No Premium')]:
+            tk.Radiobutton(aud_row, text=text, variable=audience_var, value=val,
+                           bg=p['bg'], fg=p['fg'], selectcolor=p['entry_bg'],
+                           activebackground=p['bg'], activeforeground=p['fg'],
+                           font=('Segoe UI', 9)).pack(side='left', padx=(0, 12))
+
+        # Buttons
+        btn_row = tk.Frame(popup, bg=p['bg'], pady=12)
+        btn_row.pack(fill='x', padx=24)
+
+        def enviar():
+            msg_editado = text_widget.get('1.0', 'end').strip()
+            if not msg_editado:
+                messagebox.showwarning("Vacio", "El mensaje no puede estar vacio.")
+                return
+            aud = audience_var.get()
+            try:
+                if aud == 'premium':
+                    resultado = enviar_telegram_masivo(msg_editado, only_premium=True)
+                elif aud == 'no_premium':
+                    resultado = enviar_telegram_masivo(msg_editado, only_premium=False, exclude_premium=True)
+                else:
+                    resultado = enviar_telegram_masivo(msg_editado, only_premium=False)
+                if resultado["exito"]:
+                    audiencia = resultado.get('audiencia', 'usuarios')
+                    info = f"Audiencia: {audiencia}\n"
+                    info += f"Total: {resultado['total_usuarios']}\n"
+                    info += f"Enviados: {resultado['enviados_exitosos']}"
+                    messagebox.showinfo("Alerta Enviada", info)
+                    popup.destroy()
+                else:
+                    if resultado.get('total_usuarios', 0) == 0:
+                        messagebox.showinfo("Sin usuarios", "No hay usuarios en la audiencia seleccionada.")
+                    else:
+                        messagebox.showerror("Error", "No se pudo enviar la alerta.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error enviando alerta: {e}")
+
+        tk.Button(btn_row, text="Cancelar", bg=p['secondary_bg'], fg=p['fg'],
+                  font=('Segoe UI', 10), relief='flat', cursor='hand2',
+                  padx=16, pady=6, bd=0,
+                  command=popup.destroy).pack(side='left')
+        tk.Button(btn_row, text="Enviar Mensaje", bg=color, fg='#FFFFFF',
+                  font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
+                  padx=16, pady=6, bd=0,
+                  command=enviar).pack(side='right')
 
     def _enviar_alerta_tipo(self, mensaje, premium_only):
         """Send a predefined alert type"""
