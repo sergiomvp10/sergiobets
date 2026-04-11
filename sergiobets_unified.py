@@ -1759,12 +1759,22 @@ class SergioBetsUnified:
             card.grid(row=i + 1, column=0, sticky='ew', pady=3)
             card.grid_columnconfigure(2, weight=1)
 
-            # Checkbox for selection
+            # Checkbox for selection (toggle button for reliable dark-theme support)
             var = tk.BooleanVar(value=False)
             self._track_check_vars.append((var, bet))
-            tk.Checkbutton(card, variable=var, bg=p['card_bg'], activebackground=p['card_bg'],
-                           selectcolor=p['secondary_bg'], bd=0, highlightthickness=0).grid(
-                row=0, column=0, rowspan=3, sticky='ns', padx=(0, 8))
+            chk_btn = tk.Button(card, text="☐", bg=p['card_bg'], fg=p['muted'],
+                                font=('Segoe UI', 14), relief='flat', cursor='hand2',
+                                bd=0, highlightthickness=0, width=2, padx=0)
+            def make_toggle(v=var, b=chk_btn, palette=p):
+                def toggle():
+                    v.set(not v.get())
+                    if v.get():
+                        b.config(text="☑", fg=palette['primary'])
+                    else:
+                        b.config(text="☐", fg=palette['muted'])
+                return toggle
+            chk_btn.config(command=make_toggle())
+            chk_btn.grid(row=0, column=0, rowspan=3, sticky='ns', padx=(0, 4))
 
             # Team/match name
             partido_text = bet.get('partido', 'N/A')
