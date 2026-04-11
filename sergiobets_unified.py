@@ -719,28 +719,6 @@ class SergioBetsUnified:
             n_lbl.pack(anchor='w')
             self._stats_labels[sid] = {'card': card, 'value': v_lbl, 'name': n_lbl}
 
-        # ── Content tabs ─────────────────────────────────────────
-        tabs_f = tk.Frame(content, bg=palette['bg'], padx=20)
-        tabs_f.grid(row=3, column=0, sticky='ew', pady=(0, 6))
-        self._tabs_frame = tabs_f
-
-        tab_defs = [
-            ("picks",      "Picks Recomendados"),
-            ("todos",      "Todos los Partidos"),
-            ("historial",  "Historial"),
-            ("alto_valor", "Alto Valor Esperado"),
-        ]
-        for tid, label in tab_defs:
-            is_act = (tid == "picks")
-            bg = palette['tab_active'] if is_act else palette['tab_inactive']
-            fg = palette['tab_active_text'] if is_act else palette['tab_text']
-            lbl = tk.Label(tabs_f, text=label, bg=bg, fg=fg,
-                           font=('Segoe UI', 10, 'bold' if is_act else 'normal'),
-                           padx=16, pady=8, cursor='hand2')
-            lbl.pack(side='left', padx=(0, 4))
-            lbl.bind('<Button-1>', lambda e, t=tid: self._on_tab_click(t))
-            self._content_tab_btns[tid] = lbl
-
         # ── Scrollable content ───────────────────────────────────
         scroll_container = tk.Frame(content, bg=palette['bg'])
         scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
@@ -1398,8 +1376,9 @@ class SergioBetsUnified:
                 parts['name'].configure(bg=p['stats_bg'], fg=p['muted'])
                 for c in parts['card'].winfo_children():
                     c.configure(bg=p['stats_bg'])
-            # Update tabs
-            self._tabs_frame.configure(bg=p['bg'])
+            # Update tabs (if they exist)
+            if hasattr(self, '_tabs_frame'):
+                self._tabs_frame.configure(bg=p['bg'])
             for tid, lbl in self._content_tab_btns.items():
                 is_act = (tid == self._active_tab)
                 lbl.configure(
