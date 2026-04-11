@@ -993,7 +993,7 @@ class SergioBetsUnified:
             kpi_row.grid_columnconfigure(c, weight=1, uniform='kpi')
 
         kpi_defs = [
-            ("usuarios_activos", "👥", "Usuarios Activos", "0", "#3B82F6"),
+            ("usuarios_activos", "⭐", "Usuarios Premium", "0", "#3B82F6"),
             ("pronosticos_hoy",  "🎯", "Pronosticos Hoy",  "0", "#10B981"),
             ("tasa_acierto",     "📈", "Tasa de Acierto",  "0%", "#F59E0B"),
             ("roi_global",       "💰", "ROI Global",        "0%", "#8B5CF6"),
@@ -1183,7 +1183,7 @@ class SergioBetsUnified:
         # Update KPI cards
         p = self._palette
         if hasattr(self, '_dash_kpi_labels'):
-            self._dash_kpi_labels['usuarios_activos'].config(text=str(total_usuarios))
+            self._dash_kpi_labels['usuarios_activos'].config(text=str(usuarios_premium))
             self._dash_kpi_labels['pronosticos_hoy'].config(text=str(len(pred_hoy)))
             self._dash_kpi_labels['tasa_acierto'].config(text=f"{tasa:.1f}%")
             roi_color = "#10B981" if roi >= 0 else "#EF4444"
