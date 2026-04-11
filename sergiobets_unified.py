@@ -1088,8 +1088,25 @@ class SergioBetsUnified:
                  bg=p['card_bg'], fg=p['fg'],
                  font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 12))
 
-        self._dash_activity_frame = tk.Frame(recent_card, bg=p['card_bg'])
-        self._dash_activity_frame.pack(fill='x')
+        # Clipping container for smooth scroll animation
+        self._dash_activity_clip = tk.Frame(recent_card, bg=p['card_bg'], height=120)
+        self._dash_activity_clip.pack(fill='x')
+        self._dash_activity_clip.pack_propagate(False)
+
+        self._dash_activity_canvas = tk.Canvas(self._dash_activity_clip, bg=p['card_bg'],
+                                                highlightthickness=0, bd=0)
+        self._dash_activity_canvas.pack(fill='both', expand=True)
+
+        self._dash_activity_frame = tk.Frame(self._dash_activity_canvas, bg=p['card_bg'])
+        self._dash_activity_canvas.create_window((0, 0), window=self._dash_activity_frame,
+                                                  anchor='nw', tags='content')
+
+        # Animation state
+        self._dash_scroll_offset = 0
+        self._dash_scroll_running = False
+        self._dash_scroll_items = []
+        self._dash_scroll_item_height = 28
+        self._dash_scroll_pause_count = 0
 
         # ── Spacer for scrollable area ───────────────────────
         spacer = tk.Frame(self._dashboard_frame, bg=p['bg'])
@@ -1209,20 +1226,23 @@ class SergioBetsUnified:
             self._dash_status_labels['ultima_prediccion'].config(text=ultima)
             self._dash_status_labels['uptime_sistema'].config(text="Operativo", fg="#10B981")
 
-        # Update recent activity
+        # Update recent activity with scrolling animation
         if hasattr(self, '_dash_activity_frame'):
             import tkinter as tk
             for w in self._dash_activity_frame.winfo_children():
                 w.destroy()
 
-            recent = list(reversed(enviados[-8:])) if enviados else []
+            recent = list(reversed(enviados[-10:])) if enviados else []
+            self._dash_scroll_items = recent
             if not recent:
                 tk.Label(self._dash_activity_frame,
                          text="Sin actividad reciente. Genera pronosticos para comenzar.",
                          bg=p['card_bg'], fg=p['muted'],
                          font=('Segoe UI', 10)).pack(anchor='w')
             else:
-                for pr in recent:
+                # Build items twice for seamless loop
+                display_items = recent + recent
+                for pr in display_items:
                     act_row = tk.Frame(self._dash_activity_frame, bg=p['card_bg'])
                     act_row.pack(fill='x', pady=2)
 
@@ -1245,6 +1265,71 @@ class SergioBetsUnified:
                     fecha_val = pr.get('fecha', '')
                     tk.Label(act_row, text=fecha_val, bg=p['card_bg'], fg=p['muted'],
                              font=('Segoe UI', 8)).pack(side='right')
+
+                # Update canvas scroll region after widgets render
+                self._dash_activity_frame.update_idletasks()
+                self._dash_activity_canvas.config(
+                    scrollregion=self._dash_activity_canvas.bbox('all'))
+
+                # Start smooth scroll animation
+                self._dash_scroll_offset = 0
+                self._dash_scroll_pause_count = 0
+                if not self._dash_scroll_running and len(recent) > 4:
+                    self._dash_scroll_running = True
+                    self._dash_animate_scroll()
+
+    def _dash_animate_scroll(self):
+        """Smooth scroll animation for recent activity feed"""
+        if not self._dash_scroll_running:
+            return
+        if not hasattr(self, '_dash_activity_canvas'):
+            self._dash_scroll_running = False
+            return
+        try:
+            # Get total height of all items and height of one set
+            bbox = self._dash_activity_canvas.bbox('all')
+            if not bbox:
+                self._dash_scroll_running = False
+                return
+            total_height = bbox[3] - bbox[1]
+            half_height = total_height // 2
+            clip_height = self._dash_activity_clip.winfo_height()
+
+            if half_height <= clip_height:
+                # Not enough items to scroll
+                self._dash_scroll_running = False
+                return
+
+            # Calculate item height dynamically
+            n_items = len(self._dash_scroll_items)
+            if n_items > 0:
+                item_h = half_height / n_items
+            else:
+                self._dash_scroll_running = False
+                return
+
+            # Pause briefly at each item boundary for readability
+            at_boundary = abs(self._dash_scroll_offset % item_h) < 1.5
+            if at_boundary and self._dash_scroll_pause_count < 40:
+                self._dash_scroll_pause_count += 1
+                self._dash_activity_canvas.after(50, self._dash_animate_scroll)
+                return
+
+            self._dash_scroll_pause_count = 0
+
+            # Scroll by 1 pixel
+            self._dash_scroll_offset += 1
+            self._dash_activity_canvas.yview_moveto(self._dash_scroll_offset / total_height)
+
+            # Reset to beginning seamlessly when we've scrolled through first set
+            if self._dash_scroll_offset >= half_height:
+                self._dash_scroll_offset = 0
+                self._dash_activity_canvas.yview_moveto(0)
+
+            # Schedule next frame (~30fps smooth animation)
+            self._dash_activity_canvas.after(33, self._dash_animate_scroll)
+        except Exception:
+            self._dash_scroll_running = False
 
     def _on_tab_click(self, tab_id):
         """Handle content tab switching"""
