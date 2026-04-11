@@ -273,6 +273,7 @@ class SergioBetsUnified:
         self.cleanup_cache_periodically()
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+        self._custom_alert_messages = self._load_custom_alerts()
     
     def signal_handler(self, signum, frame):
         """Manejar señales de interrupción"""
@@ -284,6 +285,26 @@ class SergioBetsUnified:
             self.stop_all_services()
             sys.exit(0)
     
+    def _load_custom_alerts(self):
+        """Load custom alert messages from JSON file"""
+        try:
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'custom_alerts.json')
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def _save_custom_alerts(self):
+        """Save custom alert messages to JSON file"""
+        try:
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'custom_alerts.json')
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self._custom_alert_messages, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving custom alerts: {e}")
+
     def check_dependencies(self):
         """Verificar dependencias necesarias"""
         logger.info("🔍 Checking dependencies...")
@@ -1519,38 +1540,36 @@ class SergioBetsUnified:
             alerts_grid.grid_columnconfigure(c, weight=1, uniform='alert')
 
         alert_types = [
-            ("📢 Alerta de Pronostico", "#3B82F6",
-             "📢 ¡Alerta de pronostico! 📢\nNuestro sistema ha detectado una oportunidad con valor.\nEn unos momentos compartiremos nuestra apuesta recomendada. ⚽💰",
+            ("Alerta de Pronostico", "#3B82F6",
+             "Alerta de pronostico!\nNuestro sistema ha detectado una oportunidad con valor.\nEn unos momentos compartiremos nuestra apuesta recomendada.",
              True),
-            ("🎁 Promocion Premium", "#10B981",
-             "🎁 ¡OFERTA ESPECIAL! 🎁\n\n💎 Unete a BetGeniuX Premium y accede a:\n• Pronosticos exclusivos con analisis detallado\n• Estadisticas avanzadas de partidos\n• Alertas en tiempo real\n• Soporte prioritario\n\n💰 Solo $12 USD por semana\n📈 Mejora tus resultados con nuestros expertos\n\n🔥 ¡No te pierdas las mejores oportunidades!\nActiva tu membresia ahora y empieza a ganar. ⚽💰",
+            ("Promocion Premium", "#10B981",
+             "OFERTA ESPECIAL!\n\nUnete a BetGeniuX Premium y accede a:\n• Pronosticos exclusivos con analisis detallado\n• Estadisticas avanzadas de partidos\n• Alertas en tiempo real\n• Soporte prioritario\n\nSolo $12 USD por semana\nMejora tus resultados con nuestros expertos\n\nNo te pierdas las mejores oportunidades!\nActiva tu membresia ahora y empieza a ganar.",
              False),
-            ("⚽ Jornada en Vivo", "#F59E0B",
-             "⚽ ¡JORNADA EN VIVO! ⚽\n\nLos partidos de hoy ya estan en juego.\nRevisa nuestros pronosticos actualizados y no te pierdas ninguna oportunidad.\n\n📊 Analisis en tiempo real disponible.\n💰 ¡Buena suerte!",
+            ("Jornada en Vivo", "#F59E0B",
+             "JORNADA EN VIVO!\n\nLos partidos de hoy ya estan en juego.\nRevisa nuestros pronosticos actualizados y no te pierdas ninguna oportunidad.\n\nAnalisis en tiempo real disponible.\nBuena suerte!",
              True),
-            ("🔥 Alta Confianza", "#EF4444",
-             "🔥 ¡PICK DE ALTA CONFIANZA! 🔥\n\nNuestro modelo ha identificado una apuesta con confianza superior al 85%.\n\n⚡ Revisa el pick destacado en la app.\n💎 Solo para miembros Premium.",
+            ("Alta Confianza", "#EF4444",
+             "PICK DE ALTA CONFIANZA!\n\nNuestro modelo ha identificado una apuesta con confianza superior al 85%.\n\nRevisa el pick destacado en la app.\nSolo para miembros Premium.",
              True),
-            ("📊 Resumen Diario", "#8B5CF6",
-             "📊 RESUMEN DEL DIA 📊\n\nAqui tienes el resumen de los pronosticos de hoy.\n\n✅ Revisa los resultados en la seccion de Tracking.\n📈 Sigue mejorando con BetGeniuX.",
+            ("Resumen Diario", "#8B5CF6",
+             "RESUMEN DEL DIA\n\nAqui tienes el resumen de los pronosticos de hoy.\n\nRevisa los resultados en la seccion de Tracking.\nSigue mejorando con BetGeniuX.",
              True),
-            ("🚨 Ultimo Momento", "#DC2626",
-             "🚨 ¡ULTIMO MOMENTO! 🚨\n\nInformacion importante sobre los partidos de hoy.\nRevisa las actualizaciones en la app.\n\n⚠️ Cambios de alineacion o condiciones que pueden afectar los pronosticos.",
+            ("Ultimo Momento", "#DC2626",
+             "ULTIMO MOMENTO!\n\nInformacion importante sobre los partidos de hoy.\nRevisa las actualizaciones en la app.\n\nCambios de alineacion o condiciones que pueden afectar los pronosticos.",
              True),
         ]
 
-        for idx, (title, color, msg, premium_only) in enumerate(alert_types):
+        for idx, (title, color, default_msg, premium_only) in enumerate(alert_types):
             row_idx = idx // 3
             col_idx = idx % 3
+            msg = self._custom_alert_messages.get(title, default_msg)
             btn_f = tk.Frame(alerts_grid, bg=p['secondary_bg'], padx=16, pady=12,
                              highlightbackground=p['card_border'], highlightthickness=1,
                              cursor='hand2')
             btn_f.grid(row=row_idx, column=col_idx, sticky='ew', padx=4, pady=4)
-            tk.Label(btn_f, text=title.split(' ', 1)[0], bg=p['secondary_bg'],
-                     fg=p['fg'], font=('Segoe UI', 18)).pack(anchor='w')
-            tk.Label(btn_f, text=title.split(' ', 1)[1] if ' ' in title else title,
-                     bg=p['secondary_bg'], fg=p['fg'],
-                     font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(4, 0))
+            tk.Label(btn_f, text=title, bg=p['secondary_bg'],
+                     fg=p['fg'], font=('Segoe UI', 10, 'bold')).pack(anchor='w')
             audience_text = "Solo Premium" if premium_only else "No Premium"
             tk.Label(btn_f, text=audience_text, bg=p['secondary_bg'], fg=p['muted'],
                      font=('Segoe UI', 8)).pack(anchor='w', pady=(2, 0))
@@ -1694,10 +1713,29 @@ class SergioBetsUnified:
             except Exception as e:
                 messagebox.showerror("Error", f"Error enviando alerta: {e}")
 
+        def guardar():
+            msg_editado = text_widget.get('1.0', 'end').strip()
+            if not msg_editado:
+                messagebox.showwarning("Vacio", "El mensaje no puede estar vacio.")
+                return
+            self._custom_alert_messages[titulo] = msg_editado
+            self._save_custom_alerts()
+            messagebox.showinfo("Guardado", f"Mensaje de '{titulo}' guardado correctamente.")
+            popup.destroy()
+            # Rebuild alertas page to reflect saved message
+            if hasattr(self, '_alertas_frame'):
+                for w in self._alertas_frame.winfo_children():
+                    w.destroy()
+                self._build_alertas_content(self._palette)
+
         tk.Button(btn_row, text="Cancelar", bg=p['secondary_bg'], fg=p['fg'],
                   font=('Segoe UI', 10), relief='flat', cursor='hand2',
                   padx=16, pady=6, bd=0,
                   command=popup.destroy).pack(side='left')
+        tk.Button(btn_row, text="Guardar", bg='#6B7280', fg='#FFFFFF',
+                  font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
+                  padx=16, pady=6, bd=0,
+                  command=guardar).pack(side='left', padx=(12, 0))
         tk.Button(btn_row, text="Enviar Mensaje", bg=color, fg='#FFFFFF',
                   font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
                   padx=16, pady=6, bd=0,
