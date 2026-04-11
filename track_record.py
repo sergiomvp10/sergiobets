@@ -15,12 +15,81 @@ from error_handler import safe_file_operation
 VALID_MATCH_STATUSES = ["complete", "completed", "finished", "ft", "full-time", "full time", "ended", "played", "match finished", "match_finished"]
 INVALID_MATCH_STATUSES = ["not started", "not_started", "scheduled", "in play", "in_play", "live", "halftime", "half-time", "postponed", "cancelled", "suspended", "abandoned"]
 
+# Common team name aliases: maps abbreviations/short names to their full API names
+TEAM_ALIASES = {
+    "psg": ["paris", "paris saint germain", "paris saint-germain", "paris sg"],
+    "paris saint germain": ["paris", "psg"],
+    "inter": ["internazionale", "inter milan", "inter de milan"],
+    "internazionale": ["inter", "inter milan"],
+    "milan": ["ac milan", "ac milan 1899"],
+    "ac milan": ["milan"],
+    "atletico madrid": ["atletico de madrid", "atletico mad", "atl madrid", "atl. madrid"],
+    "atletico": ["atletico madrid", "atletico de madrid"],
+    "real madrid": ["r madrid", "real mad"],
+    "barcelona": ["fc barcelona", "barca"],
+    "fc barcelona": ["barcelona", "barca"],
+    "man city": ["manchester city"],
+    "manchester city": ["man city"],
+    "man united": ["manchester united", "man utd"],
+    "manchester united": ["man united", "man utd"],
+    "tottenham": ["tottenham hotspur", "spurs"],
+    "wolverhampton": ["wolverhampton wanderers", "wolves"],
+    "wolves": ["wolverhampton", "wolverhampton wanderers"],
+    "west ham": ["west ham united"],
+    "west ham united": ["west ham"],
+    "athletic": ["athletic club", "athletic bilbao"],
+    "athletic club": ["athletic", "athletic bilbao"],
+    "betis": ["real betis"],
+    "real betis": ["betis"],
+    "sociedad": ["real sociedad"],
+    "real sociedad": ["sociedad"],
+    "bayern": ["bayern munich", "bayern munchen", "fc bayern"],
+    "bayern munich": ["bayern", "bayern munchen"],
+    "dortmund": ["borussia dortmund", "bvb"],
+    "borussia dortmund": ["dortmund", "bvb"],
+    "juventus": ["juve"],
+    "juve": ["juventus"],
+    "napoli": ["ssc napoli"],
+    "roma": ["as roma"],
+    "as roma": ["roma"],
+    "lazio": ["ss lazio"],
+    "marseille": ["olympique marseille", "om"],
+    "olympique marseille": ["marseille", "om"],
+    "lyon": ["olympique lyon", "olympique lyonnais", "ol"],
+    "olympique lyon": ["lyon", "ol"],
+    "porto": ["fc porto"],
+    "fc porto": ["porto"],
+    "benfica": ["sl benfica"],
+    "sporting": ["sporting cp", "sporting lisbon", "sporting lisboa"],
+    "sporting cp": ["sporting", "sporting lisbon"],
+    "nacional": ["atletico nacional"],
+    "atletico nacional": ["nacional"],
+    "america": ["america de cali"],
+    "millonarios": ["millonarios fc"],
+    "santa fe": ["independiente santa fe"],
+    "cali": ["deportivo cali"],
+    "deportivo cali": ["cali"],
+    "pereira": ["deportivo pereira"],
+    "deportivo pereira": ["pereira"],
+    "pasto": ["deportivo pasto"],
+    "deportivo pasto": ["pasto"],
+    "tolima": ["deportes tolima"],
+    "deportes tolima": ["tolima"],
+    "once caldas": ["once", "caldas"],
+    "junior": ["junior de barranquilla", "atletico junior"],
+    "medellin": ["independiente medellin", "dim"],
+    "independiente medellin": ["medellin", "dim"],
+    "bucaramanga": ["atletico bucaramanga"],
+    "atletico bucaramanga": ["bucaramanga"],
+}
+
 class TrackRecordManager:
     """Manages prediction tracking and performance analysis"""
     
     def __init__(self, api_key: str, base_url: str = "https://api.football-data-api.com"):
         self.api_key = api_key
         self.base_url = base_url
+        self._api_cache = {}  # Cache API responses per date to avoid redundant calls
         from pathlib import Path
         self.historial_file = str(Path(__file__).resolve().parent / "historial_predicciones.json")
         print(f"📁 Track Record usando archivo: {self.historial_file}")
@@ -50,9 +119,26 @@ class TrackRecordManager:
         tokens = {token for token in normalized.split() if len(token) >= 3}
         return tokens
     
+    def _expand_team_aliases(self, name: str) -> List[str]:
+        """
+        Expand a team name to include all known aliases.
+        Returns a list of possible names including the original.
+        """
+        normalized = self._normalize_team_name(name)
+        aliases = [normalized]
+        for key, values in TEAM_ALIASES.items():
+            key_norm = self._normalize_team_name(key)
+            if key_norm == normalized or key_norm in normalized or normalized in key_norm:
+                for v in values:
+                    v_norm = self._normalize_team_name(v)
+                    if v_norm not in aliases:
+                        aliases.append(v_norm)
+        return aliases
+
     def _teams_match(self, pred_team: str, api_team: str, threshold: float = 0.5) -> bool:
         """
-        Check if two team names match using token overlap
+        Check if two team names match using token overlap + alias expansion.
+        First checks direct token overlap, then checks aliases.
         """
         pred_tokens = self._get_team_tokens(pred_team)
         api_tokens = self._get_team_tokens(api_team)
@@ -60,45 +146,96 @@ class TrackRecordManager:
         if not pred_tokens or not api_tokens:
             return False
         
+        # Direct token overlap
         intersection = len(pred_tokens & api_tokens)
         union = len(pred_tokens | api_tokens)
         
-        if union == 0:
-            return False
+        if union > 0 and (intersection / union) >= threshold:
+            return True
         
-        similarity = intersection / union
-        return similarity >= threshold
+        # Check via aliases
+        pred_aliases = self._expand_team_aliases(pred_team)
+        api_norm = self._normalize_team_name(api_team)
+        for alias in pred_aliases:
+            alias_tokens = {t for t in alias.split() if len(t) >= 3}
+            if not alias_tokens:
+                continue
+            combined_intersection = len(alias_tokens & api_tokens)
+            combined_union = len(alias_tokens | api_tokens)
+            if combined_union > 0 and (combined_intersection / combined_union) >= threshold:
+                return True
+            # Also check if alias is contained in or contains api name
+            if alias in api_norm or api_norm in alias:
+                return True
+        
+        # Check reverse: expand API team aliases and compare with pred
+        api_aliases = self._expand_team_aliases(api_team)
+        pred_norm = self._normalize_team_name(pred_team)
+        for alias in api_aliases:
+            alias_tokens = {t for t in alias.split() if len(t) >= 3}
+            if not alias_tokens:
+                continue
+            combined_intersection = len(alias_tokens & pred_tokens)
+            combined_union = len(alias_tokens | pred_tokens)
+            if combined_union > 0 and (combined_intersection / combined_union) >= threshold:
+                return True
+            if alias in pred_norm or pred_norm in alias:
+                return True
+        
+        return False
     
+    def _fetch_matches_for_date(self, date_str: str, timeout: int = 8) -> List[Dict[str, Any]]:
+        """
+        Fetch matches for a given date from API, using cache to avoid redundant calls.
+        """
+        if date_str in self._api_cache:
+            return self._api_cache[date_str]
+        
+        try:
+            endpoint = f"{self.base_url}/todays-matches"
+            params = {
+                "key": self.api_key,
+                "date": date_str,
+                "timezone": "America/Bogota"
+            }
+            print(f"API call: {endpoint} with date={date_str}")
+            response = requests.get(endpoint, params=params, timeout=timeout)
+            if response.status_code != 200:
+                print(f"Error API for {date_str}: {response.status_code}")
+                self._api_cache[date_str] = []
+                return []
+            
+            data = response.json()
+            partidos = data.get("data", [])
+            print(f"API returned {len(partidos)} matches for {date_str}")
+            self._api_cache[date_str] = partidos
+            return partidos
+        except requests.exceptions.Timeout:
+            print(f"Timeout fetching matches for {date_str}")
+            self._api_cache[date_str] = []
+            return []
+        except Exception as e:
+            print(f"Error fetching matches for {date_str}: {e}")
+            self._api_cache[date_str] = []
+            return []
+
     def _try_flexible_team_matching(self, equipo_local: str, equipo_visitante: str, fecha: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
         """
         Intenta encontrar un partido donde al menos uno de los equipos coincida.
         Útil cuando el oponente cambió pero necesitamos el resultado del equipo principal.
         """
         try:
-            endpoint = f"{self.base_url}/todays-matches"
-            
             dates_to_try = [fecha]
             try:
                 fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
-                for days_offset in [-1, 1, -2, 2, -3, 3]:
+                for days_offset in [-1, 1]:
                     dates_to_try.append((fecha_obj + timedelta(days=days_offset)).strftime('%Y-%m-%d'))
             except:
                 pass
             
             for date_to_try in dates_to_try:
-                params = {
-                    "key": self.api_key,
-                    "date": date_to_try,
-                    "timezone": "America/Bogota"
-                }
-                
                 try:
-                    response = requests.get(endpoint, params=params, timeout=timeout)
-                    if response.status_code != 200:
-                        continue
-                    
-                    data = response.json()
-                    partidos = data.get("data", [])
+                    partidos = self._fetch_matches_for_date(date_to_try, timeout)
                     
                     for partido in partidos:
                         home_name = partido.get("home_name", "")
@@ -143,7 +280,7 @@ class TrackRecordManager:
                                     "actual_home": home_name,
                                     "actual_away": away_name
                                 }
-                except:
+                except Exception:
                     continue
             
             print(f"  ❌ No flexible match found for {equipo_local} or {equipo_visitante}")
@@ -155,11 +292,10 @@ class TrackRecordManager:
 
     def obtener_resultado_partido(self, fecha: str, equipo_local: str, equipo_visitante: str, timeout: int = 8) -> Optional[Dict[str, Any]]:
         """
-        Obtiene el resultado de un partido específico de la API con timeout
+        Obtiene el resultado de un partido específico de la API con timeout.
+        Uses cached API responses to avoid redundant calls.
         """
         try:
-            endpoint = f"{self.base_url}/todays-matches"
-            
             dates_to_try = [fecha]
             
             try:
@@ -167,28 +303,12 @@ class TrackRecordManager:
                 dates_to_try.extend([
                     (fecha_obj - timedelta(days=1)).strftime('%Y-%m-%d'),
                     (fecha_obj + timedelta(days=1)).strftime('%Y-%m-%d'),
-                    (fecha_obj - timedelta(days=2)).strftime('%Y-%m-%d'),
-                    (fecha_obj + timedelta(days=2)).strftime('%Y-%m-%d')
                 ])
             except:
                 pass
             
             for date_to_try in dates_to_try:
-                params = {
-                    "key": self.api_key,
-                    "date": date_to_try,
-                    "timezone": "America/Bogota"
-                }
-                
-                print(f"API call: {endpoint} with date={date_to_try}")
-                response = requests.get(endpoint, params=params, timeout=timeout)
-                if response.status_code != 200:
-                    print(f"Error API for {date_to_try}: {response.status_code}")
-                    continue
-                
-                data = response.json()
-                partidos = data.get("data", [])
-                print(f"API returned {len(partidos)} matches for {date_to_try}")
+                partidos = self._fetch_matches_for_date(date_to_try, timeout)
                 
                 for i, partido in enumerate(partidos[:3]):
                     print(f"  Match {i+1}: {partido.get('home_name')} vs {partido.get('away_name')}")
@@ -262,8 +382,8 @@ class TrackRecordManager:
         Valida si una predicción fue correcta y calcula la ganancia
         """
         tipo_prediccion = prediccion["prediccion"].lower()
-        stake = prediccion["stake"]
-        cuota = prediccion["cuota"]
+        stake = float(prediccion["stake"])
+        cuota = float(prediccion["cuota"])
         
         acierto = False
         
@@ -360,7 +480,7 @@ class TrackRecordManager:
             for prediccion in historial:
                 resultado_real = prediccion.get("resultado_real")
                 
-                if resultado_real is not None:
+                if resultado_real is not None and isinstance(resultado_real, dict):
                     status = resultado_real.get("status", "").lower().strip()
                     
                     if status not in VALID_MATCH_STATUSES:
@@ -475,123 +595,34 @@ class TrackRecordManager:
                     }
                 matches_unicos[key]["predicciones"].append(prediccion)
             
+            # Sort matches by date proximity to today (most recent first)
             def prioridad_match(item):
                 key, match_data = item
                 fecha = match_data["fecha"]
-                
                 try:
-                    from datetime import datetime
                     fecha_obj = datetime.strptime(fecha, '%Y-%m-%d')
                     today = datetime.now()
                     days_diff = abs((today - fecha_obj).days)
                     return days_diff
-                except:
+                except Exception:
                     return 999
             
-            print(f"🔄 Priorizando partidos por proximidad a hoy (más recientes primero)...")
-            
-            priority_matches = []
-            other_matches = []
-            
-            confirmed_api_dates = ["2025-08-04", "2025-08-05", "2025-08-06"]  # Dates known to have API data
-            
-            for key, match_data in matches_unicos.items():
-                partido = match_data["partido"].lower()
-                fecha = match_data["fecha"]
-                
-                if " vs " in partido:
-                    teams = partido.split(" vs ")
-                    equipo_local = teams[0].strip() if len(teams) > 0 else ""
-                    equipo_visitante = teams[1].strip() if len(teams) > 1 else ""
-                else:
-                    equipo_local = ""
-                    equipo_visitante = ""
-                
-                has_confirmed_api_data = (
-                    (("athletic" in equipo_local and "club" in equipo_local) and 
-                     ("atlético" in equipo_visitante and "go" in equipo_visitante)) or
-                    ("cuiabá" in equipo_local and ("volta" in equipo_visitante or "redonda" in equipo_visitante)) or
-                    (("universidad" in equipo_local and "chile" in equipo_local) and "cobresal" in equipo_visitante) or
-                    ("athletic club" in partido and "atlético go" in partido) or
-                    ("cuiabá" in partido and "volta redonda" in partido) or
-                    ("universidad chile" in partido and "cobresal" in partido)
-                )
-                
-                # Also prioritize recent dates that are more likely to have API data
-                recent_dates = ["2025-08-04", "2025-08-05", "2025-08-06", "2025-08-03"]
-                is_recent_date = fecha in recent_dates
-                
-                if has_confirmed_api_data or is_recent_date:
-                    priority_matches.append((key, match_data))
-                    if has_confirmed_api_data:
-                        print(f"   🎯 PRIORITY: {match_data['partido']} (confirmed API match)")
-                    elif is_recent_date:
-                        print(f"   📅 PRIORITY: {match_data['partido']} (recent date: {fecha})")
-                else:
-                    other_matches.append((key, match_data))
-            
-            confirmed_api_matches = []
-            other_priority_matches = []
-            
-            api_team_indicators = [
-                ("athletic club", "criciúma"),  # Athletic Club vs Criciúma
-                ("universidad chile", "audax italiano"),  # Universidad Chile vs Audax Italiano  
-                ("o'higgins", "cobresal"),  # O'Higgins vs Cobresal
-                ("atlético pr", "cuiabá"),  # Atlético PR vs Cuiabá
-                ("atlético go", "ferroviária")  # Atlético GO vs Ferroviária
-            ]
-            
-            for item in priority_matches:
-                key, match_data = item
-                partido = match_data["partido"].lower()
-                fecha = match_data["fecha"]
-                
-                is_api_match = False
-                for team1, team2 in api_team_indicators:
-                    if (team1 in partido and team2 in partido) or (team2 in partido and team1 in partido):
-                        is_api_match = True
-                        break
-                
-                if is_api_match:
-                    confirmed_api_matches.append(item)
-                else:
-                    other_priority_matches.append(item)
-            
-            confirmed_api_matches.sort(key=lambda x: x[1]["partido"])
-            
-            other_priority_matches_sorted = sorted(other_priority_matches, key=prioridad_match)
-            other_matches_sorted = sorted(other_matches, key=prioridad_match)
-            
-            matches_ordenados = confirmed_api_matches + other_priority_matches_sorted + other_matches_sorted
-            
-            print(f"🎯 FORCED PRIORITIZATION (targeting actual pending matches):")
-            print(f"   ✅ Matches with API team names (processed FIRST): {len(confirmed_api_matches)}")
-            print(f"   📋 Other priority matches: {len(other_priority_matches_sorted)}")
-            print(f"   📋 Standard matches: {len(other_matches_sorted)}")
-            
-            if confirmed_api_matches:
-                print(f"   🔥 PROCESSING THESE FIRST:")
-                for item in confirmed_api_matches[:5]:
-                    key, match_data = item
-                    print(f"     🎯 {match_data['partido']} ({match_data['fecha']})")
-            else:
-                print(f"   ⚠️ NO API TEAM MATCHES FOUND - will process in standard order")
+            matches_ordenados = sorted(matches_unicos.items(), key=prioridad_match)
             matches_to_process = matches_ordenados[:max_matches]
             
-            print(f"📊 Priorización universal completada:")
-            print(f"   🎯 Matches prioritarios (con datos API): {len(priority_matches)}")
-            print(f"   📋 Matches estándar: {len(other_matches)}")
-            print(f"   🔄 Procesando {len(matches_to_process)} matches (priorizando los que tienen datos)")
+            # Clear API cache for fresh results
+            self._api_cache = {}
             
-            if priority_matches:
-                print(f"📊 PROCESANDO PRIMERO:")
-                for key, match_data in matches_to_process[:3]:
-                    status = "🎯 PRIORITY" if (key, match_data) in priority_matches else "📋 STANDARD"
-                    print(f"   {status}: {match_data['partido']} ({match_data['fecha']})")
-            else:
-                print(f"⚠️ No se encontraron matches prioritarios, procesando en orden estándar")
+            # Pre-fetch API data for all unique dates to minimize API calls
+            unique_dates = set()
+            for key, match_data in matches_to_process:
+                unique_dates.add(match_data["fecha"])
             
-            print(f"Procesando {len(matches_to_process)} matches (máximo {max_matches}) de {len(matches_unicos)} únicos para {len(predicciones_pendientes)} predicciones...")
+            print(f"📡 Pre-fetching API data for {len(unique_dates)} unique dates...")
+            for date_str in sorted(unique_dates):
+                self._fetch_matches_for_date(date_str, timeout_per_match)
+            
+            print(f"🔄 Procesando {len(matches_to_process)} matches de {len(matches_unicos)} únicos para {len(predicciones_pendientes)} predicciones...")
             
             for i, (key, match_data) in enumerate(matches_to_process):
                 try:

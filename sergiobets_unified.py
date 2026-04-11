@@ -937,6 +937,8 @@ class SergioBetsUnified:
             self._build_tracking_content(self._palette)
             self._tracking_loaded = True
         self._tracking_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+        # Auto-update pending results in background
+        self._track_auto_update()
 
     def _show_usuarios_page(self):
         """Show the usuarios page inline in the content area"""
@@ -1807,38 +1809,59 @@ class SergioBetsUnified:
             except Exception as e:
                 messagebox.showerror("Error", f"Error eliminando: {e}")
 
-    def _track_actualizar_resultados(self):
+    def _track_auto_update(self):
+        """Auto-update pending results when entering Tracking page"""
+        try:
+            historial = cargar_json('historial_predicciones.json') or []
+            pending = [p for p in historial if p.get('resultado_real') is None and p.get('sent_to_telegram', False)]
+            if pending:
+                self._track_actualizar_resultados(silent=True)
+        except Exception:
+            pass
+
+    def _track_actualizar_resultados(self, silent=False):
         """Update track record results from API"""
         from tkinter import messagebox
         try:
             api_key = os.getenv('FOOTYSTATS_API_KEY')
             if not api_key:
-                messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
+                if not silent:
+                    messagebox.showerror("Error", "FOOTYSTATS_API_KEY no encontrada en .env")
                 return
+            # Prevent multiple simultaneous updates
+            if hasattr(self, '_track_updating') and self._track_updating:
+                return
+            self._track_updating = True
             tracker = TrackRecordManager(api_key)
             self._track_btn_actualizar.config(state='disabled', text="🔄 Actualizando...")
 
             def update_thread():
                 try:
                     resultado = tracker.actualizar_historial_con_resultados(
-                        max_matches=50, timeout_per_match=15)
+                        max_matches=50, timeout_per_match=10)
 
                     def on_done():
                         try:
+                            self._track_updating = False
                             acts = resultado.get('actualizaciones', 0)
+                            errs = resultado.get('errores', 0)
                             if acts > 0:
                                 self._track_btn_actualizar.config(text=f"✅ {acts} actualizadas")
+                            elif errs > 0:
+                                self._track_btn_actualizar.config(text=f"⚠️ {errs} sin resultado")
                             else:
-                                self._track_btn_actualizar.config(text="✅ Sin cambios")
+                                self._track_btn_actualizar.config(text="✅ Todo al dia")
                             self.root.after(3000, lambda: self._track_btn_actualizar.config(
                                 text="🔄 Actualizar Resultados", state='normal'))
                             self._track_filter_click(self._track_filtro.get())
                         except Exception:
+                            self._track_updating = False
                             self._track_btn_actualizar.config(text="🔄 Actualizar Resultados", state='normal')
 
                     self.root.after(0, on_done)
                 except Exception as e:
                     def on_error():
+                        self._track_updating = False
                         self._track_btn_actualizar.config(text="❌ Error", state='normal')
                         self.root.after(2000, lambda: self._track_btn_actualizar.config(
                             text="🔄 Actualizar Resultados"))
@@ -1846,7 +1869,9 @@ class SergioBetsUnified:
 
             threading.Thread(target=update_thread, daemon=True).start()
         except Exception as e:
-            messagebox.showerror("Error", f"Error: {e}")
+            self._track_updating = False
+            if not silent:
+                messagebox.showerror("Error", f"Error: {e}")
 
     def _track_limpiar_historial(self):
         """Clear all track record history"""
