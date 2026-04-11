@@ -600,15 +600,6 @@ class SergioBetsUnified:
                 w.bind('<Enter>', lambda e, nid=nav_id: self._on_nav_hover(nid, True))
                 w.bind('<Leave>', lambda e, nid=nav_id: self._on_nav_hover(nid, False))
 
-        # Theme toggle at sidebar bottom
-        tog_f = tk.Frame(sidebar, bg=sb['bg'])
-        tog_f.pack(side='bottom', fill='x', padx=16, pady=16)
-        self._theme_toggle_btn = tk.Button(
-            tog_f, text="☀️ Modo Claro", bg=sb['hover'], fg=sb['text'],
-            font=('Segoe UI', 9), relief='flat', cursor='hand2', bd=0,
-            padx=10, pady=6, command=self._toggle_theme)
-        self._theme_toggle_btn.pack(fill='x')
-
         self._set_active_nav('dashboard')
 
         # ── CONTENT AREA ─────────────────────────────────────────
@@ -1331,8 +1322,9 @@ class SergioBetsUnified:
         palette = self.theme.apply(new_mode)
         self._palette = palette
         self._rebuild_theme(palette)
-        self._theme_toggle_btn.config(
-            text="🌙 Modo Oscuro" if new_mode == 'light' else "☀️ Modo Claro")
+        if hasattr(self, '_theme_toggle_btn'):
+            self._theme_toggle_btn.config(
+                text="🌙 Modo Oscuro" if new_mode == 'light' else "☀️ Modo Claro")
 
     def _update_clock(self):
         """Update the live Colombia clock every second"""
