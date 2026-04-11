@@ -891,6 +891,7 @@ class SergioBetsUnified:
     def _show_main_content(self, mode='pronosticos'):
         """Show the main predictions/matches content based on sidebar selection"""
         self._hide_all_pages()
+        self._bottom_bar.grid(row=5, column=0, sticky='ew')
         self._current_main_mode = mode
         self._scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
         self._filter_bar.grid(row=1, column=0, sticky='ew')
@@ -928,21 +929,24 @@ class SergioBetsUnified:
     def _show_settings_page(self):
         """Show the settings page in the content area"""
         self._hide_all_pages()
+        self._bottom_bar.grid(row=5, column=0, sticky='ew')
         self._settings_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
 
     def _show_tracking_page(self):
         """Show the tracking page inline in the content area"""
         self._hide_all_pages()
+        self._bottom_bar.grid_forget()
         if not self._tracking_loaded:
             self._build_tracking_content(self._palette)
             self._tracking_loaded = True
-        self._tracking_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+        self._tracking_frame.grid(row=1, column=0, rowspan=5, sticky='nsew', padx=20, pady=20)
         # Auto-update pending results in background
         self._track_auto_update()
 
     def _show_usuarios_page(self):
         """Show the usuarios page inline in the content area"""
         self._hide_all_pages()
+        self._bottom_bar.grid(row=5, column=0, sticky='ew')
         if not self._usuarios_loaded:
             self._build_usuarios_content(self._palette)
             self._usuarios_loaded = True
@@ -952,11 +956,13 @@ class SergioBetsUnified:
     def _show_alertas_page(self):
         """Show the alertas page inline in the content area"""
         self._hide_all_pages()
+        self._bottom_bar.grid(row=5, column=0, sticky='ew')
         self._alertas_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
 
     def _show_dashboard_page(self):
         """Show the dashboard page with owner metrics"""
         self._hide_all_pages()
+        self._bottom_bar.grid(row=5, column=0, sticky='ew')
         if not self._dashboard_loaded:
             self._build_dashboard_content(self._palette)
             self._dashboard_loaded = True
@@ -1611,7 +1617,7 @@ class SergioBetsUnified:
         import tkinter as tk
         from tkinter import ttk, messagebox
 
-        self._tracking_frame.grid_rowconfigure(3, weight=1)
+        self._tracking_frame.grid_rowconfigure(4, weight=1)
         self._tracking_frame.grid_columnconfigure(0, weight=1)
 
         # Title
@@ -1619,30 +1625,32 @@ class SergioBetsUnified:
                  bg=p['bg'], fg=p['fg'],
                  font=('Segoe UI', 16, 'bold')).grid(row=0, column=0, sticky='w', pady=(0, 12))
 
-        # Filter buttons row
+        # Row 1: Filter buttons
         filter_row = tk.Frame(self._tracking_frame, bg=p['bg'])
-        filter_row.grid(row=1, column=0, sticky='ew', pady=(0, 10))
+        filter_row.grid(row=1, column=0, sticky='ew', pady=(0, 8))
 
         self._track_filtro = tk.StringVar(value="historico")
 
+        btn_color = p['secondary_bg']
+        btn_fg = p['fg']
         track_filter_btns = [
-            ("📌 Pendientes", "pendientes", "#F59E0B"),
-            ("✅ Acertados", "acertados", "#10B981"),
-            ("❌ Fallados", "fallados", "#EF4444"),
-            ("📅 Historico", "historico", p['primary']),
+            ("⏳ Pendientes", "pendientes"),
+            ("✅ Acertados", "acertados"),
+            ("❌ Fallados", "fallados"),
+            ("📅 Historico", "historico"),
         ]
         self._track_filter_btn_refs = []
-        for text, filt, color in track_filter_btns:
-            btn = tk.Button(filter_row, text=text, bg=color, fg='#FFFFFF',
+        for text, filt in track_filter_btns:
+            btn = tk.Button(filter_row, text=text, bg=btn_color, fg=btn_fg,
                             font=('Segoe UI', 9, 'bold'), relief='flat',
-                            cursor='hand2', padx=12, pady=5, bd=0,
+                            cursor='hand2', padx=14, pady=5, bd=0,
                             command=lambda f=filt: self._track_filter_click(f))
             btn.pack(side='left', padx=(0, 6))
             self._track_filter_btn_refs.append(btn)
 
-        # Date filter row
+        # Row 2: Date filters
         date_row = tk.Frame(self._tracking_frame, bg=p['bg'])
-        date_row.grid(row=2, column=0, sticky='ew', pady=(0, 10))
+        date_row.grid(row=2, column=0, sticky='ew', pady=(0, 8))
 
         tk.Label(date_row, text="Desde:", bg=p['bg'], fg=p['muted'],
                  font=('Segoe UI', 9)).pack(side='left', padx=(0, 4))
@@ -1658,26 +1666,37 @@ class SergioBetsUnified:
                                            date_pattern='yyyy-MM-dd')
         self._track_fecha_fin.pack(side='left', padx=(0, 12))
 
-        tk.Button(date_row, text="Filtrar por Fecha", bg=p['secondary_bg'], fg=p['fg'],
-                  font=('Segoe UI', 9), relief='flat', cursor='hand2', padx=12, pady=4, bd=0,
-                  command=lambda: self._track_filter_click("por_fecha")).pack(side='left', padx=(0, 12))
+        tk.Button(date_row, text="🔍 Filtrar por Fecha", bg=btn_color, fg=btn_fg,
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2', padx=12, pady=4, bd=0,
+                  command=lambda: self._track_filter_click("por_fecha")).pack(side='left')
 
-        # Action buttons
-        self._track_btn_actualizar = tk.Button(date_row, text="🔄 Actualizar Resultados",
-                                               bg=p['primary'], fg='#FFFFFF',
+        # Row 3: Action buttons
+        action_row = tk.Frame(self._tracking_frame, bg=p['bg'])
+        action_row.grid(row=3, column=0, sticky='ew', pady=(0, 10))
+
+        self._track_btn_actualizar = tk.Button(action_row, text="🔄 Actualizar Resultados",
+                                               bg=btn_color, fg=btn_fg,
                                                font=('Segoe UI', 9, 'bold'), relief='flat',
-                                               cursor='hand2', padx=12, pady=4, bd=0,
+                                               cursor='hand2', padx=14, pady=5, bd=0,
                                                command=self._track_actualizar_resultados)
         self._track_btn_actualizar.pack(side='left', padx=(0, 6))
 
-        tk.Button(date_row, text="🧹 Limpiar Historial", bg='#EF4444', fg='#FFFFFF',
+        tk.Button(action_row, text="🧹 Limpiar Historial", bg=btn_color, fg=btn_fg,
                   font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
-                  padx=12, pady=4, bd=0,
-                  command=self._track_limpiar_historial).pack(side='left')
+                  padx=14, pady=5, bd=0,
+                  command=self._track_limpiar_historial).pack(side='left', padx=(0, 6))
+
+        tk.Button(action_row, text="🗑️ Eliminar Seleccionados", bg=btn_color, fg=btn_fg,
+                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
+                  padx=14, pady=5, bd=0,
+                  command=self._track_delete_selected).pack(side='left')
+
+        # Storage for bet checkboxes
+        self._track_check_vars = []
 
         # Content area - scrollable frame for bets
         self._track_content = ScrollableFrame(self._tracking_frame, bg=p['bg'])
-        self._track_content.grid(row=3, column=0, sticky='nsew')
+        self._track_content.grid(row=4, column=0, sticky='nsew')
         self._track_content.inner.grid_columnconfigure(0, weight=1)
         self._track_inner = self._track_content.inner
 
@@ -1700,6 +1719,9 @@ class SergioBetsUnified:
             historial = []
 
         historial = [pr for pr in historial if pr.get('sent_to_telegram', False)]
+
+        # Sort by date descending (most recent first)
+        historial.sort(key=lambda x: x.get('fecha', ''), reverse=True)
 
         if filtro == "pendientes":
             bets = [pr for pr in historial if pr.get("resultado_real") is None or pr.get("acierto") is None]
@@ -1730,23 +1752,31 @@ class SergioBetsUnified:
                      font=('Segoe UI', 11)).grid(row=1, column=0, sticky='w', pady=10)
             return
 
+        self._track_check_vars = []
         for i, bet in enumerate(bets):
-            card = tk.Frame(self._track_inner, bg=p['card_bg'], padx=16, pady=12,
+            card = tk.Frame(self._track_inner, bg=p['card_bg'], padx=12, pady=10,
                             highlightbackground=p['card_border'], highlightthickness=1)
             card.grid(row=i + 1, column=0, sticky='ew', pady=3)
-            card.grid_columnconfigure(1, weight=1)
+            card.grid_columnconfigure(2, weight=1)
+
+            # Checkbox for selection
+            var = tk.BooleanVar(value=False)
+            self._track_check_vars.append((var, bet))
+            tk.Checkbutton(card, variable=var, bg=p['card_bg'], activebackground=p['card_bg'],
+                           selectcolor=p['secondary_bg'], bd=0, highlightthickness=0).grid(
+                row=0, column=0, rowspan=3, sticky='ns', padx=(0, 8))
 
             # Team/match name
             partido_text = bet.get('partido', 'N/A')
             tk.Label(card, text=partido_text, bg=p['card_bg'], fg=p['fg'],
                      font=('Segoe UI', 11, 'bold'), anchor='w').grid(
-                row=0, column=0, columnspan=2, sticky='w')
+                row=0, column=1, columnspan=2, sticky='w')
 
             # Prediction + odds + stake
             pred_text = f"{bet.get('prediccion', 'N/A')}  |  Cuota: {bet.get('cuota', 'N/A')}  |  Stake: ${bet.get('stake', 'N/A')}"
             tk.Label(card, text=pred_text, bg=p['card_bg'], fg=p['muted'],
                      font=('Segoe UI', 9), anchor='w').grid(
-                row=1, column=0, columnspan=2, sticky='w', pady=(2, 0))
+                row=1, column=1, columnspan=2, sticky='w', pady=(2, 0))
 
             # Date
             fecha_text = f"📅 {bet.get('fecha', 'N/A')}"
@@ -1754,11 +1784,11 @@ class SergioBetsUnified:
                 fecha_text += f"  |  Actualizado: {bet.get('fecha_actualizacion', '')[:10]}"
             tk.Label(card, text=fecha_text, bg=p['card_bg'], fg=p['muted'],
                      font=('Segoe UI', 8), anchor='w').grid(
-                row=2, column=0, columnspan=2, sticky='w', pady=(2, 0))
+                row=2, column=1, columnspan=2, sticky='w', pady=(2, 0))
 
-            # Result info on right
+            # Result badge on right
             right = tk.Frame(card, bg=p['card_bg'])
-            right.grid(row=0, column=2, rowspan=3, sticky='e', padx=(12, 0))
+            right.grid(row=0, column=3, rowspan=3, sticky='e', padx=(12, 0))
 
             resultado_real = bet.get('resultado_real')
             acierto = bet.get('acierto')
@@ -1776,36 +1806,39 @@ class SergioBetsUnified:
             tk.Label(right, text=badge_text, bg=badge_bg, fg=badge_fg,
                      font=('Segoe UI', 9, 'bold'), padx=8, pady=2).pack(anchor='e')
 
-            # Delete button
-            def make_delete(b=bet, f=filtro):
-                return lambda: self._track_delete_bet(b, f)
-            tk.Button(right, text="🗑️", bg=p['secondary_bg'], fg=p['fg'],
-                      font=('Segoe UI', 8), relief='flat', cursor='hand2', bd=0,
-                      padx=4, pady=2,
-                      command=make_delete(bet, filtro)).pack(anchor='e', pady=(4, 0))
-
-    def _track_delete_bet(self, bet_to_delete, current_filter):
-        """Delete a bet from track record"""
+    def _track_delete_selected(self):
+        """Delete selected bets from track record"""
         from tkinter import messagebox
+        selected = [(var, bet) for var, bet in self._track_check_vars if var.get()]
+        if not selected:
+            messagebox.showinfo("Info", "No hay predicciones seleccionadas para eliminar.")
+            return
+        n = len(selected)
         respuesta = messagebox.askyesno("Confirmar",
-            f"¿Eliminar esta prediccion?\n\n{bet_to_delete.get('partido', 'N/A')}\n{bet_to_delete.get('prediccion', 'N/A')}")
+            f"¿Eliminar {n} prediccion{'es' if n > 1 else ''} seleccionada{'s' if n > 1 else ''}?")
         if respuesta:
             try:
                 historial = cargar_json('historial_predicciones.json') or []
-                removed = False
+                bets_to_remove = [bet for _, bet in selected]
                 new_hist = []
+                removed_set = set()
                 for pr in historial:
-                    if (not removed and pr.get('partido') == bet_to_delete.get('partido')
-                            and pr.get('prediccion') == bet_to_delete.get('prediccion')
-                            and pr.get('fecha') == bet_to_delete.get('fecha')
-                            and pr.get('cuota') == bet_to_delete.get('cuota')):
-                        removed = True
-                        continue
-                    new_hist.append(pr)
+                    should_remove = False
+                    for idx, bet in enumerate(bets_to_remove):
+                        if idx not in removed_set:
+                            if (pr.get('partido') == bet.get('partido')
+                                    and pr.get('prediccion') == bet.get('prediccion')
+                                    and pr.get('fecha') == bet.get('fecha')
+                                    and pr.get('cuota') == bet.get('cuota')):
+                                should_remove = True
+                                removed_set.add(idx)
+                                break
+                    if not should_remove:
+                        new_hist.append(pr)
                 with open('historial_predicciones.json', 'w', encoding='utf-8') as f:
                     json.dump(new_hist, f, indent=2, ensure_ascii=False)
-                messagebox.showinfo("Exito", "Prediccion eliminada")
-                self._track_filter_click(current_filter)
+                messagebox.showinfo("Exito", f"{len(removed_set)} prediccion{'es' if len(removed_set) > 1 else ''} eliminada{'s' if len(removed_set) > 1 else ''}")
+                self._track_filter_click(self._track_filtro.get())
             except Exception as e:
                 messagebox.showerror("Error", f"Error eliminando: {e}")
 
