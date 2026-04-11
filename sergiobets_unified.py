@@ -727,8 +727,8 @@ class SergioBetsUnified:
         self.frame_partidos = self.sf_partidos.inner
         self._current_main_mode = 'pronosticos'  # Track which mode is active
 
-        # ── Bottom action bar ────────────────────────────────────
-        bottom = tk.Frame(content, bg=palette['bottom_bg'], height=56,
+        # ── Bottom bar (Pick Destacado only) ─────────────────────
+        bottom = tk.Frame(content, bg=palette['bottom_bg'], height=72,
                           highlightbackground=palette['border'], highlightthickness=1)
         bottom.grid(row=5, column=0, sticky='ew')
         bottom.grid_propagate(False)
@@ -736,30 +736,13 @@ class SergioBetsUnified:
         self._bottom_bar = bottom
 
         bl = tk.Frame(bottom, bg=palette['bottom_bg'])
-        bl.grid(row=0, column=0, sticky='w', padx=20, pady=10)
-        tk.Label(bl, text="▶ Pick Destacado", bg=palette['bottom_bg'],
-                 fg=palette['primary'], font=('Segoe UI', 10, 'bold')).pack(side='left')
+        bl.grid(row=0, column=0, sticky='ew', padx=20, pady=12)
+        tk.Label(bl, text="⭐ PICK DESTACADO", bg=palette['bottom_bg'],
+                 fg=palette['primary'], font=('Segoe UI', 13, 'bold')).pack(side='left')
         self._pick_dest_lbl = tk.Label(bl, text="  Sin picks cargados",
                                        bg=palette['bottom_bg'], fg=palette['muted'],
-                                       font=('Segoe UI', 9))
-        self._pick_dest_lbl.pack(side='left', padx=(8, 0))
-
-        br = tk.Frame(bottom, bg=palette['bottom_bg'])
-        br.grid(row=0, column=0, sticky='e', padx=20, pady=10)
-        action_btns = [
-            ("📢 Alerta",    palette['secondary_bg'], palette['fg'],  self.enviar_alerta),
-            ("🎁 Promo",     palette['secondary_bg'], palette['fg'],  self.enviar_promocion),
-            ("♻️ Regenerar", palette['secondary_bg'], palette['fg'],  self.regenerar_en_hilo),
-            ("🧹 Cache",     palette['secondary_bg'], palette['fg'],  self.limpiar_cache_api),
-            ("📌 Enviar",    palette['primary'],       '#FFFFFF',     self.enviar_predicciones_seleccionadas),
-        ]
-        self._bottom_action_btns = []
-        for text, bg_c, fg_c, cmd in action_btns:
-            b = tk.Button(br, text=text, bg=bg_c, fg=fg_c,
-                          font=('Segoe UI', 9, 'bold'), relief='flat',
-                          cursor='hand2', padx=12, pady=4, bd=0, command=cmd)
-            b.pack(side='left', padx=3)
-            self._bottom_action_btns.append(b)
+                                       font=('Segoe UI', 12))
+        self._pick_dest_lbl.pack(side='left', padx=(12, 0))
 
         # ── Settings page (hidden) ───────────────────────────────
         self._settings_frame = tk.Frame(content, bg=palette['bg'])
@@ -852,6 +835,7 @@ class SergioBetsUnified:
         self._stats_row.grid_forget()
         if hasattr(self, '_tabs_frame'):
             self._tabs_frame.grid_forget()
+        self._bottom_bar.grid_forget()
         self._settings_frame.grid_forget()
         self._tracking_frame.grid_forget()
         self._usuarios_frame.grid_forget()
@@ -861,7 +845,10 @@ class SergioBetsUnified:
     def _show_main_content(self, mode='pronosticos'):
         """Show the main predictions/matches content based on sidebar selection"""
         self._hide_all_pages()
-        self._bottom_bar.grid(row=5, column=0, sticky='ew')
+        if mode == 'pronosticos':
+            self._bottom_bar.grid(row=5, column=0, sticky='ew')
+        else:
+            self._bottom_bar.grid_forget()
         self._current_main_mode = mode
         self._scroll_container.grid(row=4, column=0, sticky='nsew', padx=20)
         self._filter_bar.grid(row=1, column=0, sticky='ew')
@@ -901,8 +888,8 @@ class SergioBetsUnified:
     def _show_settings_page(self):
         """Show the settings page in the content area"""
         self._hide_all_pages()
-        self._bottom_bar.grid(row=5, column=0, sticky='ew')
-        self._settings_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+        self._bottom_bar.grid_forget()
+        self._settings_frame.grid(row=1, column=0, rowspan=5, sticky='nsew', padx=20, pady=20)
 
     def _show_tracking_page(self):
         """Show the tracking page inline in the content area"""
@@ -918,18 +905,18 @@ class SergioBetsUnified:
     def _show_usuarios_page(self):
         """Show the usuarios page inline in the content area"""
         self._hide_all_pages()
-        self._bottom_bar.grid(row=5, column=0, sticky='ew')
+        self._bottom_bar.grid_forget()
         if not self._usuarios_loaded:
             self._build_usuarios_content(self._palette)
             self._usuarios_loaded = True
-        self._usuarios_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+        self._usuarios_frame.grid(row=1, column=0, rowspan=5, sticky='nsew', padx=20, pady=20)
         self._refresh_usuarios_inline()
 
     def _show_alertas_page(self):
         """Show the alertas page inline in the content area"""
         self._hide_all_pages()
-        self._bottom_bar.grid(row=5, column=0, sticky='ew')
-        self._alertas_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
+        self._bottom_bar.grid_forget()
+        self._alertas_frame.grid(row=1, column=0, rowspan=5, sticky='nsew', padx=20, pady=20)
 
     def _show_dashboard_page(self):
         """Show the dashboard page with owner metrics"""
