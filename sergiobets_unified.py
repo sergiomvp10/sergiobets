@@ -2409,7 +2409,7 @@ class SergioBetsUnified:
             tk.Button(btns, text="Enviar", bg=p['primary'], fg='#FFFFFF',
                       font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
                       bd=0, padx=10, pady=4,
-                      command=lambda v=var_cb: v.set(True)).pack()
+                      command=lambda v=var_cb: (v.set(True), self.enviar_predicciones_seleccionadas())).pack()
 
             # Liga tag at bottom
             liga = pred.get('liga', '')
