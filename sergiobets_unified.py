@@ -850,7 +850,8 @@ class SergioBetsUnified:
         self._scroll_container.grid_forget()
         self._filter_bar.grid_forget()
         self._stats_row.grid_forget()
-        self._tabs_frame.grid_forget()
+        if hasattr(self, '_tabs_frame'):
+            self._tabs_frame.grid_forget()
         self._settings_frame.grid_forget()
         self._tracking_frame.grid_forget()
         self._usuarios_frame.grid_forget()
@@ -869,7 +870,8 @@ class SergioBetsUnified:
             self._gen_btn.configure(text="Ver Partidos")
             # Hide stats, tabs, corners and confianza filters for Partidos
             self._stats_row.grid_forget()
-            self._tabs_frame.grid_forget()
+            if hasattr(self, '_tabs_frame'):
+                self._tabs_frame.grid_forget()
             self._corners_lbl.pack_forget()
             self._combo_corners.pack_forget()
             self._conf_lbl.pack_forget()
@@ -877,7 +879,8 @@ class SergioBetsUnified:
         else:
             self._gen_btn.configure(text="Generar Pronosticos")
             self._stats_row.grid(row=2, column=0, sticky='ew')
-            self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
+            if hasattr(self, '_tabs_frame'):
+                self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
             # Restore corners and confianza filters
             self._corners_lbl.pack(side='left', padx=(0, 4))
             self._combo_corners.pack(side='left', padx=(0, 16))
