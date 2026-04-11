@@ -1635,7 +1635,7 @@ class SergioBetsUnified:
         popup.resizable(True, True)
 
         # Size and center
-        w, h = 600, 480
+        w, h = 620, 540
         popup.geometry(f"{w}x{h}")
         popup.update_idletasks()
         x = (popup.winfo_screenwidth() - w) // 2
@@ -1646,12 +1646,28 @@ class SergioBetsUnified:
 
         # Header
         header = tk.Frame(popup, bg=color, height=50)
-        header.pack(fill='x')
+        header.pack(fill='x', side='top')
         header.pack_propagate(False)
         tk.Label(header, text=titulo, bg=color, fg='#FFFFFF',
                  font=('Segoe UI', 14, 'bold')).pack(expand=True)
 
-        # Body
+        # Buttons (pack at bottom FIRST so they are always visible)
+        btn_row = tk.Frame(popup, bg=p['bg'], pady=12)
+        btn_row.pack(fill='x', side='bottom', padx=24)
+
+        # Audience (pack above buttons)
+        audience_var = tk.StringVar(value='premium' if premium_only else 'no_premium')
+        aud_row = tk.Frame(popup, bg=p['bg'])
+        aud_row.pack(fill='x', side='bottom', padx=24, pady=(8, 0))
+        tk.Label(aud_row, text="Enviar a:", bg=p['bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 8))
+        for val, text in [('premium', 'Solo Premium'), ('todos', 'Todos'), ('no_premium', 'No Premium')]:
+            tk.Radiobutton(aud_row, text=text, variable=audience_var, value=val,
+                           bg=p['bg'], fg=p['fg'], selectcolor=p['entry_bg'],
+                           activebackground=p['bg'], activeforeground=p['fg'],
+                           font=('Segoe UI', 9)).pack(side='left', padx=(0, 12))
+
+        # Body (fills remaining space in the middle)
         body = tk.Frame(popup, bg=p['bg'], padx=24, pady=16)
         body.pack(fill='both', expand=True)
         body.grid_rowconfigure(1, weight=1)
@@ -1668,22 +1684,6 @@ class SergioBetsUnified:
                               wrap='word')
         text_widget.grid(row=1, column=0, sticky='nsew')
         text_widget.insert('1.0', mensaje)
-
-        # Audience
-        audience_var = tk.StringVar(value='premium' if premium_only else 'no_premium')
-        aud_row = tk.Frame(body, bg=p['bg'])
-        aud_row.grid(row=2, column=0, sticky='w', pady=(12, 0))
-        tk.Label(aud_row, text="Enviar a:", bg=p['bg'], fg=p['muted'],
-                 font=('Segoe UI', 9)).pack(side='left', padx=(0, 8))
-        for val, text in [('premium', 'Solo Premium'), ('todos', 'Todos'), ('no_premium', 'No Premium')]:
-            tk.Radiobutton(aud_row, text=text, variable=audience_var, value=val,
-                           bg=p['bg'], fg=p['fg'], selectcolor=p['entry_bg'],
-                           activebackground=p['bg'], activeforeground=p['fg'],
-                           font=('Segoe UI', 9)).pack(side='left', padx=(0, 12))
-
-        # Buttons
-        btn_row = tk.Frame(popup, bg=p['bg'], pady=12)
-        btn_row.pack(fill='x', padx=24)
 
         def enviar():
             msg_editado = text_widget.get('1.0', 'end').strip()
