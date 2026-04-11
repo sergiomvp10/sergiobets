@@ -1028,7 +1028,7 @@ class SergioBetsUnified:
                               highlightbackground=p['card_border'], highlightthickness=1)
         perf_card.grid(row=0, column=0, sticky='nsew', padx=(0, 8))
 
-        tk.Label(perf_card, text="📊  Rendimiento de Predicciones",
+        tk.Label(perf_card, text="Rendimiento de Predicciones",
                  bg=p['card_bg'], fg=p['fg'],
                  font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 16))
 
@@ -1056,7 +1056,7 @@ class SergioBetsUnified:
                                 highlightbackground=p['card_border'], highlightthickness=1)
         status_card.grid(row=0, column=1, sticky='nsew', padx=(8, 0))
 
-        tk.Label(status_card, text="🏆  Estado del Sistema",
+        tk.Label(status_card, text="Estado del Sistema",
                  bg=p['card_bg'], fg=p['fg'],
                  font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 16))
 
@@ -1084,7 +1084,7 @@ class SergioBetsUnified:
                                 highlightbackground=p['card_border'], highlightthickness=1)
         recent_card.grid(row=3, column=0, sticky='ew', pady=(0, 16))
 
-        tk.Label(recent_card, text="🕐  Actividad Reciente",
+        tk.Label(recent_card, text="Actividad Reciente",
                  bg=p['card_bg'], fg=p['fg'],
                  font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 12))
 
