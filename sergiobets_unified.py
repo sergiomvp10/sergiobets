@@ -1330,7 +1330,7 @@ class SergioBetsUnified:
         """Update the live Colombia clock every second"""
         try:
             now = hora_bogota()
-            time_str = now.strftime('%H:%M:%S')
+            time_str = now.strftime('%I:%M:%S %p')
             self._clock_lbl.config(text=time_str)
         except Exception:
             pass
@@ -2092,7 +2092,7 @@ class SergioBetsUnified:
                         if usuario.get('fecha_expiracion'):
                             try:
                                 fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                expira = fecha_exp.strftime('%Y-%m-%d %I:%M %p')
                             except Exception:
                                 expira = "Error fecha"
                         tag = 'even' if idx % 2 == 0 else 'odd'
@@ -4021,7 +4021,7 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                                     try:
                                         from datetime import datetime
                                         fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                        expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                        expira = fecha_exp.strftime('%Y-%m-%d %I:%M %p')
                                     except:
                                         expira = "Error fecha"
                                 
