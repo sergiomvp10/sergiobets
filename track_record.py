@@ -262,12 +262,19 @@ class TrackRecordManager:
                                 
                                 print(f"  ✅ Flexible match found: predicted {equipo_local} vs {equipo_visitante}, found {home_name} vs {away_name} on {date_to_try}")
                                 
+                                ht_home = partido.get("ht_goals_team_a", 0) or 0
+                                ht_away = partido.get("ht_goals_team_b", 0) or 0
+                                ht_total = partido.get("HTGoalCount", ht_home + ht_away) or (ht_home + ht_away)
+                                
                                 return {
                                     "match_id": partido.get("id"),
                                     "status": status,
                                     "home_score": home_goals,
                                     "away_score": away_goals,
                                     "total_goals": home_goals + away_goals,
+                                    "ht_home_goals": ht_home,
+                                    "ht_away_goals": ht_away,
+                                    "ht_total_goals": ht_total,
                                     "corners_home": team_a_corners if team_a_corners != -1 else 0,
                                     "corners_away": team_b_corners if team_b_corners != -1 else 0,
                                     "total_corners": total_corner_count if total_corner_count != -1 else 0,
@@ -276,6 +283,7 @@ class TrackRecordManager:
                                     "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
                                     "corner_data_available": total_corner_count != -1,
                                     "resultado_1x2": self._determinar_resultado_1x2(home_goals, away_goals),
+                                    "resultado_1x2_1h": self._determinar_resultado_1x2(ht_home, ht_away),
                                     "flexible_match": True,
                                     "actual_home": home_name,
                                     "actual_away": away_name
@@ -336,12 +344,19 @@ class TrackRecordManager:
                             if total_corner_count == -1 and team_a_corners != -1 and team_b_corners != -1:
                                 total_corner_count = team_a_corners + team_b_corners
                             
+                            ht_home = partido.get("ht_goals_team_a", 0) or 0
+                            ht_away = partido.get("ht_goals_team_b", 0) or 0
+                            ht_total = partido.get("HTGoalCount", ht_home + ht_away) or (ht_home + ht_away)
+                            
                             return {
                                 "match_id": partido.get("id"),
                                 "status": status,
                                 "home_score": home_goals,
                                 "away_score": away_goals,
                                 "total_goals": home_goals + away_goals,
+                                "ht_home_goals": ht_home,
+                                "ht_away_goals": ht_away,
+                                "ht_total_goals": ht_total,
                                 "corners_home": team_a_corners if team_a_corners != -1 else 0,
                                 "corners_away": team_b_corners if team_b_corners != -1 else 0,
                                 "total_corners": total_corner_count if total_corner_count != -1 else 0,
@@ -349,7 +364,8 @@ class TrackRecordManager:
                                 "cards_away": partido.get("away_cards", 0),
                                 "total_cards": partido.get("home_cards", 0) + partido.get("away_cards", 0),
                                 "corner_data_available": total_corner_count != -1,
-                                "resultado_1x2": self._determinar_resultado_1x2(home_goals, away_goals)
+                                "resultado_1x2": self._determinar_resultado_1x2(home_goals, away_goals),
+                                "resultado_1x2_1h": self._determinar_resultado_1x2(ht_home, ht_away)
                             }
                         elif status in INVALID_MATCH_STATUSES:
                             print(f"Skipping incomplete match: {partido.get('home_name')} vs {partido.get('away_name')} - Status: {status}")
@@ -388,15 +404,39 @@ class TrackRecordManager:
         acierto = False
         
         try:
+            # Detect if this is a first-half (1H) or second-half (2H) bet
+            is_1h = "1h" in tipo_prediccion
+            is_2h = "2h" in tipo_prediccion
+            
             if "más de" in tipo_prediccion and "goles" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("más de ")[1].split(" goles")[0])
-                acierto = resultado["total_goals"] > umbral
-                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold (over) = {'WIN' if acierto else 'LOSS'}")
+                if is_1h:
+                    goals_to_check = resultado.get("ht_total_goals", 0)
+                    print(f"    ⚽ 1H Goals bet: {goals_to_check} first-half goals vs {umbral} threshold (over)")
+                elif is_2h:
+                    ht_goals = resultado.get("ht_total_goals", 0)
+                    goals_to_check = resultado["total_goals"] - ht_goals
+                    print(f"    ⚽ 2H Goals bet: {goals_to_check} second-half goals vs {umbral} threshold (over)")
+                else:
+                    goals_to_check = resultado["total_goals"]
+                    print(f"    ⚽ Goals bet: {goals_to_check} total goals vs {umbral} threshold (over)")
+                acierto = goals_to_check > umbral
+                print(f"    Result: {'WIN' if acierto else 'LOSS'}")
                 
             elif "menos de" in tipo_prediccion and "goles" in tipo_prediccion:
                 umbral = float(tipo_prediccion.split("menos de ")[1].split(" goles")[0])
-                acierto = resultado["total_goals"] < umbral
-                print(f"    ⚽ Goals bet validation: {resultado['total_goals']} goals vs {umbral} threshold (under) = {'WIN' if acierto else 'LOSS'}")
+                if is_1h:
+                    goals_to_check = resultado.get("ht_total_goals", 0)
+                    print(f"    ⚽ 1H Goals bet: {goals_to_check} first-half goals vs {umbral} threshold (under)")
+                elif is_2h:
+                    ht_goals = resultado.get("ht_total_goals", 0)
+                    goals_to_check = resultado["total_goals"] - ht_goals
+                    print(f"    ⚽ 2H Goals bet: {goals_to_check} second-half goals vs {umbral} threshold (under)")
+                else:
+                    goals_to_check = resultado["total_goals"]
+                    print(f"    ⚽ Goals bet: {goals_to_check} total goals vs {umbral} threshold (under)")
+                acierto = goals_to_check < umbral
+                print(f"    Result: {'WIN' if acierto else 'LOSS'}")
                 
             elif "más de" in tipo_prediccion and "corners" in tipo_prediccion:
                 total_corners = resultado.get("total_corners", 0)
@@ -449,13 +489,28 @@ class TrackRecordManager:
                     else:
                         acierto = False
                         
-            elif any(x in tipo_prediccion for x in ["local", "empate", "visitante"]):
-                if "local" in tipo_prediccion:
-                    acierto = resultado["resultado_1x2"] == "1"
+            elif any(x in tipo_prediccion for x in ["local", "empate", "visitante", "victoria"]):
+                # Use 1H result if it's a first-half bet
+                resultado_key = "resultado_1x2_1h" if is_1h else "resultado_1x2"
+                resultado_1x2 = resultado.get(resultado_key, resultado.get("resultado_1x2", "X"))
+                if "local" in tipo_prediccion or ("victoria" in tipo_prediccion and "1h" in tipo_prediccion and "visitante" not in tipo_prediccion):
+                    partido_parts = prediccion.get("partido", "").split(" vs ")
+                    if "victoria" in tipo_prediccion and len(partido_parts) == 2:
+                        # Check if the team mentioned is home or away
+                        team_in_pred = tipo_prediccion.replace("victoria", "").replace("1h", "").strip()
+                        away_team = partido_parts[1].strip().lower()
+                        if team_in_pred and team_in_pred in away_team:
+                            acierto = resultado_1x2 == "2"
+                        else:
+                            acierto = resultado_1x2 == "1"
+                    else:
+                        acierto = resultado_1x2 == "1"
                 elif "empate" in tipo_prediccion:
-                    acierto = resultado["resultado_1x2"] == "X"
+                    acierto = resultado_1x2 == "X"
                 elif "visitante" in tipo_prediccion:
-                    acierto = resultado["resultado_1x2"] == "2"
+                    acierto = resultado_1x2 == "2"
+                if is_1h:
+                    print(f"    🏟️ 1H Result bet: 1H result={resultado_1x2}, acierto={acierto}")
             
             if acierto:
                 ganancia = stake * (cuota - 1)
