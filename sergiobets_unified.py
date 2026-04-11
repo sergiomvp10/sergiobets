@@ -103,7 +103,7 @@ class ThemeManager:
             header_bg="#FFFFFF", card_bg="#FFFFFF", card_border="#E2E8F0",
             stats_bg="#FFFFFF", tab_active="#2563EB", tab_inactive="#F8FAFC",
             tab_text="#64748B", tab_active_text="#FFFFFF",
-            bottom_bg="#FFFFFF", odds_bg="#F0FDF4", odds_fg="#166534",
+            bottom_bg="#FFFFFF", odds_bg="#EEF2FF", odds_fg="#3B5998",
             confidence_high="#10B981", confidence_mid="#F59E0B", confidence_low="#EF4444",
             ev_pos="#10B981", ev_neg="#EF4444",
             badge_high_bg="#DCFCE7", badge_high_fg="#166534",
@@ -120,7 +120,7 @@ class ThemeManager:
             header_bg="#111827", card_bg="#111827", card_border="#1E293B",
             stats_bg="#111827", tab_active="#3B82F6", tab_inactive="#0F172A",
             tab_text="#94A3B8", tab_active_text="#FFFFFF",
-            bottom_bg="#111827", odds_bg="#064E3B", odds_fg="#6EE7B7",
+            bottom_bg="#111827", odds_bg="#1E293B", odds_fg="#94A3B8",
             confidence_high="#10B981", confidence_mid="#F59E0B", confidence_low="#EF4444",
             ev_pos="#22C55E", ev_neg="#EF4444",
             badge_high_bg="#064E3B", badge_high_fg="#6EE7B7",
@@ -2581,10 +2581,12 @@ class SergioBetsUnified:
             cuotas = partido.get('cuotas', {})
             for label, key in [("1", 'local'), ("X", 'empate'), ("2", 'visitante')]:
                 val = cuotas.get(key, '-')
-                of = tk.Frame(odds_f, bg=p['odds_bg'], padx=8, pady=4)
+                of = tk.Frame(odds_f, bg=p['odds_bg'], width=52, height=44,
+                              highlightbackground=p['card_border'], highlightthickness=1)
                 of.pack(side='left', padx=2)
+                of.pack_propagate(False)
                 tk.Label(of, text=label, bg=p['odds_bg'], fg=p['muted'],
-                         font=('Segoe UI', 8)).pack()
+                         font=('Segoe UI', 8)).pack(pady=(2, 0))
                 tk.Label(of, text=str(val), bg=p['odds_bg'], fg=p['odds_fg'],
                          font=('Segoe UI', 10, 'bold')).pack()
 
