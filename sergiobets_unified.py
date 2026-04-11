@@ -850,7 +850,8 @@ class SergioBetsUnified:
         self._scroll_container.grid_forget()
         self._filter_bar.grid_forget()
         self._stats_row.grid_forget()
-        self._tabs_frame.grid_forget()
+        if hasattr(self, '_tabs_frame'):
+            self._tabs_frame.grid_forget()
         self._settings_frame.grid_forget()
         self._tracking_frame.grid_forget()
         self._usuarios_frame.grid_forget()
@@ -869,7 +870,8 @@ class SergioBetsUnified:
             self._gen_btn.configure(text="Ver Partidos")
             # Hide stats, tabs, corners and confianza filters for Partidos
             self._stats_row.grid_forget()
-            self._tabs_frame.grid_forget()
+            if hasattr(self, '_tabs_frame'):
+                self._tabs_frame.grid_forget()
             self._corners_lbl.pack_forget()
             self._combo_corners.pack_forget()
             self._conf_lbl.pack_forget()
@@ -877,7 +879,8 @@ class SergioBetsUnified:
         else:
             self._gen_btn.configure(text="Generar Pronosticos")
             self._stats_row.grid(row=2, column=0, sticky='ew')
-            self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
+            if hasattr(self, '_tabs_frame'):
+                self._tabs_frame.grid(row=3, column=0, sticky='ew', pady=(0, 6))
             # Restore corners and confianza filters
             self._corners_lbl.pack(side='left', padx=(0, 4))
             self._combo_corners.pack(side='left', padx=(0, 16))
@@ -1330,7 +1333,7 @@ class SergioBetsUnified:
         """Update the live Colombia clock every second"""
         try:
             now = hora_bogota()
-            time_str = now.strftime('%H:%M:%S')
+            time_str = now.strftime('%I:%M:%S %p')
             self._clock_lbl.config(text=time_str)
         except Exception:
             pass
@@ -2092,7 +2095,7 @@ class SergioBetsUnified:
                         if usuario.get('fecha_expiracion'):
                             try:
                                 fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                expira = fecha_exp.strftime('%Y-%m-%d %I:%M %p')
                             except Exception:
                                 expira = "Error fecha"
                         tag = 'even' if idx % 2 == 0 else 'odd'
@@ -4021,7 +4024,7 @@ Activa tu membresía ahora y empieza a ganar. ⚽💰"""
                                     try:
                                         from datetime import datetime
                                         fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                        expira = fecha_exp.strftime('%Y-%m-%d %H:%M')
+                                        expira = fecha_exp.strftime('%Y-%m-%d %I:%M %p')
                                     except:
                                         expira = "Error fecha"
                                 

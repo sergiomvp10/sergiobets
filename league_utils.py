@@ -69,7 +69,7 @@ def convertir_timestamp_unix(timestamp_unix):
             TZ_BOGOTA = timezone(timedelta(hours=-5))
             dt_utc = datetime.fromtimestamp(timestamp_unix, tz=timezone.utc)
             dt_bogota = dt_utc.astimezone(TZ_BOGOTA)
-            return dt_bogota.strftime("%H:%M")
+            return dt_bogota.strftime("%I:%M %p")
         except Exception as e:
             print(f"Error convirtiendo timestamp {timestamp_unix}: {e}")
             return "Por confirmar"
