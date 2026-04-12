@@ -920,6 +920,8 @@ class SergioBetsUnified:
             self._build_tracking_content(self._palette)
             self._tracking_loaded = True
         self._tracking_frame.grid(row=1, column=0, rowspan=5, sticky='nsew', padx=20, pady=20)
+        # Always reload data from file to reflect any deletions or changes
+        self._track_filter_click(self._track_filtro.get())
         # Auto-update pending results in background
         self._track_auto_update()
 
