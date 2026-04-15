@@ -3049,62 +3049,250 @@ class SergioBetsUnified:
             except Exception as e:
                 messagebox.showerror("Error", f"Error eliminando usuarios: {e}")
 
+    def _get_selected_user_ids(self):
+        """Get list of currently selected user IDs from checkboxes"""
+        return [uid for uid, var in self._usr_check_vars.items() if var.get()]
+
     def _usuarios_otorgar_acceso(self):
-        """Grant premium access to a user"""
-        from tkinter import messagebox, simpledialog
+        """Grant premium access — custom dark-themed popup"""
+        import tkinter as tk
+        from tkinter import messagebox
         try:
             from access_manager import access_manager
         except Exception:
             messagebox.showerror("Error", "Modulo access_manager no disponible")
             return
 
-        user_id = simpledialog.askstring("Otorgar Acceso", "Ingresa el ID del usuario:")
-        if not user_id or not user_id.strip():
-            return
-        user_id = user_id.strip()
-        dias = simpledialog.askinteger("Dias de Acceso",
-                                        "¿Cuantos dias de acceso premium?",
-                                        minvalue=1, maxvalue=365)
-        if not dias:
-            return
-        try:
-            if access_manager.otorgar_acceso(user_id, dias):
+        p = self._palette
+        selected = self._get_selected_user_ids()
+
+        # ── Custom dark popup ──
+        popup = tk.Toplevel(self.root)
+        popup.title("Otorgar Acceso Premium")
+        popup.configure(bg=p['bg'])
+        popup.geometry("420x340")
+        popup.resizable(False, False)
+        popup.transient(self.root)
+        popup.grab_set()
+
+        # Center on parent
+        popup.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - 210
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - 170
+        popup.geometry(f"+{x}+{y}")
+
+        # Title
+        tk.Label(popup, text="Otorgar Acceso Premium",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 14, 'bold')).pack(pady=(20, 4))
+
+        # Subtitle
+        if selected:
+            sub_text = f"{len(selected)} usuario(s) seleccionado(s)"
+            sub_fg = '#10B981'
+        else:
+            sub_text = "Ingresa el ID del usuario"
+            sub_fg = p['muted']
+        tk.Label(popup, text=sub_text, bg=p['bg'], fg=sub_fg,
+                 font=('Segoe UI', 9)).pack(pady=(0, 16))
+
+        # Form container
+        form = tk.Frame(popup, bg=p['card_bg'], padx=20, pady=16,
+                        highlightbackground=p['card_border'], highlightthickness=1)
+        form.pack(fill='x', padx=24)
+
+        # User ID field
+        tk.Label(form, text="ID del Usuario", bg=p['card_bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(anchor='w')
+        id_entry = tk.Entry(form, bg='#0F172A' if p['bg'] == '#0F172A' else '#FFFFFF',
+                            fg=p['fg'], font=('Segoe UI', 11),
+                            insertbackground=p['fg'], relief='flat',
+                            highlightbackground='#334155', highlightthickness=1)
+        id_entry.pack(fill='x', pady=(4, 12), ipady=4)
+        if selected:
+            id_entry.insert(0, selected[0])
+            if len(selected) > 1:
+                id_entry.config(state='disabled', disabledbackground='#1E293B',
+                                disabledforeground=p['muted'])
+
+        # Days field
+        tk.Label(form, text="Dias de Acceso Premium", bg=p['card_bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(anchor='w')
+        dias_entry = tk.Entry(form, bg='#0F172A' if p['bg'] == '#0F172A' else '#FFFFFF',
+                              fg=p['fg'], font=('Segoe UI', 11),
+                              insertbackground=p['fg'], relief='flat',
+                              highlightbackground='#334155', highlightthickness=1)
+        dias_entry.pack(fill='x', pady=(4, 0), ipady=4)
+        dias_entry.insert(0, "30")
+        dias_entry.focus_set()
+        dias_entry.select_range(0, 'end')
+
+        # Quick-select day buttons
+        quick_f = tk.Frame(form, bg=p['card_bg'])
+        quick_f.pack(fill='x', pady=(8, 0))
+        for d in [7, 15, 30, 60, 90, 365]:
+            lbl = f"{d}d"
+            def _set_days(days=d):
+                dias_entry.delete(0, 'end')
+                dias_entry.insert(0, str(days))
+            tk.Button(quick_f, text=lbl, bg='#334155', fg=p['fg'],
+                      font=('Segoe UI', 8), relief='flat', cursor='hand2',
+                      bd=0, padx=8, pady=2,
+                      command=_set_days).pack(side='left', padx=(0, 4))
+
+        # Buttons
+        btn_f = tk.Frame(popup, bg=p['bg'])
+        btn_f.pack(fill='x', padx=24, pady=(16, 20))
+
+        def _do_grant():
+            user_id = id_entry.get().strip()
+            dias_str = dias_entry.get().strip()
+            if not dias_str.isdigit() or int(dias_str) < 1:
+                messagebox.showwarning("Error", "Ingresa un numero valido de dias", parent=popup)
+                return
+            dias = int(dias_str)
+
+            target_ids = selected if len(selected) > 1 else ([user_id] if user_id else [])
+            if not target_ids:
+                messagebox.showwarning("Error", "Ingresa un ID de usuario", parent=popup)
+                return
+
+            popup.destroy()
+
+            exitos = 0
+            errores = 0
+            for tid in target_ids:
                 try:
-                    msg_conf = access_manager.generar_mensaje_confirmacion_premium(user_id)
-                    chat_id = int(user_id) if user_id.lstrip('-').isdigit() else user_id
-                    enviar_telegram(chat_id=chat_id, mensaje=msg_conf)
+                    if access_manager.otorgar_acceso(tid, dias):
+                        exitos += 1
+                        try:
+                            msg_conf = access_manager.generar_mensaje_confirmacion_premium(tid)
+                            chat_id = int(tid) if tid.lstrip('-').isdigit() else tid
+                            enviar_telegram(chat_id=chat_id, mensaje=msg_conf)
+                        except Exception:
+                            pass
+                    else:
+                        errores += 1
                 except Exception:
-                    pass
-                messagebox.showinfo("Exito", f"✅ Acceso premium otorgado a {user_id} por {dias} dias")
+                    errores += 1
+
+            if exitos > 0:
+                messagebox.showinfo("Exito", f"Acceso premium otorgado a {exitos} usuario(s) por {dias} dias")
                 self._refresh_usuarios_inline()
-            else:
-                messagebox.showerror("Error", "❌ Usuario no encontrado")
-        except Exception as e:
-            messagebox.showerror("Error", f"Error: {e}")
+            if errores > 0:
+                messagebox.showerror("Error", f"{errores} usuario(s) no encontrado(s)")
+
+        tk.Button(btn_f, text="Otorgar Acceso", bg='#10B981', fg='#FFFFFF',
+                  font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
+                  bd=0, padx=20, pady=8, command=_do_grant).pack(side='left')
+        tk.Button(btn_f, text="Cancelar", bg='#334155', fg=p['fg'],
+                  font=('Segoe UI', 10), relief='flat', cursor='hand2',
+                  bd=0, padx=20, pady=8,
+                  command=popup.destroy).pack(side='right')
+
+        # Enter key to submit
+        popup.bind('<Return>', lambda e: _do_grant())
 
     def _usuarios_banear(self):
-        """Ban a user"""
-        from tkinter import messagebox, simpledialog
+        """Ban selected user(s) — custom dark-themed popup"""
+        import tkinter as tk
+        from tkinter import messagebox
         try:
             from access_manager import access_manager
         except Exception:
             messagebox.showerror("Error", "Modulo access_manager no disponible")
             return
 
-        user_id = simpledialog.askstring("Banear Usuario", "Ingresa el ID del usuario a banear:")
-        if not user_id:
-            return
-        confirm = messagebox.askyesno("Confirmar",
-                                       f"¿Banear al usuario {user_id}?\nSe removera su acceso premium.")
-        if confirm:
-            try:
-                if access_manager.banear_usuario(user_id):
-                    messagebox.showinfo("Exito", "✅ Usuario baneado")
-                    self._refresh_usuarios_inline()
-                else:
-                    messagebox.showerror("Error", "❌ Usuario no encontrado")
-            except Exception as e:
-                messagebox.showerror("Error", f"Error: {e}")
+        p = self._palette
+        selected = self._get_selected_user_ids()
+
+        # ── Custom dark popup ──
+        popup = tk.Toplevel(self.root)
+        popup.title("Banear Usuario")
+        popup.configure(bg=p['bg'])
+        popup.geometry("420x280")
+        popup.resizable(False, False)
+        popup.transient(self.root)
+        popup.grab_set()
+
+        popup.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - 210
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - 140
+        popup.geometry(f"+{x}+{y}")
+
+        # Title
+        tk.Label(popup, text="Banear Usuario",
+                 bg=p['bg'], fg='#EF4444',
+                 font=('Segoe UI', 14, 'bold')).pack(pady=(20, 4))
+
+        if selected:
+            sub_text = f"{len(selected)} usuario(s) seleccionado(s)"
+            sub_fg = '#EF4444'
+        else:
+            sub_text = "Ingresa el ID del usuario a banear"
+            sub_fg = p['muted']
+        tk.Label(popup, text=sub_text, bg=p['bg'], fg=sub_fg,
+                 font=('Segoe UI', 9)).pack(pady=(0, 16))
+
+        # Form
+        form = tk.Frame(popup, bg=p['card_bg'], padx=20, pady=16,
+                        highlightbackground=p['card_border'], highlightthickness=1)
+        form.pack(fill='x', padx=24)
+
+        tk.Label(form, text="ID del Usuario", bg=p['card_bg'], fg=p['muted'],
+                 font=('Segoe UI', 9)).pack(anchor='w')
+        id_entry = tk.Entry(form, bg='#0F172A' if p['bg'] == '#0F172A' else '#FFFFFF',
+                            fg=p['fg'], font=('Segoe UI', 11),
+                            insertbackground=p['fg'], relief='flat',
+                            highlightbackground='#334155', highlightthickness=1)
+        id_entry.pack(fill='x', pady=(4, 8), ipady=4)
+        if selected:
+            id_entry.insert(0, ', '.join(selected))
+            if len(selected) >= 1:
+                id_entry.config(state='disabled', disabledbackground='#1E293B',
+                                disabledforeground=p['muted'])
+        else:
+            id_entry.focus_set()
+
+        tk.Label(form, text="Se removera el acceso premium del usuario",
+                 bg=p['card_bg'], fg='#EF4444',
+                 font=('Segoe UI', 8)).pack(anchor='w')
+
+        # Buttons
+        btn_f = tk.Frame(popup, bg=p['bg'])
+        btn_f.pack(fill='x', padx=24, pady=(16, 20))
+
+        def _do_ban():
+            target_ids = selected if selected else [id_entry.get().strip()]
+            target_ids = [t for t in target_ids if t]
+            if not target_ids:
+                messagebox.showwarning("Error", "Ingresa un ID de usuario", parent=popup)
+                return
+
+            popup.destroy()
+
+            exitos = 0
+            for tid in target_ids:
+                try:
+                    if access_manager.banear_usuario(tid):
+                        exitos += 1
+                except Exception:
+                    pass
+            if exitos > 0:
+                messagebox.showinfo("Exito", f"{exitos} usuario(s) baneado(s)")
+                self._refresh_usuarios_inline()
+            else:
+                messagebox.showerror("Error", "No se pudo banear ningun usuario")
+
+        tk.Button(btn_f, text="Banear", bg='#EF4444', fg='#FFFFFF',
+                  font=('Segoe UI', 10, 'bold'), relief='flat', cursor='hand2',
+                  bd=0, padx=20, pady=8, command=_do_ban).pack(side='left')
+        tk.Button(btn_f, text="Cancelar", bg='#334155', fg=p['fg'],
+                  font=('Segoe UI', 10), relief='flat', cursor='hand2',
+                  bd=0, padx=20, pady=8,
+                  command=popup.destroy).pack(side='right')
+
+        popup.bind('<Return>', lambda e: _do_ban())
 
     def _usuarios_limpiar_expirados(self):
         """Clean expired users"""
