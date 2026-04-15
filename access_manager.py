@@ -162,6 +162,26 @@ Estamos comprometidos a brindarte los mejores pronósticos deportivos para maxim
         except (ValueError, TypeError):
             return "❌ Error procesando fecha de expiración"
     
+    def eliminar_usuario(self, user_id: str) -> bool:
+        """Permanently delete a user from the system"""
+        user_index, users = self._find_user_index(user_id)
+        if user_index is None:
+            return False
+        users.pop(user_index)
+        self._save_users(users)
+        return True
+
+    def eliminar_usuarios_multiple(self, user_ids: list) -> int:
+        """Delete multiple users at once, returns count of deleted"""
+        users = self._load_users()
+        ids_set = set(str(uid) for uid in user_ids)
+        original_len = len(users)
+        users = [u for u in users if str(u.get('user_id')) not in ids_set]
+        deleted = original_len - len(users)
+        if deleted > 0:
+            self._save_users(users)
+        return deleted
+
     def banear_usuario(self, user_id: str) -> bool:
         """Remove premium access immediately"""
         user_index, users = self._find_user_index(user_id)

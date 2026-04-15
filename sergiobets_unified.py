@@ -2746,134 +2746,308 @@ class SergioBetsUnified:
     # ── Usuarios inline page builder ────────────────────────────
 
     def _build_usuarios_content(self, p):
-        """Build usuarios management page inline"""
+        """Build usuarios management page inline - professional dark theme"""
         import tkinter as tk
-        from tkinter import ttk
 
-        self._usuarios_frame.grid_rowconfigure(2, weight=1)
+        self._usuarios_frame.grid_rowconfigure(3, weight=1)
         self._usuarios_frame.grid_columnconfigure(0, weight=1)
 
-        # Title + stats
-        header_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
-        header_f.grid(row=0, column=0, sticky='ew', pady=(0, 12))
-        tk.Label(header_f, text="👥  Gestion de Usuarios VIP",
+        # Title row
+        title_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
+        title_f.grid(row=0, column=0, sticky='ew', pady=(0, 16))
+        tk.Label(title_f, text="Gestion de Usuarios",
                  bg=p['bg'], fg=p['fg'],
-                 font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+                 font=('Segoe UI', 16, 'bold')).pack(side='left')
 
-        stats_card = tk.Frame(self._usuarios_frame, bg=p['card_bg'], padx=20, pady=12,
-                              highlightbackground=p['card_border'], highlightthickness=1)
-        stats_card.grid(row=1, column=0, sticky='ew', pady=(0, 12))
-        self._usuarios_stats_lbl = tk.Label(stats_card, text="📊 Cargando estadisticas...",
-                                             bg=p['card_bg'], fg=p['fg'],
-                                             font=('Segoe UI', 11))
-        self._usuarios_stats_lbl.pack(anchor='w')
+        # KPI cards row
+        kpi_row = tk.Frame(self._usuarios_frame, bg=p['bg'])
+        kpi_row.grid(row=1, column=0, sticky='ew', pady=(0, 16))
+        for c in range(5):
+            kpi_row.grid_columnconfigure(c, weight=1, uniform='usr_kpi')
 
-        # Table frame
-        table_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
-        table_f.grid(row=2, column=0, sticky='nsew')
-        table_f.grid_rowconfigure(0, weight=1)
-        table_f.grid_columnconfigure(0, weight=1)
+        usr_kpis = [
+            ("usr_total",      "Total Usuarios",     "0",   "#3B82F6"),
+            ("usr_premium",    "Premium Activos",    "0",   "#10B981"),
+            ("usr_gratuitos",  "Gratuitos",          "0",   "#64748B"),
+            ("usr_pct",        "Tasa Premium",       "0%",  "#F59E0B"),
+            ("usr_recientes",  "Registros (7d)",     "0",   "#8B5CF6"),
+        ]
+        self._usr_kpi_labels = {}
+        for col, (kid, label, val, accent) in enumerate(usr_kpis):
+            card = tk.Frame(kpi_row, bg=p['card_bg'], padx=12, pady=10,
+                            highlightbackground=accent, highlightthickness=2)
+            card.grid(row=0, column=col, sticky='ew', padx=4)
+            tk.Label(card, text=label, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 8)).pack(anchor='w')
+            v_lbl = tk.Label(card, text=val, bg=p['card_bg'], fg=accent,
+                             font=('Segoe UI', 16, 'bold'))
+            v_lbl.pack(anchor='w')
+            self._usr_kpi_labels[kid] = v_lbl
 
-        columns = ('id', 'usuario', 'nombre', 'premium', 'expira')
-        self._usuarios_tree = ttk.Treeview(table_f, columns=columns, show='headings',
-                                            selectmode='browse', height=15)
-        self._usuarios_tree.heading('id', text='ID', anchor='center')
-        self._usuarios_tree.heading('usuario', text='Usuario', anchor='w')
-        self._usuarios_tree.heading('nombre', text='Nombre', anchor='w')
-        self._usuarios_tree.heading('premium', text='Premium', anchor='center')
-        self._usuarios_tree.heading('expira', text='Expira', anchor='center')
-
-        self._usuarios_tree.column('id', width=120, minwidth=100, anchor='center')
-        self._usuarios_tree.column('usuario', width=200, minwidth=150, anchor='w')
-        self._usuarios_tree.column('nombre', width=200, minwidth=150, anchor='w')
-        self._usuarios_tree.column('premium', width=100, minwidth=80, anchor='center')
-        self._usuarios_tree.column('expira', width=180, minwidth=150, anchor='center')
-
-        self._usuarios_tree.tag_configure('odd', background='#f0f0f0')
-        self._usuarios_tree.tag_configure('even', background='white')
-
-        sb_y = ttk.Scrollbar(table_f, orient='vertical', command=self._usuarios_tree.yview)
-        self._usuarios_tree.configure(yscrollcommand=sb_y.set)
-        self._usuarios_tree.grid(row=0, column=0, sticky='nsew')
-        sb_y.grid(row=0, column=1, sticky='ns')
-
-        # Action buttons row
+        # Action buttons row (above table)
         btns_f = tk.Frame(self._usuarios_frame, bg=p['bg'])
-        btns_f.grid(row=3, column=0, sticky='ew', pady=(12, 0))
+        btns_f.grid(row=2, column=0, sticky='ew', pady=(0, 8))
 
-        tk.Button(btns_f, text="🔄 Refrescar", bg=p['primary'], fg='#FFFFFF',
-                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
-                  padx=12, pady=5, bd=0,
-                  command=self._refresh_usuarios_inline).pack(side='left', padx=(0, 6))
-        tk.Button(btns_f, text="👑 Otorgar Acceso", bg='#10B981', fg='#FFFFFF',
-                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
-                  padx=12, pady=5, bd=0,
-                  command=self._usuarios_otorgar_acceso).pack(side='left', padx=(0, 6))
-        tk.Button(btns_f, text="🚫 Banear", bg='#EF4444', fg='#FFFFFF',
-                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
-                  padx=12, pady=5, bd=0,
-                  command=self._usuarios_banear).pack(side='left', padx=(0, 6))
-        tk.Button(btns_f, text="🧹 Limpiar Expirados", bg='#F59E0B', fg='#FFFFFF',
-                  font=('Segoe UI', 9, 'bold'), relief='flat', cursor='hand2',
-                  padx=12, pady=5, bd=0,
-                  command=self._usuarios_limpiar_expirados).pack(side='left')
+        btn_style = {'font': ('Segoe UI', 9, 'bold'), 'relief': 'flat',
+                     'cursor': 'hand2', 'padx': 14, 'pady': 5, 'bd': 0}
+
+        tk.Button(btns_f, text="Refrescar", bg=p['primary'], fg='#FFFFFF',
+                  command=self._refresh_usuarios_inline, **btn_style).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="Otorgar Acceso", bg='#10B981', fg='#FFFFFF',
+                  command=self._usuarios_otorgar_acceso, **btn_style).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="Banear", bg='#EF4444', fg='#FFFFFF',
+                  command=self._usuarios_banear, **btn_style).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="Limpiar Expirados", bg='#F59E0B', fg='#FFFFFF',
+                  command=self._usuarios_limpiar_expirados, **btn_style).pack(side='left', padx=(0, 6))
+        tk.Button(btns_f, text="Eliminar Seleccionados", bg='#7C3AED', fg='#FFFFFF',
+                  command=self._usuarios_eliminar_seleccionados, **btn_style).pack(side='left')
+
+        # Seleccionar todos checkbox
+        self._usr_select_all_var = tk.BooleanVar(value=False)
+        sel_all_cb = tk.Checkbutton(btns_f, text="Todos", variable=self._usr_select_all_var,
+                                     bg=p['bg'], fg=p['fg'], selectcolor=p['card_bg'],
+                                     activebackground=p['bg'], activeforeground=p['fg'],
+                                     font=('Segoe UI', 9),
+                                     command=self._usuarios_toggle_select_all)
+        sel_all_cb.pack(side='right', padx=(12, 0))
+
+        # Table card
+        table_card = tk.Frame(self._usuarios_frame, bg=p['card_bg'], padx=2, pady=2,
+                               highlightbackground=p['card_border'], highlightthickness=1)
+        table_card.grid(row=3, column=0, sticky='nsew')
+        table_card.grid_rowconfigure(1, weight=1)
+        table_card.grid_columnconfigure(0, weight=1)
+
+        # Table header (grid-based for alignment)
+        header_row = tk.Frame(table_card, bg='#1E293B', padx=8, pady=8)
+        header_row.grid(row=0, column=0, sticky='ew')
+        header_row.grid_columnconfigure(1, weight=0)
+        header_row.grid_columnconfigure(2, weight=1)
+        header_row.grid_columnconfigure(3, weight=1)
+        header_row.grid_columnconfigure(4, weight=0)
+        header_row.grid_columnconfigure(5, weight=0)
+        header_row.grid_columnconfigure(6, weight=1)
+
+        headers = [
+            ("", 30, 'center'),       # checkbox col
+            ("ID", 100, 'center'),
+            ("Usuario", 0, 'w'),
+            ("Nombre", 0, 'w'),
+            ("Premium", 70, 'center'),
+            ("Registro", 110, 'center'),
+            ("Expira", 0, 'center'),
+        ]
+        for c, (text, w, anc) in enumerate(headers):
+            lbl = tk.Label(header_row, text=text, bg='#1E293B', fg='#94A3B8',
+                           font=('Segoe UI', 9, 'bold'), anchor=anc)
+            if w > 0:
+                lbl.grid(row=0, column=c, sticky='ew', padx=6)
+                header_row.grid_columnconfigure(c, minsize=w)
+            else:
+                lbl.grid(row=0, column=c, sticky='ew', padx=6)
+
+        # Scrollable body
+        body_outer = tk.Frame(table_card, bg=p['card_bg'])
+        body_outer.grid(row=1, column=0, sticky='nsew')
+        body_outer.grid_rowconfigure(0, weight=1)
+        body_outer.grid_columnconfigure(0, weight=1)
+
+        canvas = tk.Canvas(body_outer, bg=p['card_bg'], highlightthickness=0, bd=0)
+        canvas.grid(row=0, column=0, sticky='nsew')
+
+        sb_y = tk.Scrollbar(body_outer, orient='vertical', command=canvas.yview)
+        sb_y.grid(row=0, column=1, sticky='ns')
+        canvas.configure(yscrollcommand=sb_y.set)
+
+        self._usr_table_inner = tk.Frame(canvas, bg=p['card_bg'])
+        canvas.create_window((0, 0), window=self._usr_table_inner, anchor='nw', tags='inner')
+
+        def _on_configure(e):
+            canvas.configure(scrollregion=canvas.bbox('all'))
+        self._usr_table_inner.bind('<Configure>', _on_configure)
+
+        def _on_canvas_configure(e):
+            canvas.itemconfig('inner', width=e.width)
+        canvas.bind('<Configure>', _on_canvas_configure)
+
+        # Mouse wheel scroll
+        def _on_mousewheel(e):
+            canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units')
+        def _on_mousewheel_linux(e):
+            if e.num == 4:
+                canvas.yview_scroll(-1, 'units')
+            elif e.num == 5:
+                canvas.yview_scroll(1, 'units')
+        canvas.bind('<MouseWheel>', _on_mousewheel)
+        canvas.bind('<Button-4>', _on_mousewheel_linux)
+        canvas.bind('<Button-5>', _on_mousewheel_linux)
+
+        self._usr_table_canvas = canvas
+        self._usr_table_header = header_row
+        self._usr_checkboxes = {}
+        self._usr_check_vars = {}
 
     def _refresh_usuarios_inline(self):
-        """Refresh the inline usuarios table"""
-        from tkinter import messagebox
+        """Refresh the inline usuarios table with dark themed rows"""
+        import tkinter as tk
         try:
             from access_manager import access_manager
             if not access_manager or not hasattr(access_manager, 'listar_usuarios'):
-                self._usuarios_stats_lbl.config(text="❌ Sistema de usuarios no configurado")
                 return
-        except ImportError:
-            self._usuarios_stats_lbl.config(text="❌ Modulo access_manager no encontrado")
+        except (ImportError, Exception):
             return
-        except Exception as e:
-            self._usuarios_stats_lbl.config(text=f"❌ Error: {e}")
-            return
+
+        p = self._palette
 
         try:
             usuarios = access_manager.listar_usuarios()
-            for item in self._usuarios_tree.get_children():
-                self._usuarios_tree.delete(item)
 
-            if usuarios and isinstance(usuarios, (list, tuple)) and len(usuarios) > 0:
+            # Clear existing rows
+            for w in self._usr_table_inner.winfo_children():
+                w.destroy()
+            self._usr_check_vars.clear()
+            self._usr_checkboxes.clear()
+            self._usr_select_all_var.set(False)
+
+            # Configure columns on inner frame to match header
+            self._usr_table_inner.grid_columnconfigure(1, weight=0)
+            self._usr_table_inner.grid_columnconfigure(2, weight=1)
+            self._usr_table_inner.grid_columnconfigure(3, weight=1)
+            self._usr_table_inner.grid_columnconfigure(4, weight=0)
+            self._usr_table_inner.grid_columnconfigure(5, weight=0)
+            self._usr_table_inner.grid_columnconfigure(6, weight=1)
+
+            stripe_even = p['card_bg']
+            stripe_odd = '#1A2332' if p['bg'] == '#0F172A' else '#F1F5F9'
+
+            if usuarios and isinstance(usuarios, (list, tuple)):
                 for idx, usuario in enumerate(usuarios):
-                    if usuario and isinstance(usuario, dict):
-                        user_id = str(usuario.get('user_id', 'N/A'))
-                        username = usuario.get('username', 'N/A') or 'N/A'
-                        first_name = usuario.get('first_name', 'N/A') or 'N/A'
-                        premium = "✅ SI" if usuario.get('premium', False) else "❌ NO"
-                        expira = "N/A"
-                        if usuario.get('fecha_expiracion'):
-                            try:
-                                fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
-                                expira = fecha_exp.strftime('%Y-%m-%d %I:%M %p')
-                            except Exception:
-                                expira = "Error fecha"
-                        tag = 'even' if idx % 2 == 0 else 'odd'
-                        self._usuarios_tree.insert('', 'end',
-                                                    values=(user_id, username, first_name, premium, expira),
-                                                    tags=(tag,))
+                    if not usuario or not isinstance(usuario, dict):
+                        continue
 
-            # Update stats
+                    user_id = str(usuario.get('user_id', 'N/A'))
+                    username = usuario.get('username', 'N/A') or 'N/A'
+                    first_name = usuario.get('first_name', 'N/A') or 'N/A'
+                    is_premium = usuario.get('premium', False)
+                    premium_text = "SI" if is_premium else "NO"
+                    premium_fg = '#10B981' if is_premium else '#EF4444'
+
+                    # Registration date
+                    registro = '-'
+                    if usuario.get('fecha_registro'):
+                        try:
+                            fecha_reg = datetime.fromisoformat(usuario['fecha_registro'])
+                            registro = fecha_reg.strftime('%d/%m/%Y')
+                        except Exception:
+                            registro = '-'
+
+                    # Expiration date
+                    expira = '-'
+                    if usuario.get('fecha_expiracion'):
+                        try:
+                            fecha_exp = datetime.fromisoformat(usuario['fecha_expiracion'])
+                            expira = fecha_exp.strftime('%d/%m/%Y %I:%M %p')
+                        except Exception:
+                            expira = '-'
+
+                    row_bg = stripe_even if idx % 2 == 0 else stripe_odd
+                    r = idx
+
+                    # Checkbox
+                    var = tk.BooleanVar(value=False)
+                    self._usr_check_vars[user_id] = var
+                    cb = tk.Checkbutton(self._usr_table_inner, variable=var,
+                                         bg=row_bg, activebackground=row_bg,
+                                         selectcolor=row_bg, highlightthickness=0, bd=0)
+                    cb.grid(row=r, column=0, sticky='ew', padx=6, pady=1)
+                    self._usr_checkboxes[user_id] = cb
+
+                    # ID
+                    tk.Label(self._usr_table_inner, text=user_id, bg=row_bg, fg=p['muted'],
+                             font=('Segoe UI', 9), anchor='center').grid(
+                        row=r, column=1, sticky='ew', padx=6, pady=1)
+
+                    # Username
+                    tk.Label(self._usr_table_inner, text=username, bg=row_bg, fg=p['fg'],
+                             font=('Segoe UI', 9), anchor='w').grid(
+                        row=r, column=2, sticky='ew', padx=6, pady=1)
+
+                    # Nombre
+                    tk.Label(self._usr_table_inner, text=first_name, bg=row_bg, fg=p['fg'],
+                             font=('Segoe UI', 9), anchor='w').grid(
+                        row=r, column=3, sticky='ew', padx=6, pady=1)
+
+                    # Premium badge
+                    tk.Label(self._usr_table_inner, text=premium_text, bg=row_bg, fg=premium_fg,
+                             font=('Segoe UI', 9, 'bold'), anchor='center').grid(
+                        row=r, column=4, sticky='ew', padx=6, pady=1)
+
+                    # Registro
+                    tk.Label(self._usr_table_inner, text=registro, bg=row_bg, fg=p['muted'],
+                             font=('Segoe UI', 9), anchor='center').grid(
+                        row=r, column=5, sticky='ew', padx=6, pady=1)
+
+                    # Expira
+                    tk.Label(self._usr_table_inner, text=expira, bg=row_bg, fg=p['fg'],
+                             font=('Segoe UI', 9), anchor='center').grid(
+                        row=r, column=6, sticky='ew', padx=6, pady=1)
+
+            # Update KPI cards
             try:
                 stats = access_manager.obtener_estadisticas()
                 if stats and isinstance(stats, dict):
-                    total = stats.get('total_usuarios', 0)
-                    prem = stats.get('usuarios_premium', 0)
-                    gratis = stats.get('usuarios_gratuitos', 0)
-                    pct = stats.get('porcentaje_premium', 0)
-                    self._usuarios_stats_lbl.config(
-                        text=f"📊 Total: {total}  |  👑 Premium: {prem}  |  🆓 Gratuitos: {gratis}  |  📈 {pct:.1f}%")
-                else:
-                    self._usuarios_stats_lbl.config(text="📊 Estadisticas no disponibles")
-            except Exception:
-                self._usuarios_stats_lbl.config(text="📊 Estadisticas no disponibles")
+                    self._usr_kpi_labels['usr_total'].config(text=str(stats.get('total_usuarios', 0)))
+                    self._usr_kpi_labels['usr_premium'].config(text=str(stats.get('usuarios_premium', 0)))
+                    self._usr_kpi_labels['usr_gratuitos'].config(text=str(stats.get('usuarios_gratuitos', 0)))
+                    self._usr_kpi_labels['usr_pct'].config(text=f"{stats.get('porcentaje_premium', 0):.1f}%")
 
-        except Exception as e:
-            self._usuarios_stats_lbl.config(text=f"❌ Error cargando usuarios: {e}")
+                    # Count recent registrations (last 7 days)
+                    recientes = 0
+                    hoy = hora_bogota().date()
+                    for u in usuarios:
+                        if u.get('fecha_registro'):
+                            try:
+                                fr = datetime.fromisoformat(u['fecha_registro']).date()
+                                if (hoy - fr).days <= 7:
+                                    recientes += 1
+                            except Exception:
+                                pass
+                    self._usr_kpi_labels['usr_recientes'].config(text=str(recientes))
+            except Exception:
+                pass
+
+        except Exception:
+            pass
+
+    def _usuarios_toggle_select_all(self):
+        """Toggle all checkboxes in the usuarios table"""
+        val = self._usr_select_all_var.get()
+        for var in self._usr_check_vars.values():
+            var.set(val)
+
+    def _usuarios_eliminar_seleccionados(self):
+        """Delete selected users from the system"""
+        from tkinter import messagebox
+        try:
+            from access_manager import access_manager
+        except Exception:
+            messagebox.showerror("Error", "Modulo access_manager no disponible")
+            return
+
+        selected_ids = [uid for uid, var in self._usr_check_vars.items() if var.get()]
+        if not selected_ids:
+            messagebox.showwarning("Seleccion", "Selecciona al menos un usuario para eliminar")
+            return
+
+        confirm = messagebox.askyesno("Confirmar eliminacion",
+            f"Eliminar {len(selected_ids)} usuario(s)?\n\nEsta accion no se puede deshacer.")
+        if confirm:
+            try:
+                count = access_manager.eliminar_usuarios_multiple(selected_ids)
+                messagebox.showinfo("Eliminados", f"{count} usuario(s) eliminados")
+                self._refresh_usuarios_inline()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error eliminando usuarios: {e}")
 
     def _usuarios_otorgar_acceso(self):
         """Grant premium access to a user"""
