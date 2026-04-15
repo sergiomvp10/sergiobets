@@ -2802,14 +2802,13 @@ class SergioBetsUnified:
         tk.Button(btns_f, text="Eliminar Seleccionados", bg='#7C3AED', fg='#FFFFFF',
                   command=self._usuarios_eliminar_seleccionados, **btn_style).pack(side='left')
 
-        # Seleccionar todos checkbox
+        # Seleccionar todos — Label-based toggle (no tk.Checkbutton)
         self._usr_select_all_var = tk.BooleanVar(value=False)
-        sel_all_cb = tk.Checkbutton(btns_f, text="Todos", variable=self._usr_select_all_var,
-                                     bg=p['bg'], fg=p['fg'], selectcolor=p['card_bg'],
-                                     activebackground=p['bg'], activeforeground=p['fg'],
-                                     font=('Segoe UI', 9),
-                                     command=self._usuarios_toggle_select_all)
-        sel_all_cb.pack(side='right', padx=(12, 0))
+        self._usr_sel_all_lbl = tk.Label(btns_f, text="\u2610 Todos",
+                                          bg=p['bg'], fg=p['fg'],
+                                          font=('Segoe UI', 9), cursor='hand2')
+        self._usr_sel_all_lbl.pack(side='right', padx=(12, 0))
+        self._usr_sel_all_lbl.bind('<Button-1>', lambda e: self._usuarios_toggle_select_all())
 
         # Column layout: percentage-based widths
         # [checkbox, ID, Usuario, Nombre, Premium, Registro, Expira]
@@ -2897,10 +2896,9 @@ class SergioBetsUnified:
             self._usr_checkboxes.clear()
             self._usr_select_all_var.set(False)
 
-            # Dark alternating stripes — both dark
-            stripe_a = p['card_bg']
-            stripe_b = '#162032' if p['bg'] == '#0F172A' else '#F1F5F9'
-            row_height = 30
+            # Uniform dark background for ALL rows (no alternating)
+            row_bg = p['card_bg']  # same dark bg for every row
+            row_height = 32
             pcts = self._usr_col_pcts
             anchors = ['center', 'center', 'w', 'w', 'center', 'center', 'center']
 
@@ -2932,24 +2930,38 @@ class SergioBetsUnified:
                         except Exception:
                             expira = '-'
 
-                    row_bg = stripe_a if idx % 2 == 0 else stripe_b
-
-                    # Row frame — pack fills width, fixed height, place for cols
+                    # Row frame — pack fills full width, uniform dark bg
                     row_f = tk.Frame(self._usr_table_inner, bg=row_bg, height=row_height)
                     row_f.pack(fill='x')
                     row_f.pack_propagate(False)
 
-                    # Checkbox
+                    # 1px separator line between rows
+                    if idx > 0:
+                        sep = tk.Frame(self._usr_table_inner, bg='#334155', height=1)
+                        # Insert separator before the row
+                        row_f.pack_forget()
+                        sep.pack(fill='x')
+                        row_f.pack(fill='x')
+                        row_f.pack_propagate(False)
+
+                    # Checkbox — Label-based toggle (no tk.Checkbutton)
+                    # Windows Checkbutton ignores bg/selectcolor, so we use Labels
                     var = tk.BooleanVar(value=False)
                     self._usr_check_vars[user_id] = var
-                    cb = tk.Checkbutton(row_f, variable=var, text='',
-                                         bg=row_bg, fg=p['fg'],
-                                         activebackground=row_bg, activeforeground=p['fg'],
-                                         selectcolor=row_bg, highlightthickness=0,
-                                         bd=0, relief='flat', overrelief='flat',
-                                         onvalue=True, offvalue=False)
-                    cb.place(relx=0, rely=0, relwidth=pcts[0], relheight=1.0)
-                    self._usr_checkboxes[user_id] = cb
+                    cb_lbl = tk.Label(row_f, text='\u2610', bg=row_bg, fg=p['muted'],
+                                      font=('Segoe UI', 11), cursor='hand2')
+                    cb_lbl.place(relx=0, rely=0, relwidth=pcts[0], relheight=1.0)
+
+                    def _make_toggle(v, lbl, bg, muted, fg):
+                        def toggle(e=None):
+                            v.set(not v.get())
+                            lbl.config(text='\u2611' if v.get() else '\u2610',
+                                       fg=fg if v.get() else muted)
+                        return toggle
+
+                    toggle_fn = _make_toggle(var, cb_lbl, row_bg, p['muted'], '#3B82F6')
+                    cb_lbl.bind('<Button-1>', toggle_fn)
+                    self._usr_checkboxes[user_id] = cb_lbl
 
                     # Data cells via place — exact same relx as header
                     cell_data = [
@@ -2997,9 +3009,21 @@ class SergioBetsUnified:
 
     def _usuarios_toggle_select_all(self):
         """Toggle all checkboxes in the usuarios table"""
-        val = self._usr_select_all_var.get()
-        for var in self._usr_check_vars.values():
-            var.set(val)
+        p = self._palette
+        new_val = not self._usr_select_all_var.get()
+        self._usr_select_all_var.set(new_val)
+        # Update the select-all label
+        if hasattr(self, '_usr_sel_all_lbl'):
+            self._usr_sel_all_lbl.config(
+                text='\u2611 Todos' if new_val else '\u2610 Todos',
+                fg='#3B82F6' if new_val else p['fg'])
+        # Update all row checkboxes
+        for uid, var in self._usr_check_vars.items():
+            var.set(new_val)
+            cb = self._usr_checkboxes.get(uid)
+            if cb:
+                cb.config(text='\u2611' if new_val else '\u2610',
+                          fg='#3B82F6' if new_val else p['muted'])
 
     def _usuarios_eliminar_seleccionados(self):
         """Delete selected users from the system"""
