@@ -1059,22 +1059,35 @@ class SergioBetsUnified:
 
         tk.Label(breakdown_card, text="Detalle por Dia",
                  bg=p['card_bg'], fg=p['fg'],
-                 font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 8))
+                 font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 12))
 
-        # Table header
-        table_header = tk.Frame(breakdown_card, bg=p['card_bg'])
-        table_header.pack(fill='x', pady=(0, 4))
-        cols = [("Dia", 100), ("Apuestas", 80), ("Ganadas", 80), ("Perdidas", 80), ("Profit/Loss", 120)]
-        for text, w in cols:
-            tk.Label(table_header, text=text, bg=p['card_bg'], fg=p['muted'],
-                     font=('Segoe UI', 9, 'bold'), width=w // 8, anchor='w').pack(side='left', expand=True, fill='x')
+        # Table container using grid for perfect alignment
+        table_container = tk.Frame(breakdown_card, bg=p['card_bg'])
+        table_container.pack(fill='x')
+        col_weights = [2, 1, 1, 1, 2]
+        for c, w in enumerate(col_weights):
+            table_container.grid_columnconfigure(c, weight=w, uniform='rend_col')
+
+        # Table header row
+        col_headers = [
+            ("Dia", 'w'),
+            ("Apuestas", 'center'),
+            ("Ganadas", 'center'),
+            ("Perdidas", 'center'),
+            ("Profit/Loss", 'e'),
+        ]
+        for c, (text, anc) in enumerate(col_headers):
+            tk.Label(table_container, text=text, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 9, 'bold'), anchor=anc).grid(
+                row=0, column=c, sticky='ew', padx=8, pady=(0, 6))
 
         # Separator
-        tk.Frame(breakdown_card, bg=p['card_border'], height=1).pack(fill='x', pady=2)
+        sep = tk.Frame(table_container, bg=p['card_border'], height=1)
+        sep.grid(row=1, column=0, columnspan=5, sticky='ew', pady=(0, 4))
 
-        # Table body container
-        self._rend_table_body = tk.Frame(breakdown_card, bg=p['card_bg'])
-        self._rend_table_body.pack(fill='x')
+        # Store table container and starting row for body
+        self._rend_table_container = table_container
+        self._rend_table_body_start_row = 2
 
     def _refresh_rendimiento_data(self):
         """Refresh the rendimiento page with real data"""
@@ -1153,27 +1166,75 @@ class SergioBetsUnified:
         self._draw_rendimiento_chart(daily_pl, cumulative, day_labels)
 
         # Update breakdown table
-        if hasattr(self, '_rend_table_body'):
-            for w in self._rend_table_body.winfo_children():
-                w.destroy()
+        if hasattr(self, '_rend_table_container'):
+            # Remove old body rows (keep header row=0 and separator row=1)
+            start = self._rend_table_body_start_row
+            for w in self._rend_table_container.grid_slaves():
+                info = w.grid_info()
+                if int(info.get('row', 0)) >= start:
+                    w.destroy()
 
             for i, (label, (n_bets, wins, losses, pl)) in enumerate(zip(day_labels, day_details)):
-                row = tk.Frame(self._rend_table_body, bg=p['card_bg'])
-                row.pack(fill='x', pady=1)
-
+                r = start + i
                 sign = '+' if pl >= 0 else ''
                 pl_color = "#10B981" if pl > 0 else ("#EF4444" if pl < 0 else p['muted'])
+                row_bg = p['card_bg']
 
-                tk.Label(row, text=label, bg=p['card_bg'], fg=p['fg'],
-                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
-                tk.Label(row, text=str(n_bets), bg=p['card_bg'], fg=p['fg'],
-                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
-                tk.Label(row, text=str(wins), bg=p['card_bg'], fg="#10B981",
-                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
-                tk.Label(row, text=str(losses), bg=p['card_bg'], fg="#EF4444",
-                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
-                tk.Label(row, text=f"{sign}${pl:,.0f} COP", bg=p['card_bg'], fg=pl_color,
-                         font=('Segoe UI', 9, 'bold'), anchor='w').pack(side='left', expand=True, fill='x')
+                # Alternating subtle stripe for readability
+                if i % 2 == 1:
+                    # Slightly different shade
+                    try:
+                        base = p['card_bg'].lstrip('#')
+                        r_c, g_c, b_c = int(base[:2], 16), int(base[2:4], 16), int(base[4:6], 16)
+                        row_bg = f"#{min(r_c+8,255):02x}{min(g_c+8,255):02x}{min(b_c+8,255):02x}"
+                    except Exception:
+                        row_bg = p['card_bg']
+
+                tk.Label(self._rend_table_container, text=label, bg=row_bg, fg=p['fg'],
+                         font=('Segoe UI', 10), anchor='w').grid(
+                    row=r, column=0, sticky='ew', padx=8, pady=3)
+                tk.Label(self._rend_table_container, text=str(n_bets), bg=row_bg, fg=p['fg'],
+                         font=('Segoe UI', 10), anchor='center').grid(
+                    row=r, column=1, sticky='ew', padx=8, pady=3)
+                tk.Label(self._rend_table_container, text=str(wins), bg=row_bg, fg="#10B981",
+                         font=('Segoe UI', 10), anchor='center').grid(
+                    row=r, column=2, sticky='ew', padx=8, pady=3)
+                tk.Label(self._rend_table_container, text=str(losses), bg=row_bg, fg="#EF4444",
+                         font=('Segoe UI', 10), anchor='center').grid(
+                    row=r, column=3, sticky='ew', padx=8, pady=3)
+                tk.Label(self._rend_table_container, text=f"{sign}${pl:,.0f} COP", bg=row_bg, fg=pl_color,
+                         font=('Segoe UI', 10, 'bold'), anchor='e').grid(
+                    row=r, column=4, sticky='ew', padx=8, pady=3)
+
+            # Summary total row
+            total_row = start + len(day_details)
+            total_pl = sum(d[3] for d in day_details)
+            total_bets_sum = sum(d[0] for d in day_details)
+            total_wins_sum = sum(d[1] for d in day_details)
+            total_losses_sum = sum(d[2] for d in day_details)
+            t_sign = '+' if total_pl >= 0 else ''
+            t_color = "#10B981" if total_pl > 0 else ("#EF4444" if total_pl < 0 else p['muted'])
+
+            # Separator before total
+            sep2 = tk.Frame(self._rend_table_container, bg=p['card_border'], height=1)
+            sep2.grid(row=total_row, column=0, columnspan=5, sticky='ew', pady=(4, 4))
+
+            total_row += 1
+            tk.Label(self._rend_table_container, text="TOTAL", bg=p['card_bg'], fg=p['fg'],
+                     font=('Segoe UI', 10, 'bold'), anchor='w').grid(
+                row=total_row, column=0, sticky='ew', padx=8, pady=3)
+            tk.Label(self._rend_table_container, text=str(total_bets_sum), bg=p['card_bg'], fg=p['fg'],
+                     font=('Segoe UI', 10, 'bold'), anchor='center').grid(
+                row=total_row, column=1, sticky='ew', padx=8, pady=3)
+            tk.Label(self._rend_table_container, text=str(total_wins_sum), bg=p['card_bg'], fg="#10B981",
+                     font=('Segoe UI', 10, 'bold'), anchor='center').grid(
+                row=total_row, column=2, sticky='ew', padx=8, pady=3)
+            tk.Label(self._rend_table_container, text=str(total_losses_sum), bg=p['card_bg'], fg="#EF4444",
+                     font=('Segoe UI', 10, 'bold'), anchor='center').grid(
+                row=total_row, column=3, sticky='ew', padx=8, pady=3)
+            tk.Label(self._rend_table_container, text=f"{t_sign}${total_pl:,.0f} COP", bg=p['card_bg'], fg=t_color,
+                     font=('Segoe UI', 10, 'bold'), anchor='e').grid(
+                row=total_row, column=4, sticky='ew', padx=8, pady=3)
 
     def _draw_rendimiento_chart(self, daily_pl, cumulative, day_labels):
         """Draw the full-page weekly bar chart on the rendimiento canvas"""
