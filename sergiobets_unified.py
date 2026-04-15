@@ -596,13 +596,14 @@ class SergioBetsUnified:
 
         # Navigation items
         nav_items = [
-            ("dashboard",   "📊", "Dashboard"),
-            ("pronosticos", "🎯", "Pronosticos"),
-            ("partidos",    "⚽", "Partidos"),
-            ("alertas",     "🔔", "Alertas"),
-            ("tracking",    "📈", "Tracking"),
-            ("usuarios",    "👥", "Usuarios"),
-            ("ajustes",     "⚙️", "Ajustes"),
+            ("dashboard",    "📊", "Dashboard"),
+            ("pronosticos",  "🎯", "Pronosticos"),
+            ("partidos",     "⚽", "Partidos"),
+            ("alertas",      "🔔", "Alertas"),
+            ("tracking",     "📈", "Tracking"),
+            ("rendimiento",  "💹", "Rendimiento"),
+            ("usuarios",     "👥", "Usuarios"),
+            ("ajustes",      "⚙️", "Ajustes"),
         ]
         for nav_id, icon, label in nav_items:
             bf = tk.Frame(sidebar, bg=sb['bg'], cursor='hand2')
@@ -785,6 +786,10 @@ class SergioBetsUnified:
         self._dashboard_frame = tk.Frame(content, bg=palette['bg'])
         self._dashboard_loaded = False
 
+        # ── Rendimiento page (hidden) ────────────────────────────────
+        self._rendimiento_frame = tk.Frame(content, bg=palette['bg'])
+        self._rendimiento_loaded = False
+
         # Legacy references for backward compatibility
         self.notebook = None
         self.tab_ajustes = self._settings_frame
@@ -842,6 +847,9 @@ class SergioBetsUnified:
         elif nav_id == "tracking":
             self._show_tracking_page()
             self._set_active_nav(nav_id)
+        elif nav_id == "rendimiento":
+            self._show_rendimiento_page()
+            self._set_active_nav(nav_id)
         elif nav_id == "usuarios":
             self._show_usuarios_page()
             self._set_active_nav(nav_id)
@@ -862,6 +870,7 @@ class SergioBetsUnified:
         self._usuarios_frame.grid_forget()
         self._alertas_frame.grid_forget()
         self._dashboard_frame.grid_forget()
+        self._rendimiento_frame.grid_forget()
 
     def _show_main_content(self, mode='pronosticos'):
         """Show the main predictions/matches content based on sidebar selection"""
@@ -951,11 +960,324 @@ class SergioBetsUnified:
         self._refresh_dashboard_data()
         self._dashboard_frame.grid(row=1, column=0, rowspan=4, sticky='nsew', padx=20, pady=20)
 
+    def _show_rendimiento_page(self):
+        """Show the rendimiento (performance) page inline in the content area"""
+        self._hide_all_pages()
+        self._bottom_bar.grid_forget()
+        if not self._rendimiento_loaded:
+            self._build_rendimiento_content(self._palette)
+            self._rendimiento_loaded = True
+        self._refresh_rendimiento_data()
+        self._rendimiento_frame.grid(row=1, column=0, rowspan=5, sticky='nsew', padx=20, pady=20)
+
+    def _build_rendimiento_content(self, p):
+        """Build the full-page rendimiento (performance) module"""
+        import tkinter as tk
+
+        self._rendimiento_frame.grid_rowconfigure(2, weight=1)
+        self._rendimiento_frame.grid_columnconfigure(0, weight=1)
+
+        # Title
+        title_f = tk.Frame(self._rendimiento_frame, bg=p['bg'])
+        title_f.grid(row=0, column=0, sticky='ew', pady=(0, 16))
+        tk.Label(title_f, text="Rendimiento Semanal",
+                 bg=p['bg'], fg=p['fg'],
+                 font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+
+        # Summary KPI row
+        kpi_row = tk.Frame(self._rendimiento_frame, bg=p['bg'])
+        kpi_row.grid(row=1, column=0, sticky='ew', pady=(0, 16))
+        for c in range(5):
+            kpi_row.grid_columnconfigure(c, weight=1, uniform='rend_kpi')
+
+        rend_kpis = [
+            ("rend_profit",    "Profit Semanal",     "$0 COP",   "#10B981"),
+            ("rend_win_days",  "Dias Positivos",     "0",        "#10B981"),
+            ("rend_loss_days", "Dias Negativos",     "0",        "#EF4444"),
+            ("rend_bets",      "Apuestas Resueltas", "0",        "#3B82F6"),
+            ("rend_win_rate",  "Tasa de Acierto",    "0%",       "#F59E0B"),
+        ]
+        self._rend_kpi_labels = {}
+        for col, (kid, label, val, accent) in enumerate(rend_kpis):
+            card = tk.Frame(kpi_row, bg=p['card_bg'], padx=16, pady=12,
+                            highlightbackground=accent, highlightthickness=2)
+            card.grid(row=0, column=col, sticky='ew', padx=4)
+            tk.Label(card, text=label, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 9)).pack(anchor='w')
+            v_lbl = tk.Label(card, text=val, bg=p['card_bg'],
+                             fg=accent, font=('Segoe UI', 20, 'bold'))
+            v_lbl.pack(anchor='w', pady=(4, 0))
+            self._rend_kpi_labels[kid] = v_lbl
+
+        # Chart card (full width, expands)
+        chart_card = tk.Frame(self._rendimiento_frame, bg=p['card_bg'], padx=24, pady=20,
+                               highlightbackground=p['card_border'], highlightthickness=1)
+        chart_card.grid(row=2, column=0, sticky='nsew', pady=(0, 16))
+        chart_card.grid_rowconfigure(1, weight=1)
+        chart_card.grid_columnconfigure(0, weight=1)
+
+        # Chart header with legend
+        chart_header = tk.Frame(chart_card, bg=p['card_bg'])
+        chart_header.pack(fill='x', pady=(0, 8))
+        tk.Label(chart_header, text="Profit / Loss Diario",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 12, 'bold')).pack(side='left')
+
+        # Legend on the right
+        legend_f = tk.Frame(chart_header, bg=p['card_bg'])
+        legend_f.pack(side='right')
+        for color, text in [('#10B981', 'Dia Rentable'), ('#EF4444', 'Dia con Perdida'), ('#3B82F6', 'Acumulado')]:
+            dot = tk.Frame(legend_f, bg=color, width=10, height=10)
+            dot.pack(side='left', padx=(12, 4))
+            dot.pack_propagate(False)
+            tk.Label(legend_f, text=text, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 8)).pack(side='left')
+
+        # Summary text
+        self._rend_chart_summary = tk.Label(chart_card, text="",
+                                             bg=p['card_bg'], fg=p['muted'],
+                                             font=('Segoe UI', 9, 'italic'))
+        self._rend_chart_summary.pack(anchor='w', pady=(0, 8))
+
+        # Full-size canvas for the chart
+        self._rend_chart_canvas = tk.Canvas(chart_card, bg=p['card_bg'],
+                                             highlightthickness=0, bd=0)
+        self._rend_chart_canvas.pack(fill='both', expand=True)
+
+        # Daily breakdown table below chart
+        breakdown_card = tk.Frame(self._rendimiento_frame, bg=p['card_bg'], padx=24, pady=16,
+                                   highlightbackground=p['card_border'], highlightthickness=1)
+        breakdown_card.grid(row=3, column=0, sticky='ew', pady=(0, 8))
+
+        tk.Label(breakdown_card, text="Detalle por Dia",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 8))
+
+        # Table header
+        table_header = tk.Frame(breakdown_card, bg=p['card_bg'])
+        table_header.pack(fill='x', pady=(0, 4))
+        cols = [("Dia", 100), ("Apuestas", 80), ("Ganadas", 80), ("Perdidas", 80), ("Profit/Loss", 120)]
+        for text, w in cols:
+            tk.Label(table_header, text=text, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 9, 'bold'), width=w // 8, anchor='w').pack(side='left', expand=True, fill='x')
+
+        # Separator
+        tk.Frame(breakdown_card, bg=p['card_border'], height=1).pack(fill='x', pady=2)
+
+        # Table body container
+        self._rend_table_body = tk.Frame(breakdown_card, bg=p['card_bg'])
+        self._rend_table_body.pack(fill='x')
+
+    def _refresh_rendimiento_data(self):
+        """Refresh the rendimiento page with real data"""
+        import tkinter as tk
+        STAKE = 10000  # $10,000 COP per bet
+
+        try:
+            historial = cargar_json('historial_predicciones.json') or []
+        except Exception:
+            historial = []
+
+        enviados = [pr for pr in historial if pr.get('sent_to_telegram', False)]
+        p = self._palette
+
+        # Calculate daily P/L for last 7 days
+        hoy = hora_bogota().date()
+        dias_nombres = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
+        daily_pl = []
+        day_labels = []
+        day_details = []  # (total_bets, wins, losses, pl)
+
+        for i in range(6, -1, -1):
+            d = hoy - timedelta(days=i)
+            d_str = d.strftime('%Y-%m-%d')
+            dia_nombre = dias_nombres[d.weekday()]
+            day_labels.append(f"{dia_nombre} {d.day}")
+
+            day_bets = [pr for pr in enviados
+                        if pr.get('fecha', '') == d_str and pr.get('acierto') is not None]
+            wins = sum(1 for b in day_bets if b.get('acierto') is True)
+            losses = sum(1 for b in day_bets if b.get('acierto') is False)
+            pl = 0
+            for bet in day_bets:
+                cuota = float(bet.get('cuota', 1))
+                if bet.get('acierto') is True:
+                    pl += STAKE * cuota - STAKE
+                else:
+                    pl -= STAKE
+            daily_pl.append(pl)
+            day_details.append((len(day_bets), wins, losses, pl))
+
+        # Cumulative profit
+        cumulative = []
+        acc = 0
+        for v in daily_pl:
+            acc += v
+            cumulative.append(acc)
+
+        # Update KPIs
+        total_profit = sum(daily_pl)
+        win_days = sum(1 for v in daily_pl if v > 0)
+        loss_days = sum(1 for v in daily_pl if v < 0)
+        total_bets = sum(d[0] for d in day_details)
+        total_wins = sum(d[1] for d in day_details)
+        win_rate = (total_wins / total_bets * 100) if total_bets > 0 else 0
+
+        if hasattr(self, '_rend_kpi_labels'):
+            sign = '+' if total_profit >= 0 else ''
+            profit_color = "#10B981" if total_profit >= 0 else "#EF4444"
+            self._rend_kpi_labels['rend_profit'].config(
+                text=f"{sign}${total_profit:,.0f}", fg=profit_color)
+            self._rend_kpi_labels['rend_win_days'].config(text=str(win_days))
+            self._rend_kpi_labels['rend_loss_days'].config(text=str(loss_days))
+            self._rend_kpi_labels['rend_bets'].config(text=str(total_bets))
+            self._rend_kpi_labels['rend_win_rate'].config(text=f"{win_rate:.1f}%")
+
+        # Summary text
+        sign = '+' if total_profit >= 0 else ''
+        summary_text = (f"Semana: {sign}${total_profit:,.0f} COP  |  "
+                        f"{win_days} dias +  |  {loss_days} dias -  |  "
+                        f"{total_bets} apuestas resueltas")
+        if hasattr(self, '_rend_chart_summary'):
+            self._rend_chart_summary.config(text=summary_text)
+
+        # Draw the chart (full page version)
+        self._draw_rendimiento_chart(daily_pl, cumulative, day_labels)
+
+        # Update breakdown table
+        if hasattr(self, '_rend_table_body'):
+            for w in self._rend_table_body.winfo_children():
+                w.destroy()
+
+            for i, (label, (n_bets, wins, losses, pl)) in enumerate(zip(day_labels, day_details)):
+                row = tk.Frame(self._rend_table_body, bg=p['card_bg'])
+                row.pack(fill='x', pady=1)
+
+                sign = '+' if pl >= 0 else ''
+                pl_color = "#10B981" if pl > 0 else ("#EF4444" if pl < 0 else p['muted'])
+
+                tk.Label(row, text=label, bg=p['card_bg'], fg=p['fg'],
+                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
+                tk.Label(row, text=str(n_bets), bg=p['card_bg'], fg=p['fg'],
+                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
+                tk.Label(row, text=str(wins), bg=p['card_bg'], fg="#10B981",
+                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
+                tk.Label(row, text=str(losses), bg=p['card_bg'], fg="#EF4444",
+                         font=('Segoe UI', 9), anchor='w').pack(side='left', expand=True, fill='x')
+                tk.Label(row, text=f"{sign}${pl:,.0f} COP", bg=p['card_bg'], fg=pl_color,
+                         font=('Segoe UI', 9, 'bold'), anchor='w').pack(side='left', expand=True, fill='x')
+
+    def _draw_rendimiento_chart(self, daily_pl, cumulative, day_labels):
+        """Draw the full-page weekly bar chart on the rendimiento canvas"""
+        if not hasattr(self, '_rend_chart_canvas'):
+            return
+
+        STAKE = 10000
+        canvas = self._rend_chart_canvas
+        canvas.delete('all')
+        canvas.update_idletasks()
+        p = self._palette
+
+        cw = canvas.winfo_width()
+        ch = canvas.winfo_height()
+        if cw < 100:
+            cw = 800
+        if ch < 100:
+            ch = 300
+
+        # Chart dimensions
+        margin_left = 90
+        margin_right = 30
+        margin_top = 25
+        margin_bottom = 45
+        chart_w = cw - margin_left - margin_right
+        chart_h = ch - margin_top - margin_bottom
+
+        if chart_w < 80 or chart_h < 80:
+            return
+
+        # Find max absolute value for scale
+        all_values = daily_pl + cumulative
+        max_abs = max(abs(v) for v in all_values) if any(v != 0 for v in all_values) else STAKE
+        max_abs = max(max_abs, STAKE)
+        # Add 15% padding to the scale
+        max_abs = max_abs * 1.15
+
+        # Y-axis: zero line position
+        y_zero = margin_top + chart_h / 2
+        y_scale = (chart_h / 2) / max_abs
+
+        # Draw grid lines and Y labels
+        grid_color = '#334155'
+        for frac in [-1, -0.5, 0, 0.5, 1]:
+            y = y_zero - frac * (chart_h / 2)
+            val = frac * max_abs
+            canvas.create_line(margin_left, y, cw - margin_right, y,
+                               fill=grid_color, dash=(2, 4) if frac != 0 else ())
+            sign_char = '+' if val > 0 else ''
+            label = f"{sign_char}${val:,.0f}" if val != 0 else "$0"
+            canvas.create_text(margin_left - 10, y, text=label,
+                               fill=p['muted'], font=('Segoe UI', 8), anchor='e')
+
+        # Zero line (thicker)
+        canvas.create_line(margin_left, y_zero, cw - margin_right, y_zero,
+                           fill='#475569', width=1, dash=(4, 2))
+
+        # Bar width
+        n_bars = 7
+        bar_area = chart_w / n_bars
+        bar_w = bar_area * 0.5
+        gap = (bar_area - bar_w) / 2
+
+        # Draw bars
+        for i, (pl, label) in enumerate(zip(daily_pl, day_labels)):
+            x1 = margin_left + i * bar_area + gap
+            x2 = x1 + bar_w
+
+            if pl >= 0:
+                y_top = y_zero - pl * y_scale
+                y_bot = y_zero
+                color = '#10B981'
+            else:
+                y_top = y_zero
+                y_bot = y_zero - pl * y_scale
+                color = '#EF4444'
+
+            if pl != 0:
+                canvas.create_rectangle(x1, y_top, x2, y_bot, fill=color, outline='', width=0)
+
+                # Value label on bar
+                sign_char = '+' if pl > 0 else ''
+                val_text = f"{sign_char}${pl:,.0f}"
+                val_y = y_top - 10 if pl >= 0 else y_bot + 12
+                canvas.create_text((x1 + x2) / 2, val_y, text=val_text,
+                                   fill='#F8FAFC', font=('Segoe UI', 9, 'bold'))
+
+            # Day label
+            canvas.create_text((x1 + x2) / 2, ch - margin_bottom + 18,
+                               text=label, fill=p['muted'], font=('Segoe UI', 9))
+
+        # Draw cumulative profit line
+        points = []
+        for i, cum_val in enumerate(cumulative):
+            x = margin_left + i * bar_area + bar_area / 2
+            y = y_zero - cum_val * y_scale
+            points.append((x, y))
+
+        if len(points) >= 2:
+            for j in range(len(points) - 1):
+                canvas.create_line(points[j][0], points[j][1],
+                                   points[j + 1][0], points[j + 1][1],
+                                   fill='#3B82F6', width=2.5, smooth=True)
+            for px, py in points:
+                canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
+                                   fill='#3B82F6', outline='#1E293B', width=2)
+
     def _build_dashboard_content(self, p):
         """Build the owner dashboard with detailed metrics and KPIs"""
         import tkinter as tk
 
-        self._dashboard_frame.grid_rowconfigure(5, weight=1)
+        self._dashboard_frame.grid_rowconfigure(4, weight=1)
         self._dashboard_frame.grid_columnconfigure(0, weight=1)
 
         # Title
@@ -1061,37 +1383,17 @@ class SergioBetsUnified:
             val_l.pack(side='right')
             self._dash_status_labels[sid] = val_l
 
-        # ── Third row: Weekly performance chart ──────────────
-        chart_card = tk.Frame(self._dashboard_frame, bg=p['card_bg'], padx=24, pady=20,
-                               highlightbackground=p['card_border'], highlightthickness=1)
-        chart_card.grid(row=3, column=0, sticky='ew', pady=(0, 16))
-
-        tk.Label(chart_card, text="Rendimiento Semanal",
-                 bg=p['card_bg'], fg=p['fg'],
-                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 8))
-
-        # Summary label
-        self._dash_chart_summary = tk.Label(chart_card, text="",
-                                             bg=p['card_bg'], fg=p['muted'],
-                                             font=('Segoe UI', 9, 'italic'))
-        self._dash_chart_summary.pack(anchor='w', pady=(0, 8))
-
-        # Canvas for the bar chart
-        self._dash_chart_canvas = tk.Canvas(chart_card, bg=p['card_bg'],
-                                             highlightthickness=0, bd=0, height=220)
-        self._dash_chart_canvas.pack(fill='x')
-
-        # ── Fourth row: Recent activity ────────────────────────
+        # ── Third row: Recent activity (wider, full width) ──────────────
         recent_card = tk.Frame(self._dashboard_frame, bg=p['card_bg'], padx=24, pady=20,
                                 highlightbackground=p['card_border'], highlightthickness=1)
-        recent_card.grid(row=4, column=0, sticky='ew', pady=(0, 16))
+        recent_card.grid(row=3, column=0, sticky='ew', pady=(0, 16))
 
         tk.Label(recent_card, text="Actividad Reciente",
                  bg=p['card_bg'], fg=p['fg'],
                  font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 12))
 
-        # Clipping container for smooth scroll animation
-        self._dash_activity_clip = tk.Frame(recent_card, bg=p['card_bg'], height=120)
+        # Clipping container for smooth horizontal scroll animation
+        self._dash_activity_clip = tk.Frame(recent_card, bg=p['card_bg'], height=160)
         self._dash_activity_clip.pack(fill='x')
         self._dash_activity_clip.pack_propagate(False)
 
@@ -1112,7 +1414,7 @@ class SergioBetsUnified:
 
         # ── Spacer for scrollable area ───────────────────────
         spacer = tk.Frame(self._dashboard_frame, bg=p['bg'])
-        spacer.grid(row=5, column=0, sticky='nsew')
+        spacer.grid(row=4, column=0, sticky='nsew')
 
     def _refresh_dashboard_data(self):
         """Load real data into dashboard metrics"""
@@ -1228,9 +1530,6 @@ class SergioBetsUnified:
             self._dash_status_labels['ultima_prediccion'].config(text=ultima)
             self._dash_status_labels['uptime_sistema'].config(text="Operativo", fg="#10B981")
 
-        # Update weekly performance chart
-        self._refresh_weekly_chart(enviados)
-
         # Update recent activity with scrolling animation
         if hasattr(self, '_dash_activity_frame'):
             import tkinter as tk
@@ -1249,7 +1548,7 @@ class SergioBetsUnified:
                 display_items = recent + recent
                 for pr in display_items:
                     act_row = tk.Frame(self._dash_activity_frame, bg=p['card_bg'])
-                    act_row.pack(fill='x', pady=2)
+                    act_row.pack(fill='x', pady=3)
 
                     # Status icon
                     if pr.get('acierto') is True:
@@ -1260,16 +1559,16 @@ class SergioBetsUnified:
                         status_icon, status_fg = "⏳", "#F59E0B"
 
                     tk.Label(act_row, text=status_icon, bg=p['card_bg'], fg=status_fg,
-                             font=('Segoe UI', 10)).pack(side='left', padx=(0, 8))
+                             font=('Segoe UI', 11)).pack(side='left', padx=(0, 10))
                     partido = pr.get('partido', 'Desconocido')
                     pred_text = pr.get('prediccion', '')
                     cuota_val = pr.get('cuota', '')
                     tk.Label(act_row, text=f"{partido}  |  {pred_text}  @{cuota_val}",
                              bg=p['card_bg'], fg=p['fg'],
-                             font=('Segoe UI', 9)).pack(side='left')
+                             font=('Segoe UI', 10)).pack(side='left', padx=(0, 20))
                     fecha_val = pr.get('fecha', '')
                     tk.Label(act_row, text=fecha_val, bg=p['card_bg'], fg=p['muted'],
-                             font=('Segoe UI', 8)).pack(side='right')
+                             font=('Segoe UI', 9)).pack(side='right')
 
                 # Update canvas scroll region after widgets render
                 self._dash_activity_frame.update_idletasks()
