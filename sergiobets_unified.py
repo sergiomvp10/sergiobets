@@ -3489,7 +3489,9 @@ class SergioBetsUnified:
                 try:
                     liga_detectada = detectar_liga_por_imagen(
                         partido.get("home_image", ""), 
-                        partido.get("away_image", "")
+                        partido.get("away_image", ""),
+                        competition_id=partido.get("competition_id"),
+                        match_url=partido.get("match_url", ""),
                     )
                     from league_utils import convertir_timestamp_unix
                     hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
