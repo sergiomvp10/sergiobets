@@ -955,7 +955,7 @@ class SergioBetsUnified:
         """Build the owner dashboard with detailed metrics and KPIs"""
         import tkinter as tk
 
-        self._dashboard_frame.grid_rowconfigure(4, weight=1)
+        self._dashboard_frame.grid_rowconfigure(5, weight=1)
         self._dashboard_frame.grid_columnconfigure(0, weight=1)
 
         # Title
@@ -1061,10 +1061,30 @@ class SergioBetsUnified:
             val_l.pack(side='right')
             self._dash_status_labels[sid] = val_l
 
-        # ── Third row: Recent activity ────────────────────────
+        # ── Third row: Weekly performance chart ──────────────
+        chart_card = tk.Frame(self._dashboard_frame, bg=p['card_bg'], padx=24, pady=20,
+                               highlightbackground=p['card_border'], highlightthickness=1)
+        chart_card.grid(row=3, column=0, sticky='ew', pady=(0, 16))
+
+        tk.Label(chart_card, text="Rendimiento Semanal",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(0, 8))
+
+        # Summary label
+        self._dash_chart_summary = tk.Label(chart_card, text="",
+                                             bg=p['card_bg'], fg=p['muted'],
+                                             font=('Segoe UI', 9, 'italic'))
+        self._dash_chart_summary.pack(anchor='w', pady=(0, 8))
+
+        # Canvas for the bar chart
+        self._dash_chart_canvas = tk.Canvas(chart_card, bg=p['card_bg'],
+                                             highlightthickness=0, bd=0, height=220)
+        self._dash_chart_canvas.pack(fill='x')
+
+        # ── Fourth row: Recent activity ────────────────────────
         recent_card = tk.Frame(self._dashboard_frame, bg=p['card_bg'], padx=24, pady=20,
                                 highlightbackground=p['card_border'], highlightthickness=1)
-        recent_card.grid(row=3, column=0, sticky='ew', pady=(0, 16))
+        recent_card.grid(row=4, column=0, sticky='ew', pady=(0, 16))
 
         tk.Label(recent_card, text="Actividad Reciente",
                  bg=p['card_bg'], fg=p['fg'],
@@ -1092,7 +1112,7 @@ class SergioBetsUnified:
 
         # ── Spacer for scrollable area ───────────────────────
         spacer = tk.Frame(self._dashboard_frame, bg=p['bg'])
-        spacer.grid(row=4, column=0, sticky='nsew')
+        spacer.grid(row=5, column=0, sticky='nsew')
 
     def _refresh_dashboard_data(self):
         """Load real data into dashboard metrics"""
@@ -1208,6 +1228,9 @@ class SergioBetsUnified:
             self._dash_status_labels['ultima_prediccion'].config(text=ultima)
             self._dash_status_labels['uptime_sistema'].config(text="Operativo", fg="#10B981")
 
+        # Update weekly performance chart
+        self._refresh_weekly_chart(enviados)
+
         # Update recent activity with scrolling animation
         if hasattr(self, '_dash_activity_frame'):
             import tkinter as tk
@@ -1259,6 +1282,163 @@ class SergioBetsUnified:
                 if not self._dash_scroll_running and len(recent) > 4:
                     self._dash_scroll_running = True
                     self._dash_animate_scroll()
+
+    def _refresh_weekly_chart(self, enviados):
+        """Draw weekly profit/loss bar chart on the canvas using $10,000 COP stake"""
+        if not hasattr(self, '_dash_chart_canvas'):
+            return
+
+        STAKE = 10000  # $10,000 COP per bet
+
+        canvas = self._dash_chart_canvas
+        canvas.delete('all')
+        canvas.update_idletasks()
+        p = self._palette
+
+        cw = canvas.winfo_width()
+        if cw < 50:
+            cw = 600
+        ch = 220
+
+        # Calculate daily P/L for last 7 days
+        hoy = hora_bogota().date()
+        dias_nombres = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
+        daily_pl = []
+        day_labels = []
+
+        for i in range(6, -1, -1):
+            d = hoy - timedelta(days=i)
+            d_str = d.strftime('%Y-%m-%d')
+            dia_nombre = dias_nombres[d.weekday()]
+            day_labels.append(f"{dia_nombre} {d.day}")
+
+            day_bets = [pr for pr in enviados
+                        if pr.get('fecha', '') == d_str and pr.get('acierto') is not None]
+            pl = 0
+            for bet in day_bets:
+                cuota = float(bet.get('cuota', 1))
+                if bet.get('acierto') is True:
+                    pl += STAKE * cuota - STAKE  # profit
+                else:
+                    pl -= STAKE  # loss
+            daily_pl.append(pl)
+
+        # Cumulative profit
+        cumulative = []
+        acc = 0
+        for v in daily_pl:
+            acc += v
+            cumulative.append(acc)
+
+        # Summary
+        total_profit = sum(daily_pl)
+        win_days = sum(1 for v in daily_pl if v > 0)
+        loss_days = sum(1 for v in daily_pl if v < 0)
+        neutral_days = 7 - win_days - loss_days
+        sign = '+' if total_profit >= 0 else ''
+        summary_text = (f"Semana: {sign}${total_profit:,.0f} COP  |  "
+                        f"{win_days} dias +  |  {loss_days} dias -")
+        if hasattr(self, '_dash_chart_summary'):
+            self._dash_chart_summary.config(text=summary_text)
+
+        # Chart dimensions
+        margin_left = 80
+        margin_right = 60
+        margin_top = 20
+        margin_bottom = 40
+        chart_w = cw - margin_left - margin_right
+        chart_h = ch - margin_top - margin_bottom
+
+        if chart_w < 50 or chart_h < 50:
+            return
+
+        # Find max absolute value for scale
+        all_values = daily_pl + cumulative
+        max_abs = max(abs(v) for v in all_values) if any(v != 0 for v in all_values) else STAKE
+        max_abs = max(max_abs, STAKE)  # minimum scale
+
+        # Y-axis: zero line position
+        y_zero = margin_top + chart_h / 2
+        y_scale = (chart_h / 2) / max_abs
+
+        # Draw grid lines and Y labels
+        grid_color = '#334155'
+        for frac in [-1, -0.5, 0, 0.5, 1]:
+            y = y_zero - frac * (chart_h / 2)
+            val = frac * max_abs
+            canvas.create_line(margin_left, y, cw - margin_right, y,
+                               fill=grid_color, dash=(2, 4) if frac != 0 else ())
+            sign_char = '+' if val > 0 else ''
+            label = f"{sign_char}${val:,.0f}" if val != 0 else "$0"
+            canvas.create_text(margin_left - 8, y, text=label,
+                               fill=p['muted'], font=('Segoe UI', 7), anchor='e')
+
+        # Zero line (thicker)
+        canvas.create_line(margin_left, y_zero, cw - margin_right, y_zero,
+                           fill='#475569', width=1, dash=(4, 2))
+
+        # Bar width
+        n_bars = 7
+        bar_area = chart_w / n_bars
+        bar_w = bar_area * 0.55
+        gap = (bar_area - bar_w) / 2
+
+        # Draw bars
+        for i, (pl, label) in enumerate(zip(daily_pl, day_labels)):
+            x1 = margin_left + i * bar_area + gap
+            x2 = x1 + bar_w
+
+            if pl >= 0:
+                y_top = y_zero - pl * y_scale
+                y_bot = y_zero
+                color = '#10B981'
+            else:
+                y_top = y_zero
+                y_bot = y_zero - pl * y_scale
+                color = '#EF4444'
+
+            if pl != 0:
+                canvas.create_rectangle(x1, y_top, x2, y_bot, fill=color, outline='', width=0)
+
+                # Value label on bar
+                sign_char = '+' if pl > 0 else ''
+                val_text = f"{sign_char}${pl:,.0f}"
+                val_y = y_top - 8 if pl >= 0 else y_bot + 10
+                canvas.create_text((x1 + x2) / 2, val_y, text=val_text,
+                                   fill='#F8FAFC', font=('Segoe UI', 7, 'bold'))
+
+            # Day label
+            canvas.create_text((x1 + x2) / 2, ch - margin_bottom + 16,
+                               text=label, fill=p['muted'], font=('Segoe UI', 8))
+
+        # Draw cumulative profit line
+        points = []
+        for i, cum_val in enumerate(cumulative):
+            x = margin_left + i * bar_area + bar_area / 2
+            y = y_zero - cum_val * y_scale
+            points.append((x, y))
+
+        if len(points) >= 2:
+            # Line
+            for j in range(len(points) - 1):
+                canvas.create_line(points[j][0], points[j][1],
+                                   points[j + 1][0], points[j + 1][1],
+                                   fill='#3B82F6', width=2, smooth=True)
+            # Dots
+            for px, py in points:
+                canvas.create_oval(px - 4, py - 4, px + 4, py + 4,
+                                   fill='#3B82F6', outline='#1E293B', width=1)
+
+        # Legend
+        legend_y = margin_top + 2
+        legend_x = cw - margin_right - 10
+        # Cumulative line legend
+        canvas.create_line(legend_x - 55, legend_y, legend_x - 40, legend_y,
+                           fill='#3B82F6', width=2)
+        canvas.create_oval(legend_x - 50, legend_y - 3, legend_x - 44, legend_y + 3,
+                           fill='#3B82F6', outline='')
+        canvas.create_text(legend_x - 38, legend_y, text="Acumulado",
+                           fill=p['muted'], font=('Segoe UI', 7), anchor='w')
 
     def _dash_animate_scroll(self):
         """Smooth scroll animation for recent activity feed"""
