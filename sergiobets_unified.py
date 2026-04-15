@@ -2811,55 +2811,41 @@ class SergioBetsUnified:
                                      command=self._usuarios_toggle_select_all)
         sel_all_cb.pack(side='right', padx=(12, 0))
 
-        # Table card
+        # Column layout: percentage-based widths
+        # [checkbox, ID, Usuario, Nombre, Premium, Registro, Expira]
+        self._usr_col_pcts = [0.03, 0.10, 0.18, 0.18, 0.08, 0.13, 0.30]
+
+        # Table card — single container, pack layout (no grid gaps)
         table_card = tk.Frame(self._usuarios_frame, bg=p['card_bg'],
                                highlightbackground=p['card_border'], highlightthickness=1)
         table_card.grid(row=3, column=0, sticky='nsew')
-        table_card.grid_rowconfigure(1, weight=1)
-        table_card.grid_columnconfigure(0, weight=1)
 
-        # Table header
+        # Table header — use place for exact column positioning
         hdr_bg = '#1E293B' if p['bg'] == '#0F172A' else '#E2E8F0'
         hdr_fg = '#94A3B8' if p['bg'] == '#0F172A' else '#475569'
-        header_row = tk.Frame(table_card, bg=hdr_bg)
-        header_row.grid(row=0, column=0, sticky='ew')
+        header_row = tk.Frame(table_card, bg=hdr_bg, height=32)
+        header_row.pack(fill='x')
+        header_row.pack_propagate(False)
 
-        col_weights = [0, 0, 1, 1, 0, 0, 1]
-        col_mins =    [40, 110, 0, 0, 80, 100, 0]
-        for c, (wt, mn) in enumerate(zip(col_weights, col_mins)):
-            header_row.grid_columnconfigure(c, weight=wt, minsize=mn)
+        col_headers = ["", "ID", "Usuario", "Nombre", "Premium", "Registro", "Expira"]
+        anchors = ['center', 'center', 'w', 'w', 'center', 'center', 'center']
+        rx = 0.0
+        for text, anc, pct in zip(col_headers, anchors, self._usr_col_pcts):
+            lbl = tk.Label(header_row, text=text, bg=hdr_bg, fg=hdr_fg,
+                           font=('Segoe UI', 9, 'bold'), anchor=anc)
+            lbl.place(relx=rx, rely=0, relwidth=pct, relheight=1.0)
+            rx += pct
 
-        col_headers = [
-            ("", 'center'),
-            ("ID", 'center'),
-            ("Usuario", 'w'),
-            ("Nombre", 'w'),
-            ("Premium", 'center'),
-            ("Registro", 'center'),
-            ("Expira", 'center'),
-        ]
-        for c, (text, anc) in enumerate(col_headers):
-            tk.Label(header_row, text=text, bg=hdr_bg, fg=hdr_fg,
-                     font=('Segoe UI', 9, 'bold'), anchor=anc).grid(
-                row=0, column=c, sticky='ew', padx=8, pady=6)
-
-        # Separator below header
-        tk.Frame(table_card, bg=p['card_border'], height=1).grid(
-            row=1, column=0, sticky='ew')
-
-        # Scrollable body
+        # Scrollable body — canvas + scrollbar in a frame
         body_bg = p['card_bg']
         body_outer = tk.Frame(table_card, bg=body_bg)
-        body_outer.grid(row=2, column=0, sticky='nsew')
-        table_card.grid_rowconfigure(2, weight=1)
-        body_outer.grid_rowconfigure(0, weight=1)
-        body_outer.grid_columnconfigure(0, weight=1)
+        body_outer.pack(fill='both', expand=True)
 
         canvas = tk.Canvas(body_outer, bg=body_bg, highlightthickness=0, bd=0)
-        canvas.grid(row=0, column=0, sticky='nsew')
+        canvas.pack(side='left', fill='both', expand=True)
 
         sb_y = tk.Scrollbar(body_outer, orient='vertical', command=canvas.yview)
-        sb_y.grid(row=0, column=1, sticky='ns')
+        sb_y.pack(side='right', fill='y')
         canvas.configure(yscrollcommand=sb_y.set)
 
         self._usr_table_inner = tk.Frame(canvas, bg=body_bg)
@@ -2886,8 +2872,6 @@ class SergioBetsUnified:
         canvas.bind('<Button-5>', _on_mousewheel_linux)
 
         self._usr_table_canvas = canvas
-        self._usr_col_weights = col_weights
-        self._usr_col_mins = col_mins
         self._usr_checkboxes = {}
         self._usr_check_vars = {}
 
@@ -2913,13 +2897,12 @@ class SergioBetsUnified:
             self._usr_checkboxes.clear()
             self._usr_select_all_var.set(False)
 
-            # Configure columns on inner frame to match header
-            for c, (wt, mn) in enumerate(zip(self._usr_col_weights, self._usr_col_mins)):
-                self._usr_table_inner.grid_columnconfigure(c, weight=wt, minsize=mn)
-
-            # Dark theme rows: subtle alternating stripes
-            stripe_even = p['card_bg']  # e.g. #1E293B
-            stripe_odd = '#162032' if p['bg'] == '#0F172A' else '#F1F5F9'
+            # Dark alternating stripes — both dark
+            stripe_a = p['card_bg']
+            stripe_b = '#162032' if p['bg'] == '#0F172A' else '#F1F5F9'
+            row_height = 30
+            pcts = self._usr_col_pcts
+            anchors = ['center', 'center', 'w', 'w', 'center', 'center', 'center']
 
             if usuarios and isinstance(usuarios, (list, tuple)):
                 for idx, usuario in enumerate(usuarios):
@@ -2933,7 +2916,6 @@ class SergioBetsUnified:
                     premium_text = "SI" if is_premium else "NO"
                     premium_fg = '#10B981' if is_premium else '#EF4444'
 
-                    # Registration date
                     registro = '-'
                     if usuario.get('fecha_registro'):
                         try:
@@ -2942,7 +2924,6 @@ class SergioBetsUnified:
                         except Exception:
                             registro = '-'
 
-                    # Expiration date
                     expira = '-'
                     if usuario.get('fecha_expiracion'):
                         try:
@@ -2951,55 +2932,41 @@ class SergioBetsUnified:
                         except Exception:
                             expira = '-'
 
-                    row_bg = stripe_even if idx % 2 == 0 else stripe_odd
-                    r = idx
+                    row_bg = stripe_a if idx % 2 == 0 else stripe_b
 
-                    # Row frame spans full width for uniform bg
-                    row_f = tk.Frame(self._usr_table_inner, bg=row_bg)
-                    row_f.grid(row=r, column=0, columnspan=7, sticky='ew')
-                    for c2, (wt2, mn2) in enumerate(zip(self._usr_col_weights, self._usr_col_mins)):
-                        row_f.grid_columnconfigure(c2, weight=wt2, minsize=mn2)
+                    # Row frame — pack fills width, fixed height, place for cols
+                    row_f = tk.Frame(self._usr_table_inner, bg=row_bg, height=row_height)
+                    row_f.pack(fill='x')
+                    row_f.pack_propagate(False)
 
-                    # Checkbox - use indicatoron=0 for a flat button-style toggle
+                    # Checkbox
                     var = tk.BooleanVar(value=False)
                     self._usr_check_vars[user_id] = var
                     cb = tk.Checkbutton(row_f, variable=var, text='',
                                          bg=row_bg, fg=p['fg'],
                                          activebackground=row_bg, activeforeground=p['fg'],
-                                         selectcolor='#334155', highlightthickness=0,
-                                         bd=0, relief='flat', overrelief='flat')
-                    cb.grid(row=0, column=0, padx=8, pady=4)
+                                         selectcolor=row_bg, highlightthickness=0,
+                                         bd=0, relief='flat', overrelief='flat',
+                                         onvalue=True, offvalue=False)
+                    cb.place(relx=0, rely=0, relwidth=pcts[0], relheight=1.0)
                     self._usr_checkboxes[user_id] = cb
 
-                    # ID
-                    tk.Label(row_f, text=user_id, bg=row_bg, fg=p['muted'],
-                             font=('Segoe UI', 9), anchor='center').grid(
-                        row=0, column=1, sticky='ew', padx=8, pady=4)
-
-                    # Username
-                    tk.Label(row_f, text=username, bg=row_bg, fg=p['fg'],
-                             font=('Segoe UI', 9), anchor='w').grid(
-                        row=0, column=2, sticky='ew', padx=8, pady=4)
-
-                    # Nombre
-                    tk.Label(row_f, text=first_name, bg=row_bg, fg=p['fg'],
-                             font=('Segoe UI', 9), anchor='w').grid(
-                        row=0, column=3, sticky='ew', padx=8, pady=4)
-
-                    # Premium badge
-                    tk.Label(row_f, text=premium_text, bg=row_bg, fg=premium_fg,
-                             font=('Segoe UI', 9, 'bold'), anchor='center').grid(
-                        row=0, column=4, sticky='ew', padx=8, pady=4)
-
-                    # Registro
-                    tk.Label(row_f, text=registro, bg=row_bg, fg=p['muted'],
-                             font=('Segoe UI', 9), anchor='center').grid(
-                        row=0, column=5, sticky='ew', padx=8, pady=4)
-
-                    # Expira
-                    tk.Label(row_f, text=expira, bg=row_bg, fg=p['fg'],
-                             font=('Segoe UI', 9), anchor='center').grid(
-                        row=0, column=6, sticky='ew', padx=8, pady=4)
+                    # Data cells via place — exact same relx as header
+                    cell_data = [
+                        (user_id,      p['muted'], ('Segoe UI', 9)),
+                        (username,     p['fg'],    ('Segoe UI', 9)),
+                        (first_name,   p['fg'],    ('Segoe UI', 9)),
+                        (premium_text, premium_fg, ('Segoe UI', 9, 'bold')),
+                        (registro,     p['muted'], ('Segoe UI', 9)),
+                        (expira,       p['fg'],    ('Segoe UI', 9)),
+                    ]
+                    rx = pcts[0]  # start after checkbox
+                    for ci, (txt, fg, fnt) in enumerate(cell_data):
+                        anc = anchors[ci + 1]
+                        tk.Label(row_f, text=txt, bg=row_bg, fg=fg,
+                                 font=fnt, anchor=anc, padx=4).place(
+                            relx=rx, rely=0, relwidth=pcts[ci + 1], relheight=1.0)
+                        rx += pcts[ci + 1]
 
             # Update KPI cards
             try:
