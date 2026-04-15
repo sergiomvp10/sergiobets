@@ -977,12 +977,20 @@ class SergioBetsUnified:
         self._rendimiento_frame.grid_rowconfigure(2, weight=1)
         self._rendimiento_frame.grid_columnconfigure(0, weight=1)
 
-        # Title
+        # Title row with export button
         title_f = tk.Frame(self._rendimiento_frame, bg=p['bg'])
         title_f.grid(row=0, column=0, sticky='ew', pady=(0, 16))
         tk.Label(title_f, text="Rendimiento Semanal",
                  bg=p['bg'], fg=p['fg'],
-                 font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+                 font=('Segoe UI', 16, 'bold')).pack(side='left')
+
+        # Export PDF button
+        export_btn = tk.Button(title_f, text="Exportar PDF",
+                                bg='#3B82F6', fg='#FFFFFF',
+                                font=('Segoe UI', 10, 'bold'),
+                                relief='flat', cursor='hand2', padx=16, pady=6,
+                                command=self._export_rendimiento_pdf)
+        export_btn.pack(side='right')
 
         # Summary KPI row
         kpi_row = tk.Frame(self._rendimiento_frame, bg=p['bg'])
@@ -1229,7 +1237,8 @@ class SergioBetsUnified:
         bar_w = bar_area * 0.5
         gap = (bar_area - bar_w) / 2
 
-        # Draw bars
+        # Draw bars (without value labels yet)
+        bar_positions = []
         for i, (pl, label) in enumerate(zip(daily_pl, day_labels)):
             x1 = margin_left + i * bar_area + gap
             x2 = x1 + bar_w
@@ -1246,18 +1255,13 @@ class SergioBetsUnified:
             if pl != 0:
                 canvas.create_rectangle(x1, y_top, x2, y_bot, fill=color, outline='', width=0)
 
-                # Value label on bar
-                sign_char = '+' if pl > 0 else ''
-                val_text = f"{sign_char}${pl:,.0f}"
-                val_y = y_top - 10 if pl >= 0 else y_bot + 12
-                canvas.create_text((x1 + x2) / 2, val_y, text=val_text,
-                                   fill='#F8FAFC', font=('Segoe UI', 9, 'bold'))
+            bar_positions.append((x1, x2, y_top, y_bot, pl))
 
             # Day label
             canvas.create_text((x1 + x2) / 2, ch - margin_bottom + 18,
                                text=label, fill=p['muted'], font=('Segoe UI', 9))
 
-        # Draw cumulative profit line
+        # Draw cumulative profit line BEFORE value labels
         points = []
         for i, cum_val in enumerate(cumulative):
             x = margin_left + i * bar_area + bar_area / 2
@@ -1272,6 +1276,243 @@ class SergioBetsUnified:
             for px, py in points:
                 canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
                                    fill='#3B82F6', outline='#1E293B', width=2)
+
+        # Draw value labels ON TOP of everything (so blue line doesn't cover them)
+        for x1, x2, y_top, y_bot, pl in bar_positions:
+            if pl != 0:
+                sign_char = '+' if pl > 0 else ''
+                val_text = f"{sign_char}${pl:,.0f}"
+                val_y = y_top - 14 if pl >= 0 else y_bot + 14
+                # Background rectangle for readability
+                tx = (x1 + x2) / 2
+                canvas.create_rectangle(tx - 40, val_y - 8, tx + 40, val_y + 8,
+                                        fill=p['card_bg'], outline='')
+                canvas.create_text(tx, val_y, text=val_text,
+                                   fill='#F8FAFC', font=('Segoe UI', 9, 'bold'))
+
+    def _export_rendimiento_pdf(self):
+        """Export the rendimiento report as a PDF file"""
+        import tkinter as tk
+        from tkinter import filedialog, messagebox
+        STAKE = 10000
+
+        try:
+            historial = cargar_json('historial_predicciones.json') or []
+        except Exception:
+            historial = []
+
+        enviados = [pr for pr in historial if pr.get('sent_to_telegram', False)]
+
+        # Calculate weekly data
+        hoy = hora_bogota().date()
+        dias_nombres = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
+        daily_data = []
+
+        for i in range(6, -1, -1):
+            d = hoy - timedelta(days=i)
+            d_str = d.strftime('%Y-%m-%d')
+            dia_nombre = dias_nombres[d.weekday()]
+
+            day_bets = [pr for pr in enviados
+                        if pr.get('fecha', '') == d_str and pr.get('acierto') is not None]
+            wins = sum(1 for b in day_bets if b.get('acierto') is True)
+            losses = sum(1 for b in day_bets if b.get('acierto') is False)
+            pl = 0
+            for bet in day_bets:
+                cuota = float(bet.get('cuota', 1))
+                if bet.get('acierto') is True:
+                    pl += STAKE * cuota - STAKE
+                else:
+                    pl -= STAKE
+            daily_data.append((f"{dia_nombre} {d.day}/{d.month}", len(day_bets), wins, losses, pl))
+
+        # Global stats
+        resueltos = [pr for pr in enviados if pr.get('acierto') is not None]
+        acertados = [pr for pr in resueltos if pr.get('acierto') is True]
+        fallados = [pr for pr in resueltos if pr.get('acierto') is False]
+        tasa_acierto = (len(acertados) / len(resueltos) * 100) if resueltos else 0
+        total_profit = sum(d[4] for d in daily_data)
+        total_bets = sum(d[1] for d in daily_data)
+        win_days = sum(1 for d in daily_data if d[4] > 0)
+        loss_days = sum(1 for d in daily_data if d[4] < 0)
+
+        # Ask user where to save
+        filepath = filedialog.asksaveasfilename(
+            defaultextension='.pdf',
+            filetypes=[("PDF files", "*.pdf")],
+            initialfile=f"Rendimiento_BetGeniuX_{hoy.strftime('%Y-%m-%d')}.pdf",
+            title="Guardar Reporte PDF"
+        )
+        if not filepath:
+            return
+
+        try:
+            # Generate PDF using basic text-based approach (no external libraries)
+            # Using a simple PDF structure
+            lines = []
+            lines.append("%PDF-1.4")
+            objects = []
+
+            # Object 1: Catalog
+            objects.append("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj")
+            # Object 2: Pages
+            objects.append("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj")
+            # Object 3: Page
+            objects.append("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj")
+
+            # Build content stream
+            content_lines = []
+            content_lines.append("BT")
+
+            # Title
+            y = 740
+            content_lines.append(f"/F2 22 Tf")
+            content_lines.append(f"50 {y} Td")
+            content_lines.append(f"(Reporte de Rendimiento - BetGeniuX) Tj")
+
+            # Date
+            y -= 28
+            content_lines.append(f"/F1 11 Tf")
+            content_lines.append(f"0 -28 Td")
+            content_lines.append(f"(Generado: {hora_bogota().strftime('%Y-%m-%d %I:%M %p')} \\(Hora Colombia\\)) Tj")
+
+            # Separator
+            y -= 20
+            content_lines.append(f"0 -20 Td")
+            content_lines.append(f"(________________________________________________________) Tj")
+
+            # KPI Summary
+            y -= 35
+            content_lines.append(f"/F2 14 Tf")
+            content_lines.append(f"0 -35 Td")
+            content_lines.append(f"(Resumen Semanal) Tj")
+
+            y -= 22
+            content_lines.append(f"/F1 11 Tf")
+            sign = '+' if total_profit >= 0 else ''
+            content_lines.append(f"0 -22 Td")
+            content_lines.append(f"(Profit Semanal: {sign}${total_profit:,.0f} COP) Tj")
+
+            y -= 18
+            content_lines.append(f"0 -18 Td")
+            content_lines.append(f"(Dias Positivos: {win_days}  |  Dias Negativos: {loss_days}) Tj")
+
+            y -= 18
+            content_lines.append(f"0 -18 Td")
+            content_lines.append(f"(Apuestas Resueltas \\(semana\\): {total_bets}) Tj")
+
+            y -= 18
+            content_lines.append(f"0 -18 Td")
+            content_lines.append(f"(Tasa de Acierto Global: {tasa_acierto:.1f}% \\({len(acertados)} de {len(resueltos)} resueltas\\)) Tj")
+
+            y -= 18
+            content_lines.append(f"0 -18 Td")
+            content_lines.append(f"(Stake por apuesta: $10,000 COP) Tj")
+
+            # Separator
+            y -= 25
+            content_lines.append(f"0 -25 Td")
+            content_lines.append(f"(________________________________________________________) Tj")
+
+            # Daily breakdown
+            y -= 30
+            content_lines.append(f"/F2 14 Tf")
+            content_lines.append(f"0 -30 Td")
+            content_lines.append(f"(Detalle por Dia) Tj")
+
+            y -= 22
+            content_lines.append(f"/F2 10 Tf")
+            content_lines.append(f"0 -22 Td")
+            content_lines.append(f"(Dia                  Apuestas    Ganadas    Perdidas    Profit/Loss) Tj")
+
+            content_lines.append(f"/F1 10 Tf")
+            cumulative = 0
+            for dia, n_bets, wins, losses, pl in daily_data:
+                cumulative += pl
+                y -= 18
+                sign_pl = '+' if pl >= 0 else ''
+                line = f"{dia:<20s} {n_bets:>5d}       {wins:>5d}       {losses:>5d}       {sign_pl}${pl:,.0f} COP"
+                # Escape parentheses for PDF
+                line = line.replace('(', '\\(').replace(')', '\\)')
+                content_lines.append(f"0 -18 Td")
+                content_lines.append(f"({line}) Tj")
+
+            # Cumulative total
+            y -= 25
+            content_lines.append(f"/F2 11 Tf")
+            content_lines.append(f"0 -25 Td")
+            sign_cum = '+' if cumulative >= 0 else ''
+            content_lines.append(f"(TOTAL ACUMULADO: {sign_cum}${cumulative:,.0f} COP) Tj")
+
+            # Separator
+            y -= 25
+            content_lines.append(f"0 -25 Td")
+            content_lines.append(f"(________________________________________________________) Tj")
+
+            # Bet detail list (last 10)
+            y -= 30
+            content_lines.append(f"/F2 14 Tf")
+            content_lines.append(f"0 -30 Td")
+            content_lines.append(f"(Ultimas 10 Apuestas Resueltas) Tj")
+
+            recent_resolved = [pr for pr in reversed(enviados) if pr.get('acierto') is not None][:10]
+            content_lines.append(f"/F1 9 Tf")
+            for pr in recent_resolved:
+                y -= 16
+                if y < 60:
+                    break
+                partido = pr.get('partido', 'N/A')[:30]
+                pred = pr.get('prediccion', '')[:20]
+                cuota = pr.get('cuota', 0)
+                resultado = 'Ganada' if pr.get('acierto') else 'Perdida'
+                pl_val = STAKE * float(cuota) - STAKE if pr.get('acierto') else -STAKE
+                sign_v = '+' if pl_val >= 0 else ''
+                line = f"{partido} | {pred} @{cuota} = {resultado} ({sign_v}${pl_val:,.0f})"
+                line = line.replace('(', '\\(').replace(')', '\\)')
+                content_lines.append(f"0 -16 Td")
+                content_lines.append(f"({line}) Tj")
+
+            # Footer
+            content_lines.append(f"0 -{max(y - 30, 16)} Td")
+            content_lines.append(f"/F1 8 Tf")
+            content_lines.append(f"(Reporte generado por BetGeniuX - Datos de historial_predicciones.json) Tj")
+
+            content_lines.append("ET")
+            content_stream = "\n".join(content_lines)
+
+            # Object 4: Content stream
+            objects.append(f"4 0 obj\n<< /Length {len(content_stream)} >>\nstream\n{content_stream}\nendstream\nendobj")
+            # Object 5: Font Helvetica
+            objects.append("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj")
+            # Object 6: Font Helvetica-Bold
+            objects.append("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj")
+
+            # Write PDF
+            pdf_content = "%PDF-1.4\n"
+            offsets = []
+            for obj in objects:
+                offsets.append(len(pdf_content))
+                pdf_content += obj + "\n"
+
+            xref_start = len(pdf_content)
+            pdf_content += "xref\n"
+            pdf_content += f"0 {len(objects) + 1}\n"
+            pdf_content += "0000000000 65535 f \n"
+            for off in offsets:
+                pdf_content += f"{off:010d} 00000 n \n"
+            pdf_content += "trailer\n"
+            pdf_content += f"<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            pdf_content += "startxref\n"
+            pdf_content += f"{xref_start}\n"
+            pdf_content += "%%EOF"
+
+            with open(filepath, 'w') as f:
+                f.write(pdf_content)
+
+            messagebox.showinfo("Reporte Exportado",
+                                f"Reporte PDF guardado exitosamente en:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar el PDF:\n{str(e)}")
 
     def _build_dashboard_content(self, p):
         """Build the owner dashboard with detailed metrics and KPIs"""
@@ -1581,163 +1822,6 @@ class SergioBetsUnified:
                 if not self._dash_scroll_running and len(recent) > 4:
                     self._dash_scroll_running = True
                     self._dash_animate_scroll()
-
-    def _refresh_weekly_chart(self, enviados):
-        """Draw weekly profit/loss bar chart on the canvas using $10,000 COP stake"""
-        if not hasattr(self, '_dash_chart_canvas'):
-            return
-
-        STAKE = 10000  # $10,000 COP per bet
-
-        canvas = self._dash_chart_canvas
-        canvas.delete('all')
-        canvas.update_idletasks()
-        p = self._palette
-
-        cw = canvas.winfo_width()
-        if cw < 50:
-            cw = 600
-        ch = 220
-
-        # Calculate daily P/L for last 7 days
-        hoy = hora_bogota().date()
-        dias_nombres = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
-        daily_pl = []
-        day_labels = []
-
-        for i in range(6, -1, -1):
-            d = hoy - timedelta(days=i)
-            d_str = d.strftime('%Y-%m-%d')
-            dia_nombre = dias_nombres[d.weekday()]
-            day_labels.append(f"{dia_nombre} {d.day}")
-
-            day_bets = [pr for pr in enviados
-                        if pr.get('fecha', '') == d_str and pr.get('acierto') is not None]
-            pl = 0
-            for bet in day_bets:
-                cuota = float(bet.get('cuota', 1))
-                if bet.get('acierto') is True:
-                    pl += STAKE * cuota - STAKE  # profit
-                else:
-                    pl -= STAKE  # loss
-            daily_pl.append(pl)
-
-        # Cumulative profit
-        cumulative = []
-        acc = 0
-        for v in daily_pl:
-            acc += v
-            cumulative.append(acc)
-
-        # Summary
-        total_profit = sum(daily_pl)
-        win_days = sum(1 for v in daily_pl if v > 0)
-        loss_days = sum(1 for v in daily_pl if v < 0)
-        neutral_days = 7 - win_days - loss_days
-        sign = '+' if total_profit >= 0 else ''
-        summary_text = (f"Semana: {sign}${total_profit:,.0f} COP  |  "
-                        f"{win_days} dias +  |  {loss_days} dias -")
-        if hasattr(self, '_dash_chart_summary'):
-            self._dash_chart_summary.config(text=summary_text)
-
-        # Chart dimensions
-        margin_left = 80
-        margin_right = 60
-        margin_top = 20
-        margin_bottom = 40
-        chart_w = cw - margin_left - margin_right
-        chart_h = ch - margin_top - margin_bottom
-
-        if chart_w < 50 or chart_h < 50:
-            return
-
-        # Find max absolute value for scale
-        all_values = daily_pl + cumulative
-        max_abs = max(abs(v) for v in all_values) if any(v != 0 for v in all_values) else STAKE
-        max_abs = max(max_abs, STAKE)  # minimum scale
-
-        # Y-axis: zero line position
-        y_zero = margin_top + chart_h / 2
-        y_scale = (chart_h / 2) / max_abs
-
-        # Draw grid lines and Y labels
-        grid_color = '#334155'
-        for frac in [-1, -0.5, 0, 0.5, 1]:
-            y = y_zero - frac * (chart_h / 2)
-            val = frac * max_abs
-            canvas.create_line(margin_left, y, cw - margin_right, y,
-                               fill=grid_color, dash=(2, 4) if frac != 0 else ())
-            sign_char = '+' if val > 0 else ''
-            label = f"{sign_char}${val:,.0f}" if val != 0 else "$0"
-            canvas.create_text(margin_left - 8, y, text=label,
-                               fill=p['muted'], font=('Segoe UI', 7), anchor='e')
-
-        # Zero line (thicker)
-        canvas.create_line(margin_left, y_zero, cw - margin_right, y_zero,
-                           fill='#475569', width=1, dash=(4, 2))
-
-        # Bar width
-        n_bars = 7
-        bar_area = chart_w / n_bars
-        bar_w = bar_area * 0.55
-        gap = (bar_area - bar_w) / 2
-
-        # Draw bars
-        for i, (pl, label) in enumerate(zip(daily_pl, day_labels)):
-            x1 = margin_left + i * bar_area + gap
-            x2 = x1 + bar_w
-
-            if pl >= 0:
-                y_top = y_zero - pl * y_scale
-                y_bot = y_zero
-                color = '#10B981'
-            else:
-                y_top = y_zero
-                y_bot = y_zero - pl * y_scale
-                color = '#EF4444'
-
-            if pl != 0:
-                canvas.create_rectangle(x1, y_top, x2, y_bot, fill=color, outline='', width=0)
-
-                # Value label on bar
-                sign_char = '+' if pl > 0 else ''
-                val_text = f"{sign_char}${pl:,.0f}"
-                val_y = y_top - 8 if pl >= 0 else y_bot + 10
-                canvas.create_text((x1 + x2) / 2, val_y, text=val_text,
-                                   fill='#F8FAFC', font=('Segoe UI', 7, 'bold'))
-
-            # Day label
-            canvas.create_text((x1 + x2) / 2, ch - margin_bottom + 16,
-                               text=label, fill=p['muted'], font=('Segoe UI', 8))
-
-        # Draw cumulative profit line
-        points = []
-        for i, cum_val in enumerate(cumulative):
-            x = margin_left + i * bar_area + bar_area / 2
-            y = y_zero - cum_val * y_scale
-            points.append((x, y))
-
-        if len(points) >= 2:
-            # Line
-            for j in range(len(points) - 1):
-                canvas.create_line(points[j][0], points[j][1],
-                                   points[j + 1][0], points[j + 1][1],
-                                   fill='#3B82F6', width=2, smooth=True)
-            # Dots
-            for px, py in points:
-                canvas.create_oval(px - 4, py - 4, px + 4, py + 4,
-                                   fill='#3B82F6', outline='#1E293B', width=1)
-
-        # Legend
-        legend_y = margin_top + 2
-        legend_x = cw - margin_right - 10
-        # Cumulative line legend
-        canvas.create_line(legend_x - 55, legend_y, legend_x - 40, legend_y,
-                           fill='#3B82F6', width=2)
-        canvas.create_oval(legend_x - 50, legend_y - 3, legend_x - 44, legend_y + 3,
-                           fill='#3B82F6', outline='')
-        canvas.create_text(legend_x - 38, legend_y, text="Acumulado",
-                           fill=p['muted'], font=('Segoe UI', 7), anchor='w')
 
     def _dash_animate_scroll(self):
         """Smooth scroll animation for recent activity feed"""
