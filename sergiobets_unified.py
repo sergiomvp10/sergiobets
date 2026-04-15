@@ -38,6 +38,7 @@ from footystats_api import obtener_partidos_del_dia
 from json_storage import guardar_json, cargar_json
 from telegram_utils import enviar_telegram, enviar_telegram_masivo
 from ia_bets import filtrar_apuestas_inteligentes, generar_mensaje_ia, simular_datos_prueba, limpiar_cache_predicciones, guardar_prediccion_historica
+from ia_bets_v2 import filtrar_apuestas_inteligentes_v2, generar_mensaje_v2, limpiar_cache_predicciones_v2
 from league_utils import detectar_liga_por_imagen
 from track_record import TrackRecordManager
 
@@ -698,6 +699,14 @@ class SergioBetsUnified:
         self._combo_conf.pack(side='left', padx=(0, 16))
         self._combo_conf.set('Todas')
 
+        v2_btn = tk.Button(fbar, text="V2", bg='#F59E0B',
+                            fg='#FFFFFF', font=('Segoe UI', 10, 'bold'), relief='flat',
+                            cursor='hand2', padx=12, pady=4, bd=0,
+                            activebackground='#D97706',
+                            activeforeground='#FFFFFF', command=self.buscar_v2_en_hilo)
+        v2_btn.pack(side='right', padx=(0, 8))
+        self._v2_btn = v2_btn
+
         gen_btn = tk.Button(fbar, text="Generar Pronosticos", bg=palette['primary'],
                             fg='#FFFFFF', font=('Segoe UI', 10, 'bold'), relief='flat',
                             cursor='hand2', padx=16, pady=4, bd=0,
@@ -1089,6 +1098,40 @@ class SergioBetsUnified:
         self._rend_table_container = table_container
         self._rend_table_body_start_row = 2
 
+        # ── Algorithm Comparison Table (V1 vs V2) ──────────────────
+        algo_card = tk.Frame(self._rendimiento_frame, bg=p['card_bg'], padx=16, pady=8,
+                              highlightbackground=p['card_border'], highlightthickness=1)
+        algo_card.grid(row=4, column=0, sticky='ew', pady=(0, 4))
+
+        tk.Label(algo_card, text="Comparacion Algoritmos: V1 vs V2",
+                 bg=p['card_bg'], fg=p['fg'],
+                 font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 4))
+
+        algo_table = tk.Frame(algo_card, bg=p['card_bg'])
+        algo_table.pack(fill='x')
+        algo_col_weights = [2, 1, 1, 1, 1, 1]
+        for c, w in enumerate(algo_col_weights):
+            algo_table.grid_columnconfigure(c, weight=w, uniform='algo_col')
+
+        algo_headers = [
+            ("Algoritmo", 'w'),
+            ("Aciertos", 'center'),
+            ("Fallos", 'center'),
+            ("Cuota Prom.", 'center'),
+            ("Win Rate", 'center'),
+            ("Profit", 'e'),
+        ]
+        for c, (text, anc) in enumerate(algo_headers):
+            tk.Label(algo_table, text=text, bg=p['card_bg'], fg=p['muted'],
+                     font=('Segoe UI', 8, 'bold'), anchor=anc).grid(
+                row=0, column=c, sticky='ew', padx=6, pady=(0, 3))
+
+        algo_sep = tk.Frame(algo_table, bg=p['card_border'], height=1)
+        algo_sep.grid(row=1, column=0, columnspan=6, sticky='ew', pady=(0, 2))
+
+        self._algo_table_container = algo_table
+        self._algo_table_body_start_row = 2
+
     def _refresh_rendimiento_data(self):
         """Refresh the rendimiento page with real data"""
         import tkinter as tk
@@ -1235,6 +1278,55 @@ class SergioBetsUnified:
             tk.Label(self._rend_table_container, text=f"{t_sign}${total_pl:,.0f} COP", bg=p['card_bg'], fg=t_color,
                      font=('Segoe UI', 9, 'bold'), anchor='e').grid(
                 row=total_row, column=4, sticky='ew', padx=6, pady=1)
+
+        # ── Update Algorithm Comparison Table ──────────────────
+        if hasattr(self, '_algo_table_container'):
+            start = self._algo_table_body_start_row
+            for w in self._algo_table_container.grid_slaves():
+                info = w.grid_info()
+                if int(info.get('row', 0)) >= start:
+                    w.destroy()
+
+            for row_idx, algo_name in enumerate(['v1', 'v2']):
+                algo_bets = [pr for pr in enviados
+                             if pr.get('algoritmo', 'v1') == algo_name and pr.get('acierto') is not None]
+                a_wins = sum(1 for b in algo_bets if b.get('acierto') is True)
+                a_losses = sum(1 for b in algo_bets if b.get('acierto') is False)
+                a_cuotas = [float(b.get('cuota', 1)) for b in algo_bets]
+                a_avg_cuota = sum(a_cuotas) / len(a_cuotas) if a_cuotas else 0
+                a_profit = 0
+                for bet in algo_bets:
+                    cuota = float(bet.get('cuota', 1))
+                    if bet.get('acierto') is True:
+                        a_profit += STAKE * cuota - STAKE
+                    else:
+                        a_profit -= STAKE
+                a_wr = (a_wins / len(algo_bets) * 100) if algo_bets else 0
+                a_sign = '+' if a_profit >= 0 else ''
+                a_color = '#10B981' if a_profit >= 0 else '#EF4444'
+                display_name = 'Algoritmo V1 (Actual)' if algo_name == 'v1' else 'Algoritmo V2 (Experimental)'
+                accent = '#3B82F6' if algo_name == 'v1' else '#F59E0B'
+                r = start + row_idx
+
+                tk.Label(self._algo_table_container, text=display_name, bg=p['card_bg'], fg=accent,
+                         font=('Segoe UI', 9, 'bold'), anchor='w').grid(
+                    row=r, column=0, sticky='ew', padx=6, pady=2)
+                tk.Label(self._algo_table_container, text=str(a_wins), bg=p['card_bg'], fg='#10B981',
+                         font=('Segoe UI', 9), anchor='center').grid(
+                    row=r, column=1, sticky='ew', padx=6, pady=2)
+                tk.Label(self._algo_table_container, text=str(a_losses), bg=p['card_bg'], fg='#EF4444',
+                         font=('Segoe UI', 9), anchor='center').grid(
+                    row=r, column=2, sticky='ew', padx=6, pady=2)
+                tk.Label(self._algo_table_container, text=f"{a_avg_cuota:.2f}" if a_avg_cuota else "-", bg=p['card_bg'], fg=p['fg'],
+                         font=('Segoe UI', 9), anchor='center').grid(
+                    row=r, column=3, sticky='ew', padx=6, pady=2)
+                tk.Label(self._algo_table_container, text=f"{a_wr:.1f}%" if algo_bets else "-", bg=p['card_bg'], fg=p['fg'],
+                         font=('Segoe UI', 9), anchor='center').grid(
+                    row=r, column=4, sticky='ew', padx=6, pady=2)
+                tk.Label(self._algo_table_container, text=f"{a_sign}${a_profit:,.0f} COP" if algo_bets else "Sin datos",
+                         bg=p['card_bg'], fg=a_color if algo_bets else p['muted'],
+                         font=('Segoe UI', 9, 'bold'), anchor='e').grid(
+                    row=r, column=5, sticky='ew', padx=6, pady=2)
 
     def _draw_rendimiento_chart(self, daily_pl, cumulative, day_labels):
         """Draw the full-page weekly bar chart on the rendimiento canvas"""
@@ -3529,6 +3621,70 @@ class SergioBetsUnified:
         except ImportError:
             threading.Thread(target=lambda: self.buscar(opcion_numero=2)).start()
 
+    def buscar_v2_en_hilo(self):
+        """Buscar con algoritmo V2 en hilo separado"""
+        try:
+            from thread_pool_manager import thread_manager
+            executor = thread_manager.get_executor()
+            executor.submit(self.buscar_v2)
+        except ImportError:
+            threading.Thread(target=self.buscar_v2).start()
+
+    def buscar_v2(self):
+        """Buscar partidos y generar predicciones con algoritmo V2"""
+        try:
+            fecha = self.entry_fecha.get()
+            self.ligas_disponibles.clear()
+
+            limpiar_cache_predicciones_v2()
+
+            partidos = self.cargar_partidos_reales(fecha)
+
+            self.limpiar_frame_predicciones()
+            self.limpiar_frame_partidos()
+
+            if not partidos or len(partidos) == 0:
+                self.actualizar_ligas()
+                self.mensaje_telegram = f"No hay partidos disponibles para {fecha}"
+                messagebox.showinfo("Sin partidos", f"No hay partidos disponibles para {fecha}\nIntenta con otra fecha que tenga partidos programados")
+                return
+
+            for partido in partidos:
+                liga = partido["liga"]
+                self.ligas_disponibles.add(liga)
+
+            self.actualizar_ligas()
+
+            liga_filtrada = self.combo_ligas.get()
+            if liga_filtrada not in ['Todas'] + sorted(list(self.ligas_disponibles)):
+                self.combo_ligas.set('Todas')
+                liga_filtrada = 'Todas'
+
+            if liga_filtrada == 'Todas':
+                partidos_filtrados = partidos
+            else:
+                partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
+
+            predicciones_v2 = filtrar_apuestas_inteligentes_v2(partidos_filtrados)
+
+            # Tag all V2 predictions with algorithm version
+            for pred in predicciones_v2:
+                pred['algoritmo'] = 'v2'
+
+            titulo_extra = " - ALGORITMO V2 (Experimental)"
+            self.mostrar_predicciones_con_checkboxes(predicciones_v2, liga_filtrada, titulo_extra)
+            self.mostrar_partidos_con_checkboxes(partidos_filtrados, liga_filtrada, fecha)
+
+            preview_counter_numbers = list(range(1, len(predicciones_v2) + 1))
+            self.mensaje_telegram = generar_mensaje_v2(predicciones_v2, fecha, preview_counter_numbers)
+
+            self.guardar_datos_json(fecha)
+
+        except Exception as e:
+            error_msg = f"Error al buscar con V2: {e}"
+            print(error_msg)
+            messagebox.showerror("Error V2", f"Error al generar pronosticos V2: {e}")
+
     def buscar(self, opcion_numero=1):
         """Buscar partidos y predicciones"""
         try:
@@ -3566,7 +3722,11 @@ class SergioBetsUnified:
                 partidos_filtrados = [p for p in partidos if p["liga"] == liga_filtrada]
             
             predicciones_ia = filtrar_apuestas_inteligentes(partidos_filtrados, opcion_numero)
-            
+
+            # Tag all V1 predictions with algorithm version
+            for pred in predicciones_ia:
+                pred['algoritmo'] = 'v1'
+
             config = self.cargar_configuracion()
             odds_min = config.get("odds_min", 1.30)
             odds_max = config.get("odds_max", 1.60)
@@ -4352,6 +4512,15 @@ class SergioBetsUnified:
                     pred['sent_to_telegram'] = True
                     pred['fecha_envio_telegram'] = hora_bogota().isoformat()
                     guardar_prediccion_historica(pred, fecha)
+                    # Patch historial to include algorithm version
+                    try:
+                        hist = cargar_json('historial_predicciones.json') or []
+                        if hist:
+                            hist[-1]['algoritmo'] = pred.get('algoritmo', 'v1')
+                            from json_storage import guardar_json as _gj
+                            _gj('historial_predicciones.json', hist)
+                    except Exception:
+                        pass
                 
                 with open("pronosticos_seleccionados.json", "w", encoding="utf-8") as f:
                     json.dump({"fecha": fecha, "predicciones": predicciones_seleccionadas}, f, ensure_ascii=False, indent=4)
