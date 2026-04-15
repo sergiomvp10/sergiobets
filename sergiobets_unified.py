@@ -1413,11 +1413,7 @@ class SergioBetsUnified:
         for x1, x2, y_top, y_bot, pl in bar_positions:
             if pl != 0:
                 sign_char = '+' if pl > 0 else ''
-                # Format: use K for large values
-                if abs(pl) >= 1000:
-                    val_text = f"{sign_char}${pl / 1000:,.1f}K"
-                else:
-                    val_text = f"{sign_char}${pl:,.0f}"
+                val_text = f"{sign_char}${pl:,.0f}"
                 val_y = y_top - 12 if pl >= 0 else y_bot + 12
                 tx = (x1 + x2) / 2
                 val_color = '#10B981' if pl > 0 else '#EF4444'
