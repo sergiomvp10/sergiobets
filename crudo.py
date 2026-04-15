@@ -34,10 +34,16 @@ def cargar_partidos_reales(fecha):
             return simular_datos_prueba()
 
         for partido in datos_api:
-            liga_detectada = detectar_liga_por_imagen(
-                partido.get("home_image", ""), 
-                partido.get("away_image", "")
-            )
+            # Use competition_name from API (accurate for Champions League, Europa League, etc.)
+            # Fall back to image-based detection only if competition_name is not available
+            competition_name = partido.get("competition_name", "")
+            if competition_name:
+                liga_detectada = competition_name
+            else:
+                liga_detectada = detectar_liga_por_imagen(
+                    partido.get("home_image", ""), 
+                    partido.get("away_image", "")
+                )
             from league_utils import convertir_timestamp_unix
             hora_partido = convertir_timestamp_unix(partido.get("date_unix"))
             
