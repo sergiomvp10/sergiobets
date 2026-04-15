@@ -1238,6 +1238,7 @@ class SergioBetsUnified:
 
     def _draw_rendimiento_chart(self, daily_pl, cumulative, day_labels):
         """Draw the full-page weekly bar chart on the rendimiento canvas"""
+        import math
         if not hasattr(self, '_rend_chart_canvas'):
             return
 
@@ -1254,11 +1255,11 @@ class SergioBetsUnified:
         if ch < 100:
             ch = 300
 
-        # Chart dimensions
-        margin_left = 90
-        margin_right = 30
-        margin_top = 25
-        margin_bottom = 45
+        # Chart dimensions — generous margins
+        margin_left = 80
+        margin_right = 20
+        margin_top = 20
+        margin_bottom = 40
         chart_w = cw - margin_left - margin_right
         chart_h = ch - margin_top - margin_bottom
 
@@ -1269,36 +1270,96 @@ class SergioBetsUnified:
         all_values = daily_pl + cumulative
         max_abs = max(abs(v) for v in all_values) if any(v != 0 for v in all_values) else STAKE
         max_abs = max(max_abs, STAKE)
-        # Add 15% padding to the scale
-        max_abs = max_abs * 1.15
+
+        # Round max_abs up to a "nice" number for clean Y labels
+        def _nice_ceil(val):
+            if val <= 0:
+                return STAKE
+            mag = 10 ** math.floor(math.log10(val))
+            norm = val / mag
+            if norm <= 1:
+                nice = 1
+            elif norm <= 2:
+                nice = 2
+            elif norm <= 5:
+                nice = 5
+            else:
+                nice = 10
+            return int(nice * mag)
+
+        max_abs = _nice_ceil(int(max_abs * 1.2))
 
         # Y-axis: zero line position
         y_zero = margin_top + chart_h / 2
         y_scale = (chart_h / 2) / max_abs
 
-        # Draw grid lines and Y labels
-        grid_color = '#334155'
-        for frac in [-1, -0.5, 0, 0.5, 1]:
-            y = y_zero - frac * (chart_h / 2)
-            val = frac * max_abs
-            canvas.create_line(margin_left, y, cw - margin_right, y,
-                               fill=grid_color, dash=(2, 4) if frac != 0 else ())
-            sign_char = '+' if val > 0 else ''
-            label = f"{sign_char}${val:,.0f}" if val != 0 else "$0"
-            canvas.create_text(margin_left - 10, y, text=label,
-                               fill=p['muted'], font=('Segoe UI', 8), anchor='e')
+        # Compute nice Y-axis tick step
+        def _nice_step(max_val, target_ticks=4):
+            raw = max_val / target_ticks
+            mag = 10 ** math.floor(math.log10(raw)) if raw > 0 else 1
+            norm = raw / mag
+            if norm <= 1:
+                step = 1
+            elif norm <= 2:
+                step = 2
+            elif norm <= 5:
+                step = 5
+            else:
+                step = 10
+            return int(step * mag)
 
-        # Zero line (thicker)
-        canvas.create_line(margin_left, y_zero, cw - margin_right, y_zero,
-                           fill='#475569', width=1, dash=(4, 2))
+        tick_step = _nice_step(max_abs)
+        if tick_step < 1:
+            tick_step = STAKE
 
-        # Bar width
-        n_bars = 7
+        # Draw subtle grid lines and clean Y labels
+        grid_color = '#1E293B'
+        tick_val = -max_abs
+        while tick_val <= max_abs:
+            y = y_zero - tick_val * y_scale
+            if margin_top <= y <= ch - margin_bottom:
+                if tick_val == 0:
+                    canvas.create_line(margin_left, y, cw - margin_right, y,
+                                       fill='#475569', width=1)
+                else:
+                    canvas.create_line(margin_left, y, cw - margin_right, y,
+                                       fill=grid_color, dash=(2, 6))
+                # Format label: use K for thousands
+                if abs(tick_val) >= 1000:
+                    label = f"${tick_val // 1000:+,d}K" if tick_val != 0 else "$0"
+                else:
+                    label = f"${tick_val:+,d}" if tick_val != 0 else "$0"
+                if tick_val == 0:
+                    label = "$0"
+                canvas.create_text(margin_left - 8, y, text=label,
+                                   fill=p['muted'], font=('Segoe UI', 8), anchor='e')
+            tick_val += tick_step
+
+        # Bar width — wider bars with rounded corners
+        n_bars = len(daily_pl) if daily_pl else 7
         bar_area = chart_w / n_bars
-        bar_w = bar_area * 0.5
+        bar_w = bar_area * 0.55
         gap = (bar_area - bar_w) / 2
 
-        # Draw bars (without value labels yet)
+        def _draw_rounded_rect(x1, y1, x2, y2, r, fill_color):
+            """Draw a rectangle with rounded top corners"""
+            r = min(r, abs(x2 - x1) / 2, abs(y2 - y1) / 2)
+            if r < 1:
+                canvas.create_rectangle(x1, y1, x2, y2, fill=fill_color, outline='', width=0)
+                return
+            # For positive bars: round top corners
+            # For negative bars: round bottom corners
+            if y1 < y2:  # positive bar (top is y1)
+                canvas.create_arc(x1, y1, x1 + 2 * r, y1 + 2 * r, start=90, extent=90,
+                                  fill=fill_color, outline=fill_color)
+                canvas.create_arc(x2 - 2 * r, y1, x2, y1 + 2 * r, start=0, extent=90,
+                                  fill=fill_color, outline=fill_color)
+                canvas.create_rectangle(x1 + r, y1, x2 - r, y1 + r, fill=fill_color, outline='')
+                canvas.create_rectangle(x1, y1 + r, x2, y2, fill=fill_color, outline='')
+            else:  # negative bar (bottom is y1)
+                canvas.create_rectangle(x1, y2, x2, y1, fill=fill_color, outline='', width=0)
+
+        # Draw bars
         bar_positions = []
         for i, (pl, label) in enumerate(zip(daily_pl, day_labels)):
             x1 = margin_left + i * bar_area + gap
@@ -1314,15 +1375,15 @@ class SergioBetsUnified:
                 color = '#EF4444'
 
             if pl != 0:
-                canvas.create_rectangle(x1, y_top, x2, y_bot, fill=color, outline='', width=0)
+                _draw_rounded_rect(x1, y_top, x2, y_bot, 4, color)
 
             bar_positions.append((x1, x2, y_top, y_bot, pl))
 
-            # Day label
-            canvas.create_text((x1 + x2) / 2, ch - margin_bottom + 18,
+            # Day label — clean font
+            canvas.create_text((x1 + x2) / 2, ch - margin_bottom + 16,
                                text=label, fill=p['muted'], font=('Segoe UI', 9))
 
-        # Draw cumulative profit line BEFORE value labels
+        # Draw smooth cumulative profit line
         points = []
         for i, cum_val in enumerate(cumulative):
             x = margin_left + i * bar_area + bar_area / 2
@@ -1330,26 +1391,42 @@ class SergioBetsUnified:
             points.append((x, y))
 
         if len(points) >= 2:
+            # Smooth line — thicker, with glow effect
+            # Glow (subtle wider line behind)
             for j in range(len(points) - 1):
                 canvas.create_line(points[j][0], points[j][1],
                                    points[j + 1][0], points[j + 1][1],
-                                   fill='#3B82F6', width=2.5, smooth=True)
+                                   fill='#1E40AF', width=5, smooth=True,
+                                   capstyle='round', joinstyle='round')
+            # Main line
+            for j in range(len(points) - 1):
+                canvas.create_line(points[j][0], points[j][1],
+                                   points[j + 1][0], points[j + 1][1],
+                                   fill='#3B82F6', width=2.5, smooth=True,
+                                   capstyle='round', joinstyle='round')
+            # Small clean dots (no thick outline)
             for px, py in points:
-                canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
-                                   fill='#3B82F6', outline='#1E293B', width=2)
+                canvas.create_oval(px - 3, py - 3, px + 3, py + 3,
+                                   fill='#60A5FA', outline='#3B82F6', width=1)
 
-        # Draw value labels ON TOP of everything (so blue line doesn't cover them)
+        # Draw value labels ON TOP — clean pill-shaped badges
         for x1, x2, y_top, y_bot, pl in bar_positions:
             if pl != 0:
                 sign_char = '+' if pl > 0 else ''
-                val_text = f"{sign_char}${pl:,.0f}"
-                val_y = y_top - 14 if pl >= 0 else y_bot + 14
-                # Background rectangle for readability
+                # Format: use K for large values
+                if abs(pl) >= 1000:
+                    val_text = f"{sign_char}${pl / 1000:,.1f}K"
+                else:
+                    val_text = f"{sign_char}${pl:,.0f}"
+                val_y = y_top - 12 if pl >= 0 else y_bot + 12
                 tx = (x1 + x2) / 2
-                canvas.create_rectangle(tx - 40, val_y - 8, tx + 40, val_y + 8,
+                val_color = '#10B981' if pl > 0 else '#EF4444'
+                # Pill background
+                tw = len(val_text) * 5.5 + 8
+                canvas.create_rectangle(tx - tw / 2, val_y - 8, tx + tw / 2, val_y + 8,
                                         fill=p['card_bg'], outline='')
                 canvas.create_text(tx, val_y, text=val_text,
-                                   fill='#F8FAFC', font=('Segoe UI', 9, 'bold'))
+                                   fill=val_color, font=('Segoe UI', 8, 'bold'))
 
     def _export_rendimiento_pdf(self):
         """Export the rendimiento report as a PDF file"""
