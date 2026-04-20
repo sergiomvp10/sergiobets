@@ -32,5 +32,7 @@
 
 ## 📦 Requisitos
 
+> ✅ Verificación de acceso completada
+
 ```bash
 pip install -r requirements.txt
